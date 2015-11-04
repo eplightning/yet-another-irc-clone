@@ -8,8 +8,12 @@
 
 #include <limits.h>
 
-namespace YAIC
-{
+#define YAIC_NAMESPACE namespace YAIC {
+#define END_NAMESPACE }
+#define UNUSED(x) (void)(x)
+
+YAIC_NAMESPACE
+
 // STL
 typedef std::string String;
 template<class T> using UniquePtr = std::unique_ptr < T > ;
@@ -68,4 +72,5 @@ typedef signed int s64;
 #else
 #error "No 64-bit int type found"
 #endif
-}
+
+END_NAMESPACE
