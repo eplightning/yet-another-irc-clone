@@ -22,7 +22,7 @@ public:
         ServerList = 2
     };
 
-    Packet(Type type) : packetType(type), packetReaderPos(0) {}
+    Packet(Type type) : m_packetType(type), m_packetReaderPos(0) {}
     virtual ~Packet() {}
 
     virtual bool decodePayload(Vector<char> &payload) = 0;
@@ -30,6 +30,7 @@ public:
 
     void encode(Vector<char> &packet) const;
     Vector<char> encode() const;
+    Type packetType() const { return m_packetType; }
 
 protected:
     void write(Vector<char> &payload, u8 data) const;
@@ -48,10 +49,9 @@ protected:
     void read(const Vector<char> &payload, u32 &data);
     void read(const Vector<char> &payload, String &data);
 
-public:
-    Type packetType;
 protected:
-    int packetReaderPos;
+    Type m_packetType;
+    int m_packetReaderPos;
 };
 
 inline void Packet::write(Vector<char> &payload, u8 data) const
@@ -100,38 +100,38 @@ inline void Packet::write(Vector<char> &payload, const String &data) const
 
 inline void Packet::read(const Vector<char> &payload, u8 &data)
 {
-    data = static_cast<u8>(payload[packetReaderPos]);
-    packetReaderPos += 1;
+    data = static_cast<u8>(payload[m_packetReaderPos]);
+    m_packetReaderPos += 1;
 }
 
 inline void Packet::read(const Vector<char> &payload, s8 &data)
 {
-    data = static_cast<s8>(payload[packetReaderPos]);
-    packetReaderPos += 1;
+    data = static_cast<s8>(payload[m_packetReaderPos]);
+    m_packetReaderPos += 1;
 }
 
 inline void Packet::read(const Vector<char> &payload, s16 &data)
 {
-    data = ntohs(*(reinterpret_cast<const s16*>(&payload[packetReaderPos])));
-    packetReaderPos += 2;
+    data = ntohs(*(reinterpret_cast<const s16*>(&payload[m_packetReaderPos])));
+    m_packetReaderPos += 2;
 }
 
 inline void Packet::read(const Vector<char> &payload, u16 &data)
 {
-    data = ntohs(*(reinterpret_cast<const u16*>(&payload[packetReaderPos])));
-    packetReaderPos += 2;
+    data = ntohs(*(reinterpret_cast<const u16*>(&payload[m_packetReaderPos])));
+    m_packetReaderPos += 2;
 }
 
 inline void Packet::read(const Vector<char> &payload, s32 &data)
 {
-    data = ntohl(*(reinterpret_cast<const s32*>(&payload[packetReaderPos])));
-    packetReaderPos += 4;
+    data = ntohl(*(reinterpret_cast<const s32*>(&payload[m_packetReaderPos])));
+    m_packetReaderPos += 4;
 }
 
 inline void Packet::read(const Vector<char> &payload, u32 &data)
 {
-    data = ntohl(*(reinterpret_cast<const u32*>(&payload[packetReaderPos])));
-    packetReaderPos += 4;
+    data = ntohl(*(reinterpret_cast<const u32*>(&payload[m_packetReaderPos])));
+    m_packetReaderPos += 4;
 }
 
 inline void Packet::read(const Vector<char> &payload, String &data)
@@ -139,8 +139,8 @@ inline void Packet::read(const Vector<char> &payload, String &data)
     u32 len;
     read(payload, len);
     data.reserve(len);
-    data.assign(payload.cbegin() + packetReaderPos, payload.cbegin() + packetReaderPos + len);
-    packetReaderPos += len;
+    data.assign(payload.cbegin() + m_packetReaderPos, payload.cbegin() + m_packetReaderPos + len);
+    m_packetReaderPos += len;
 }
 
 END_NAMESPACE

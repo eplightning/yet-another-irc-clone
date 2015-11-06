@@ -7,7 +7,7 @@ YAIC_NAMESPACE
 void Packet::encode(Vector<char> &packet) const
 {
     packet.reserve(4);
-    write(packet, static_cast<u16>(packetType));
+    write(packet, static_cast<u16>(m_packetType));
     write(packet, static_cast<u16>(0));
 
     encodePayload(packet);
