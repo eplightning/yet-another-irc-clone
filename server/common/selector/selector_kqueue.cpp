@@ -32,7 +32,6 @@ void SelectorApiKqueue::add(int fd, int type, void *data, int eventType)
         delete (*it).second;
 
     SelectorInfo *info = new SelectorInfo(fd, type, data, eventType);
-    m_info[fd] = info;
 
     if (eventType & SelectorInfo::ReadEvent) {
         appendChange(fd, EVFILT_READ, EV_ADD, 0, info);
@@ -41,6 +40,11 @@ void SelectorApiKqueue::add(int fd, int type, void *data, int eventType)
     if (eventType & SelectorInfo::WriteEvent) {
         appendChange(fd, EVFILT_WRITE, EV_ADD, 0, info);
     }
+}
+
+void SelectorApiKqueue::close(int fd)
+{
+    m_closedFds.insert(fd);
 }
 
 void SelectorApiKqueue::modify(int fd, int eventType)
@@ -82,17 +86,43 @@ Selector::WaitRetval SelectorApiKqueue::wait(Vector<SelectorEvent> &events)
 
     struct kevent kevents[m_bufsize];
     struct kevent *changelist = 0;
+    int nchanges = 0;
 
-    if (m_changes.size() > 0)
-        changelist = &(m_changes[0]);
+    Vector<struct kevent> tmpEvents;
+    if (m_changes.size() > 0) {
+        if (m_closedFds.size() > 0) {
+            tmpEvents.reserve(m_changes.size());
 
-    int nevents = kevent(m_kqueuefd, changelist, m_changes.size(), kevents, m_bufsize, 0);
+            for (auto &x : m_changes) {
+                if (m_closedFds.find(x.ident) == m_closedFds.end())
+                    tmpEvents.push_back(x);
+            }
+
+            changelist = &(tmpEvents[0]);
+            nchanges = tmpEvents.size();
+        } else {
+            changelist = &(m_changes[0]);
+            nchanges = m_changes.size();
+        }
+    }
+
+    // najpierw zmiany
+    int nevents = kevent(m_kqueuefd, changelist, nchanges, 0, 0, 0);
+    if (nevents == -1)
+        return WaitRetval::Error;
+
     m_changes.clear();
+    m_closedFds.clear();
 
+    // teraz przyjmuejmy eventy
+    nevents = kevent(m_kqueuefd, 0, 0, kevents, m_bufsize, 0);
     if (nevents == -1)
         return WaitRetval::Error;
 
     for (int i = 0; i < nevents; i++) {
+        if (kevents[i].flags & EV_ERROR)
+            continue;
+
         if (kevents[i].filter == EVFILT_READ) {
             events.emplace_back(static_cast<SelectorInfo*>(kevents[i].udata), SelectorInfo::ReadEvent);
         } else if (kevents[i].filter == EVFILT_WRITE) {

@@ -143,4 +143,7 @@ inline void Packet::read(const Vector<char> &payload, String &data)
     m_packetReaderPos += len;
 }
 
+const static int PACKET_MAX_SIZE = 32 * 1024;
+const static int PACKET_HEADER_SIZE = 2 * sizeof(u16);
+
 END_NAMESPACE

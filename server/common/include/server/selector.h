@@ -53,6 +53,7 @@ public:
     virtual ~Selector() {}
 
     virtual void add(int fd, int type, void *data, int eventType) = 0;
+    virtual void close(int fd) {UNUSED(fd);}
     virtual void modify(int fd, int eventType) = 0;
     virtual void remove(int fd) = 0;
     virtual WaitRetval wait(Vector<SelectorEvent> &events) = 0;

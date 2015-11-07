@@ -3,6 +3,8 @@
 #include <common/types.h>
 #include <server/selector.h>
 
+#include <set>
+
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
@@ -15,6 +17,7 @@ public:
     virtual ~SelectorApiKqueue();
 
     virtual void add(int fd, int type, void *data, int eventType);
+    virtual void close(int fd);
     virtual void modify(int fd, int eventType);
     virtual void remove(int fd);
     virtual WaitRetval wait(Vector<SelectorEvent> &events);
@@ -26,6 +29,7 @@ protected:
     int m_kqueuefd;
     HashMap<int, SelectorInfo*> m_info;
     Vector<struct kevent> m_changes;
+    std::set<int> m_closedFds;
 };
 
 END_NAMESPACE
