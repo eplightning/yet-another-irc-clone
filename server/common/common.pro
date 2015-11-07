@@ -5,17 +5,18 @@ CONFIG += shared c++11 thread
 
 INCLUDEPATH += ../../common/include include
 DEPENDPATH += ../../common/include include
+LIBS += -L../../bin -lyaic
 
 DESTDIR = ../../bin
 TARGET = yaicserver
 
 HEADERS += \
     include/server/selector.h \
-    selector/selector_epoll.h
+    include/server/tcp_server.h
 
 SOURCES += \
     selector.cpp \
-    selector/selector_epoll.cpp
+    tcp_server.cpp
 
 macx {
     SOURCES += \
