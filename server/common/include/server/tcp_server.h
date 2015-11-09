@@ -18,7 +18,7 @@ enum ConnectionProto {
 };
 
 struct ClientReceiveBuffer {
-    RawPacket header;
+    PacketHeader header;
     uint received;
     char data[PACKET_MAX_SIZE];
 };
@@ -96,7 +96,7 @@ typedef std::function<void(uint clientid)> LostConnectionDelegate;
 typedef std::function<NewConnectionResponse(SharedPtr<Client> client)> NewConnectionDelegate;
 
 // nowy pakiet
-typedef std::function<void(uint clientid, RawPacket header, char *data)> ReceiveDataDelegate;
+typedef std::function<void(uint clientid, PacketHeader header, char *data)> ReceiveDataDelegate;
 
 struct ListenPool {
     Vector<ListenPoolSocket> sockets;
@@ -122,7 +122,7 @@ public:
 
 protected:
     void newConnection(ListenPoolSocket *listen, Selector *select);
-    bool pipeNotification(Selector *select, Vector<Client*> &eraseList);
+    bool pipeNotification(Selector *select);
     void readEvent(Client *client, SelectorEvent &event, Selector *select, Vector<Client*> &eraseList, int rounds = 0);
     void writeEvent(Client *client, Selector *select, Vector<Client*> &eraseList, int rounds = 0);
 

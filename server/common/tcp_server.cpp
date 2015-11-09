@@ -182,7 +182,7 @@ void TcpServer::runLoop()
                 if (event.type() != SelectorInfo::ReadEvent)
                     continue;
 
-                stopLooping = stopLooping || pipeNotification(select, eraseList);
+                stopLooping = stopLooping || pipeNotification(select);
             } else if (event.info()->type() == TCP_SELECTOR_TYPE_CLIENT) {
                 Client *client = static_cast<Client*>(event.info()->data());
 
@@ -232,7 +232,7 @@ void TcpServer::newConnection(ListenPoolSocket *listen, Selector *select)
     }
 }
 
-bool TcpServer::pipeNotification(Selector *select, Vector<Client*> &eraseList)
+bool TcpServer::pipeNotification(Selector *select)
 {
     TcpPipeNotification notify;
     read(m_pipe[0], &notify, sizeof(TcpPipeNotification));
@@ -246,8 +246,7 @@ bool TcpServer::pipeNotification(Selector *select, Vector<Client*> &eraseList)
         Client *client = (*clientIt).second.get();
 
         if (notify.type == TcpPipeTypeDisconnect) {
-            // wysyłamy wszystkie nasze pakiety w kolejce, ale już absolutnie nic nie odbieramy
-            stopReading(client, select, eraseList, -2);
+            client->setState(Client::State::Disconnecting);
         } else if (notify.type == TcpPipeTypeSendBufferReceived) {
             int eventType = 0;
             if (client->readError() == 0)
@@ -297,16 +296,15 @@ void TcpServer::readEvent(Client *client, SelectorEvent &event, Selector *select
     }
 
     // nieprawidłowe pakiety
-    if (buffer.header.payloadSize > PACKET_MAX_SIZE - PACKET_HEADER_SIZE) {
+    if (buffer.header.payloadSize > PACKET_MAX_PAYLOAD_SIZE)
         return stopReading(client, select, eraseList, -1);
-    }
 
     received = read(client->socket(), buffer.data + buffer.received,
-                    buffer.header.payloadSize - buffer.received - PACKET_HEADER_SIZE);
+                    buffer.header.payloadSize - (buffer.received - PACKET_HEADER_SIZE));
 
     if (received == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
         return stopReading(client, select, eraseList, errno);
-    } else if (received < static_cast<int>(buffer.header.payloadSize - buffer.received - PACKET_HEADER_SIZE)
+    } else if (received < static_cast<int>(buffer.header.payloadSize - (buffer.received - PACKET_HEADER_SIZE))
                     && event.info()->closed()) {
         return stopReading(client, select, eraseList, EPIPE);
     } else if (received > 0) {
@@ -347,7 +345,6 @@ void TcpServer::writeEvent(Client *client, Selector *select, Vector<Client *> &e
 void TcpServer::stopReading(Client *client, Selector *select, Vector<Client *> &eraseList, int error)
 {
     client->setReadError(error);
-    client->setState(Client::State::Disconnecting);
     client->pool()->lostConnection(client->id());
 
     if (client->sendBuffer() != nullptr)
@@ -358,12 +355,20 @@ void TcpServer::stopReading(Client *client, Selector *select, Vector<Client *> &
 
 void TcpServer::stopWriting(Client *client, Selector *select, Vector<Client *> &eraseList, int error)
 {
-    client->setWriteError(error);
-
-    if (client->state() == Client::State::Disconnecting || client->readError() != 0)
+    if (client->readError() != 0) {
         eraseList.push_back(client);
-    else
+    } else {
         select->modify(client->socket(), SelectorInfo::ReadEvent);
+
+        if (client->state() == Client::State::Disconnecting) {
+            shutdown(client->socket(), SHUT_WR);
+
+            if (error == 0)
+                error = -1;
+        }
+    }
+
+    client->setWriteError(error);
 }
 
 
