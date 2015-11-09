@@ -7,10 +7,9 @@
 YAIC_NAMESPACE
 
 #pragma pack(push, 1)
-struct RawPacket {
+struct PacketHeader {
     u16 type;
     u16 payloadSize;
-    char payload[1];
 };
 #pragma pack(pop)
 
@@ -41,17 +40,17 @@ protected:
     void write(Vector<char> &payload, s32 data) const;
     void write(Vector<char> &payload, const String &data) const;
 
-    void read(const Vector<char> &payload, u8 &data);
-    void read(const Vector<char> &payload, s8 &data);
-    void read(const Vector<char> &payload, s16 &data);
-    void read(const Vector<char> &payload, u16 &data);
-    void read(const Vector<char> &payload, s32 &data);
-    void read(const Vector<char> &payload, u32 &data);
-    void read(const Vector<char> &payload, String &data);
+    bool read(const Vector<char> &payload, u8 &data);
+    bool read(const Vector<char> &payload, s8 &data);
+    bool read(const Vector<char> &payload, s16 &data);
+    bool read(const Vector<char> &payload, u16 &data);
+    bool read(const Vector<char> &payload, s32 &data);
+    bool read(const Vector<char> &payload, u32 &data);
+    bool read(const Vector<char> &payload, String &data);
 
 protected:
     Type m_packetType;
-    int m_packetReaderPos;
+    uint m_packetReaderPos;
 };
 
 inline void Packet::write(Vector<char> &payload, u8 data) const
@@ -98,52 +97,80 @@ inline void Packet::write(Vector<char> &payload, const String &data) const
     payload.insert(payload.end(), data.cbegin(), data.cend());
 }
 
-inline void Packet::read(const Vector<char> &payload, u8 &data)
+inline bool Packet::read(const Vector<char> &payload, u8 &data)
 {
+    if (payload.size() < 1 + m_packetReaderPos)
+        return false;
+
     data = static_cast<u8>(payload[m_packetReaderPos]);
     m_packetReaderPos += 1;
+    return true;
 }
 
-inline void Packet::read(const Vector<char> &payload, s8 &data)
+inline bool Packet::read(const Vector<char> &payload, s8 &data)
 {
+    if (payload.size() < 1 + m_packetReaderPos)
+        return false;
+
     data = static_cast<s8>(payload[m_packetReaderPos]);
     m_packetReaderPos += 1;
+    return true;
 }
 
-inline void Packet::read(const Vector<char> &payload, s16 &data)
+inline bool Packet::read(const Vector<char> &payload, s16 &data)
 {
+    if (payload.size() < 2 + m_packetReaderPos)
+        return false;
+
     data = ntohs(*(reinterpret_cast<const s16*>(&payload[m_packetReaderPos])));
     m_packetReaderPos += 2;
+    return true;
 }
 
-inline void Packet::read(const Vector<char> &payload, u16 &data)
+inline bool Packet::read(const Vector<char> &payload, u16 &data)
 {
+    if (payload.size() < 2 + m_packetReaderPos)
+        return false;
+
     data = ntohs(*(reinterpret_cast<const u16*>(&payload[m_packetReaderPos])));
     m_packetReaderPos += 2;
+    return true;
 }
 
-inline void Packet::read(const Vector<char> &payload, s32 &data)
+inline bool Packet::read(const Vector<char> &payload, s32 &data)
 {
+    if (payload.size() < 4 + m_packetReaderPos)
+        return false;
+
     data = ntohl(*(reinterpret_cast<const s32*>(&payload[m_packetReaderPos])));
     m_packetReaderPos += 4;
+    return true;
 }
 
-inline void Packet::read(const Vector<char> &payload, u32 &data)
+inline bool Packet::read(const Vector<char> &payload, u32 &data)
 {
+    if (payload.size() < 4 + m_packetReaderPos)
+        return false;
+
     data = ntohl(*(reinterpret_cast<const u32*>(&payload[m_packetReaderPos])));
     m_packetReaderPos += 4;
+    return true;
 }
 
-inline void Packet::read(const Vector<char> &payload, String &data)
+inline bool Packet::read(const Vector<char> &payload, String &data)
 {
     u32 len;
-    read(payload, len);
+    if (!read(payload, len) || payload.size() < len + m_packetReaderPos)
+        return false;
+
     data.reserve(len);
     data.assign(payload.cbegin() + m_packetReaderPos, payload.cbegin() + m_packetReaderPos + len);
     m_packetReaderPos += len;
+    return true;
 }
 
 const static int PACKET_MAX_SIZE = 32 * 1024;
 const static int PACKET_HEADER_SIZE = 2 * sizeof(u16);
+const static int PACKET_MAX_PAYLOAD_SIZE = PACKET_MAX_SIZE - PACKET_HEADER_SIZE;
 
 END_NAMESPACE
