@@ -33,18 +33,19 @@ void SelectorApiKqueue::add(int fd, int type, void *data, int eventType)
 
     SelectorInfo *info = new SelectorInfo(fd, type, data, eventType);
 
-    if (eventType & SelectorInfo::ReadEvent) {
+    if (eventType & SelectorInfo::ReadEvent)
         appendChange(fd, EVFILT_READ, EV_ADD, 0, info);
-    }
 
-    if (eventType & SelectorInfo::WriteEvent) {
+    if (eventType & SelectorInfo::WriteEvent)
         appendChange(fd, EVFILT_WRITE, EV_ADD, 0, info);
-    }
+
+    m_info[fd] = info;
 }
 
 void SelectorApiKqueue::close(int fd)
 {
     m_closedFds.insert(fd);
+    m_info.erase(fd);
 }
 
 void SelectorApiKqueue::modify(int fd, int eventType)
@@ -55,16 +56,22 @@ void SelectorApiKqueue::modify(int fd, int eventType)
 
     SelectorInfo *info = (*it).second;
 
+    int oldEventType = info->eventType();
+
     if (info->eventType() & SelectorInfo::ReadEvent && !(eventType & SelectorInfo::ReadEvent)) {
         appendChange(fd, EVFILT_READ, EV_DELETE, 0, info);
+        info->setEventType(oldEventType & ~(SelectorInfo::ReadEvent));
     } else if (!(info->eventType() & SelectorInfo::ReadEvent) && eventType & SelectorInfo::ReadEvent) {
         appendChange(fd, EVFILT_READ, EV_ADD, 0, info);
+        info->setEventType(oldEventType | SelectorInfo::ReadEvent);
     }
 
     if (info->eventType() & SelectorInfo::WriteEvent && !(eventType & SelectorInfo::WriteEvent)) {
         appendChange(fd, EVFILT_WRITE, EV_DELETE, 0, info);
+        info->setEventType(oldEventType & ~(SelectorInfo::WriteEvent));
     } else if (!(info->eventType() & SelectorInfo::WriteEvent) && eventType & SelectorInfo::WriteEvent) {
         appendChange(fd, EVFILT_WRITE, EV_ADD, 0, info);
+        info->setEventType(oldEventType | SelectorInfo::WriteEvent);
     }
 }
 
@@ -106,18 +113,13 @@ Selector::WaitRetval SelectorApiKqueue::wait(Vector<SelectorEvent> &events)
         }
     }
 
-    // najpierw zmiany
-    int nevents = kevent(m_kqueuefd, changelist, nchanges, 0, 0, 0);
+    // zmiany oraz eventy
+    int nevents = kevent(m_kqueuefd, changelist, nchanges, kevents, m_bufsize, 0);
     if (nevents == -1)
         return WaitRetval::Error;
 
     m_changes.clear();
     m_closedFds.clear();
-
-    // teraz przyjmuejmy eventy
-    nevents = kevent(m_kqueuefd, 0, 0, kevents, m_bufsize, 0);
-    if (nevents == -1)
-        return WaitRetval::Error;
 
     for (int i = 0; i < nevents; i++) {
         if (kevents[i].flags & EV_ERROR)
@@ -132,10 +134,8 @@ Selector::WaitRetval SelectorApiKqueue::wait(Vector<SelectorEvent> &events)
         if (kevents[i].flags & EV_EOF) {
             SelectorInfo *info = static_cast<SelectorInfo*>(kevents[i].udata);
 
-            if (!info->closed()) {
+            if (!info->closed())
                 info->setClosed(true);
-                events.emplace_back(info, SelectorInfo::CloseEvent);
-            }
         }
     }
 

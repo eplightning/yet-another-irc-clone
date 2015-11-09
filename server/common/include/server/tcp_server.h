@@ -34,7 +34,9 @@ class Client {
 public:
     enum class State {
         Connected = 1,
-        Disconnecting = 2
+        Disconnecting = 2,
+        WritingClosed = 3,
+        Closing = 4
     };
 
     Client(uint id, int fd, const sockaddr *addr, ListenPool *pool);
@@ -81,11 +83,6 @@ struct ListenPoolSocket {
     ListenPool *pool;
 };
 
-enum NewConnectionResponse {
-    NewConnectionResponseReject,
-    NewConnectionResponseAccept
-};
-
 // połączenie zostanie zamknięte po tym callbacku
 typedef std::function<void(uint clientid)> DroppedConnectionDelegate;
 
@@ -93,7 +90,7 @@ typedef std::function<void(uint clientid)> DroppedConnectionDelegate;
 typedef std::function<void(uint clientid)> LostConnectionDelegate;
 
 // nowe połączenie (można odrzucić)
-typedef std::function<NewConnectionResponse(SharedPtr<Client> client)> NewConnectionDelegate;
+typedef std::function<bool(SharedPtr<Client> client)> NewConnectionDelegate;
 
 // nowy pakiet
 typedef std::function<void(uint clientid, PacketHeader header, char *data)> ReceiveDataDelegate;
@@ -122,7 +119,7 @@ public:
 
 protected:
     void newConnection(ListenPoolSocket *listen, Selector *select);
-    bool pipeNotification(Selector *select);
+    bool pipeNotification(Selector *select, Vector<Client*> &eraseList);
     void readEvent(Client *client, SelectorEvent &event, Selector *select, Vector<Client*> &eraseList, int rounds = 0);
     void writeEvent(Client *client, Selector *select, Vector<Client*> &eraseList, int rounds = 0);
 

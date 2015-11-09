@@ -182,15 +182,15 @@ void TcpServer::runLoop()
                 if (event.type() != SelectorInfo::ReadEvent)
                     continue;
 
-                stopLooping = stopLooping || pipeNotification(select);
+                stopLooping = stopLooping || pipeNotification(select, eraseList);
             } else if (event.info()->type() == TCP_SELECTOR_TYPE_CLIENT) {
                 Client *client = static_cast<Client*>(event.info()->data());
 
-                if (event.type() == SelectorInfo::WriteEvent) {
+                // writeEvent sam sprawdza czy jest błąd dlatego tutaj nie ma drugiego wraunku
+                if (event.type() == SelectorInfo::WriteEvent)
                     writeEvent(client, select, eraseList);
-                } else if (event.type() == SelectorInfo::ReadEvent && client->readError() == 0) {
+                else if (event.type() == SelectorInfo::ReadEvent && client->readError() == 0)
                     readEvent(client, event, select, eraseList);
-                }
             }
         }
 
@@ -215,16 +215,21 @@ void TcpServer::stopLoop()
 
 void TcpServer::newConnection(ListenPoolSocket *listen, Selector *select)
 {
-    sockaddr_in6 addr;
-    socklen_t addrLen = sizeof(sockaddr_in6);
+    // przyjmujemy połączenie (ipv6 lub ipv4) oraz ustawiamy socket na tryb nieblokujący
+    sockaddr_storage addr;
+    socklen_t addrLen = sizeof(sockaddr_storage);
     int sock = accept(listen->socket, (sockaddr*) &addr, &addrLen);
-    fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | O_NONBLOCK);
 
+    if (sock == -1)
+        return;
+
+    if (fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | O_NONBLOCK) == -1)
+        return;
+
+    // tworzymy obiekt klienta i pytamy czy przyjąć połączenie
     SharedPtr<Client> client = std::make_shared<Client>(m_nextClientId++, sock, (sockaddr*) &addr, listen->pool);
 
-    NewConnectionResponse res = listen->pool->newConnection(client);
-
-    if (res == NewConnectionResponseAccept) {
+    if (listen->pool->newConnection(client)) {
         m_clients[client->id()] = client;
         select->add(sock, TCP_SELECTOR_TYPE_CLIENT, client.get(), SelectorInfo::ReadEvent);
     } else {
@@ -232,7 +237,7 @@ void TcpServer::newConnection(ListenPoolSocket *listen, Selector *select)
     }
 }
 
-bool TcpServer::pipeNotification(Selector *select)
+bool TcpServer::pipeNotification(Selector *select, Vector<Client*> &eraseList)
 {
     TcpPipeNotification notify;
     read(m_pipe[0], &notify, sizeof(TcpPipeNotification));
@@ -245,9 +250,18 @@ bool TcpServer::pipeNotification(Selector *select)
             return false;
         Client *client = (*clientIt).second.get();
 
-        if (notify.type == TcpPipeTypeDisconnect) {
-            client->setState(Client::State::Disconnecting);
-        } else if (notify.type == TcpPipeTypeSendBufferReceived) {
+        if (notify.type == TcpPipeTypeDisconnect || notify.type == TcpPipeTypeSendBufferReceived) {
+            // odpowiednia modyfikacja stanu przy poleceniu rozłączenia
+            if (notify.type == TcpPipeTypeDisconnect) {
+                // wymuszenie
+                if (notify.options) {
+                    if (client->state() != Client::State::Closing)
+                        eraseList.push_back(client);
+                } else if (client->state() == Client::State::Connected) {
+                    client->setState(Client::State::Disconnecting);
+                }
+            }
+
             int eventType = 0;
             if (client->readError() == 0)
                 eventType |= SelectorInfo::ReadEvent;
@@ -272,9 +286,11 @@ void TcpServer::readEvent(Client *client, SelectorEvent &event, Selector *select
     if (buffer.received < PACKET_HEADER_SIZE) {
         received = read(client->socket(), buffer.data + buffer.received, PACKET_HEADER_SIZE - buffer.received);
 
+        // kończymy czytam jeśli mamy błąd lub koniec socketa (jeśli druga strona już nam nic nie wyśle)
         if (received == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
             return stopReading(client, select, eraseList, errno);
-        } else if (received < static_cast<int>(PACKET_HEADER_SIZE - buffer.received) && event.info()->closed()) {
+        } else if (received < static_cast<int>(PACKET_HEADER_SIZE - buffer.received) &&
+                      (event.info()->closed() || client->state() == Client::State::WritingClosed)) {
             return stopReading(client, select, eraseList, EPIPE);
         } else if (received > 0) {
             buffer.received += received;
@@ -290,6 +306,8 @@ void TcpServer::readEvent(Client *client, SelectorEvent &event, Selector *select
             if (buffer.header.payloadSize == 0) {
                 client->pool()->receive(client->id(), buffer.header, buffer.data);
                 buffer.received = 0;
+                if (rounds < m_rrRounds)
+                    readEvent(client, event, select, eraseList, ++rounds);
                 return;
             }
         }
@@ -304,8 +322,8 @@ void TcpServer::readEvent(Client *client, SelectorEvent &event, Selector *select
 
     if (received == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
         return stopReading(client, select, eraseList, errno);
-    } else if (received < static_cast<int>(buffer.header.payloadSize - (buffer.received - PACKET_HEADER_SIZE))
-                    && event.info()->closed()) {
+    } else if (received < static_cast<int>(buffer.header.payloadSize - (buffer.received - PACKET_HEADER_SIZE)) &&
+                  (event.info()->closed() || client->state() == Client::State::WritingClosed)) {
         return stopReading(client, select, eraseList, EPIPE);
     } else if (received > 0) {
         buffer.received += received;
@@ -315,6 +333,8 @@ void TcpServer::readEvent(Client *client, SelectorEvent &event, Selector *select
         client->pool()->receive(client->id(), buffer.header, buffer.data);
         buffer.received = 0;
 
+        // odczytujemy max m_rrRounds zamiast po max 1 pakiecie
+        // optymalizacja, troche mniej spamujemy kqueue, epolla waitami
         if (rounds < m_rrRounds)
             readEvent(client, event, select, eraseList, ++rounds);
     }
@@ -349,22 +369,30 @@ void TcpServer::stopReading(Client *client, Selector *select, Vector<Client *> &
 
     if (client->sendBuffer() != nullptr)
         select->modify(client->socket(), SelectorInfo::WriteEvent);
-    else
+    else if (client->state() != Client::State::Closing)
         eraseList.push_back(client);
 }
 
 void TcpServer::stopWriting(Client *client, Selector *select, Vector<Client *> &eraseList, int error)
 {
     if (client->readError() != 0) {
-        eraseList.push_back(client);
+        if (client->state() != Client::State::Closing)
+            eraseList.push_back(client);
     } else {
         select->modify(client->socket(), SelectorInfo::ReadEvent);
 
         if (client->state() == Client::State::Disconnecting) {
+            // przy 'lekkim' rozłączeniu generalnie chcemy żeby klient dostał wszystkie nasze wiadomości
+            // niestety oznacza to że nie może sobie od razu close() zrobić
+            // najlepsze rozwiązanie to zamknięcie strumienia wyjściowego i czekanie z zamknięciem socketa aż klient zamknie własnego
+            // dlatego niestety bez heartbeatów się nie obejdzie, w razie timeouta trzeba ostrego disconnecta żeby bezwarunkowo zamknął połączenie
+            // info z http://blog.netherlabs.nl/articles/2009/01/18/the-ultimate-so_linger-page-or-why-is-my-tcp-not-reliable
             shutdown(client->socket(), SHUT_WR);
 
             if (error == 0)
                 error = -1;
+
+            client->setState(Client::State::WritingClosed);
         }
     }
 
