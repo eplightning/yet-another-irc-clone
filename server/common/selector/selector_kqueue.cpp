@@ -45,7 +45,12 @@ void SelectorApiKqueue::add(int fd, int type, void *data, int eventType)
 void SelectorApiKqueue::close(int fd)
 {
     m_closedFds.insert(fd);
-    m_info.erase(fd);
+    auto it = m_info.find(fd);
+    if (it == m_info.end())
+        return;
+
+    delete (*it).second;
+    m_info.erase(it);
 }
 
 void SelectorApiKqueue::modify(int fd, int eventType)
