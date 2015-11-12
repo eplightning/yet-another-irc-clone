@@ -13,7 +13,7 @@ enum ConnectionProto {
 class SocketUtils {
 public:
     static int createListenSocket(const String &address, u16 port, ConnectionProto proto);
-    static int createListenSocket(const String &full);
+    static int createListenSocket(const String &full, ConnectionProto &proto);
     static bool makeNonBlocking(int sock);
     static ConnectionProto readAddress(const String &full, u16 &port, String &address);
 };

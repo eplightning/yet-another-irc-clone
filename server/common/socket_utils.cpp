@@ -49,11 +49,11 @@ int SocketUtils::createListenSocket(const String &address, u16 port, ConnectionP
     return sock;
 }
 
-int SocketUtils::createListenSocket(const String &full)
+int SocketUtils::createListenSocket(const String &full, ConnectionProto &proto)
 {
     String address;
     u16 port;
-    ConnectionProto proto = readAddress(full, port, address);
+    proto = readAddress(full, port, address);
 
     if (proto == ConnectionProtoUnknown)
         return -5;
@@ -82,7 +82,7 @@ ConnectionProto SocketUtils::readAddress(const String &full, u16 &port, String &
         return ConnectionProtoUnknown;
 
     try {
-        port = static_cast<u16>(std::stoul(full.substr(sep)));
+        port = static_cast<u16>(std::stoul(full.substr(sep + 1)));
     } catch (std::exception &e) {
         return ConnectionProtoUnknown;
     }
