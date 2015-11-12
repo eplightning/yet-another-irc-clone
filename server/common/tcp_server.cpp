@@ -3,8 +3,7 @@
 #include <common/types.h>
 #include <common/packet.h>
 #include <server/selector.h>
-
-#include <set>
+#include <server/socket_utils.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -223,7 +222,7 @@ void TcpServer::newConnection(ListenPoolSocket *listen, Selector *select)
     if (sock == -1)
         return;
 
-    if (fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | O_NONBLOCK) == -1)
+    if (!SocketUtils::makeNonBlocking(sock))
         return;
 
     // tworzymy obiekt klienta i pytamy czy przyjąć połączenie

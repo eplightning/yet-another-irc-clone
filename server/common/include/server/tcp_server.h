@@ -3,6 +3,7 @@
 #include <common/types.h>
 #include <common/packet.h>
 #include <server/selector.h>
+#include <server/socket_utils.h>
 
 #include <functional>
 #include <queue>
@@ -11,11 +12,6 @@
 #include <arpa/inet.h>
 
 YAIC_NAMESPACE
-
-enum ConnectionProto {
-    ConnectionProtoIpv4,
-    ConnectionProtoIpv6
-};
 
 struct ClientReceiveBuffer {
     ClientReceiveBuffer() : received(0), data(PACKET_MAX_SIZE)

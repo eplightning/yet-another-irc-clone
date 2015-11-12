@@ -12,11 +12,15 @@ TARGET = yaicserver
 
 HEADERS += \
     include/server/selector.h \
-    include/server/tcp_server.h
+    include/server/tcp_server.h \
+    include/server/event.h \
+    include/server/socket_utils.h
 
 SOURCES += \
     selector.cpp \
-    tcp_server.cpp
+    tcp_server.cpp \
+    event.cpp \
+    socket_utils.cpp
 
 macx {
     SOURCES += \
