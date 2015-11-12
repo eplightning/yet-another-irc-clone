@@ -279,12 +279,12 @@ bool TcpServer::pipeNotification(Selector *select, Vector<Client*> &eraseList)
 void TcpServer::readEvent(Client *client, SelectorEvent &event, Selector *select, Vector<Client *> &eraseList, int rounds)
 {
     ClientReceiveBuffer &buffer = client->receiveBuffer();
-
+    char *data = buffer.data.data();
     int received = 0;
 
     // odczyt nagłówka
     if (buffer.received < PACKET_HEADER_SIZE) {
-        received = read(client->socket(), buffer.data + buffer.received, PACKET_HEADER_SIZE - buffer.received);
+        received = read(client->socket(), data + buffer.received, PACKET_HEADER_SIZE - buffer.received);
 
         // kończymy czytam jeśli mamy błąd lub koniec socketa (jeśli druga strona już nam nic nie wyśle)
         if (received == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -299,8 +299,8 @@ void TcpServer::readEvent(Client *client, SelectorEvent &event, Selector *select
         if (buffer.received < PACKET_HEADER_SIZE) {
             return;
         } else {
-            buffer.header.type = ntohs(*(reinterpret_cast<u16*>(buffer.data)));
-            buffer.header.payloadSize = ntohs(*(reinterpret_cast<u16*>(buffer.data + 2)));
+            buffer.header.type = ntohs(*(reinterpret_cast<u16*>(data)));
+            buffer.header.payloadSize = ntohs(*(reinterpret_cast<u16*>(data + 2)));
 
             // pusty pakiet?
             if (buffer.header.payloadSize == 0) {
@@ -317,7 +317,7 @@ void TcpServer::readEvent(Client *client, SelectorEvent &event, Selector *select
     if (buffer.header.payloadSize > PACKET_MAX_PAYLOAD_SIZE)
         return stopReading(client, select, eraseList, -1);
 
-    received = read(client->socket(), buffer.data + buffer.received,
+    received = read(client->socket(), data + buffer.received,
                     buffer.header.payloadSize - (buffer.received - PACKET_HEADER_SIZE));
 
     if (received == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {

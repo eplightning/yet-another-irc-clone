@@ -14,7 +14,7 @@ public:
 
     RequestServers();
 
-    bool decodePayload(Vector<char> &payload);
+    bool decodePayload(const Vector<char> &payload);
     void encodePayload(Vector<char> &payload) const;
 
     s32 flags() const;

@@ -24,7 +24,7 @@ public:
     Packet(Type type) : m_packetType(type), m_packetReaderPos(0) {}
     virtual ~Packet() {}
 
-    virtual bool decodePayload(Vector<char> &payload) = 0;
+    virtual bool decodePayload(const Vector<char> &payload) = 0;
     virtual void encodePayload(Vector<char> &payload) const = 0;
 
     void encode(Vector<char> &packet) const;

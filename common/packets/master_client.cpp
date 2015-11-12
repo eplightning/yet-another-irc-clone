@@ -13,7 +13,7 @@ RequestServers::RequestServers() : Packet(Packet::Type::RequestServers), m_flags
 
 }
 
-bool RequestServers::decodePayload(Vector<char> &payload)
+bool RequestServers::decodePayload(const Vector<char> &payload)
 {
     bool result = true;
 
