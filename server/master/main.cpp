@@ -1,58 +1,22 @@
-#include <common/types.h>
-#include <common/packet.h>
+#include "core/app.h"
 
-#include <server/selector.h>
-#include <server/tcp_server.h>
-
-#include <iostream>
-
-#include <functional>
-
-#include <arpa/inet.h>
-#include <fcntl.h>
-
-using namespace std;
-using namespace YAIC;
-
-std::map<uint, SharedPtr<Client>> g_clients;
-TcpServer serv;
-
-void drop(uint clientid)
+int main(int argc, char *argv[])
 {
-    g_clients.erase(clientid);
-    std::cout << "Drop: " << clientid << endl;
-}
+    YAIC::MasterServerApplication app;
 
-void lost(uint clientid)
-{
-    std::cout << "Lost: " << clientid << endl;
-}
+    const char *configPath = "/etc/yaic";
+    if (argc == 2)
+        configPath = argv[1];
 
-bool incoming(SharedPtr<Client> client)
-{
-    g_clients[client->id()] = client;
-    std::cout << "Connect: " << client->address() << " " << client->id() << endl;
-    return true;
-}
+    int ret = app.run(configPath);
 
-void receiveData(uint clientid, PacketHeader header, char *data)
-{
-    std::cout << "Receive: " << clientid << endl;
-    serv.disconnect(g_clients[clientid]);
-}
+    return ret;
+    /*ConnectionProto proto;
+    int sock = SocketUtils::createListenSocket("0.0.0.0:1234", proto);
+    SocketUtils::makeNonBlocking(sock);
 
-int main()
-{
-    int sock = socket(PF_INET, SOCK_STREAM, 0);
-    fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | O_NONBLOCK);
-    sockaddr_in addr;
-    addr.sin_family = PF_INET;
-    addr.sin_port = htons(1234);
-    inet_pton(AF_INET, "0.0.0.0", &addr.sin_addr);
-    if (::bind(sock, (sockaddr*) &addr, sizeof(sockaddr_in)))
+    if (sock < 0)
         return 1;
-
-    listen(sock, 10);
 
     ListenPool *pool = new ListenPool;
     pool->droppedConnection = std::bind(&drop, std::placeholders::_1);
@@ -61,13 +25,11 @@ int main()
     pool->receive = std::bind(&receiveData, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
     pool->sockets.resize(1);
-    pool->sockets[0].protocol = ConnectionProtoIpv4;
+    pool->sockets[0].protocol = proto;
     pool->sockets[0].socket = sock;
     pool->sockets[0].pool = pool;
 
     serv.createPool("main", pool);
 
-    serv.runLoop();
-
-    return 0;
+    serv.runLoop();*/
 }
