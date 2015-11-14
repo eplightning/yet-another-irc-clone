@@ -16,7 +16,7 @@ public:
     };
 
     virtual ~Event() {}
-    virtual Type type() = 0;
+    virtual Type type() const = 0;
 };
 
 class EventQueue {

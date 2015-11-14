@@ -23,4 +23,11 @@ Vector<char> Packet::encode() const
     return result;
 }
 
+bool Packet::checkDirection(u16 rawType, Packet::Direction dir)
+{
+    rawType >>= 13;
+
+    return static_cast<u8>(dir) == rawType;
+}
+
 END_NAMESPACE

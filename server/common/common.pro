@@ -14,13 +14,17 @@ HEADERS += \
     include/server/selector.h \
     include/server/tcp_server.h \
     include/server/event.h \
-    include/server/socket_utils.h
+    include/server/socket_utils.h \
+    include/server/dispatcher.h \
+    include/server/misc_utils.h
 
 SOURCES += \
     selector.cpp \
     tcp_server.cpp \
     event.cpp \
-    socket_utils.cpp
+    socket_utils.cpp \
+    dispatcher.cpp \
+    misc_utils.cpp
 
 macx {
     SOURCES += \

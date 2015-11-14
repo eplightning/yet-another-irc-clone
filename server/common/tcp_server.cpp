@@ -30,13 +30,13 @@ Client::Client(uint id, int fd, const sockaddr *addr, ListenPool *pool) :
     m_id(id), m_socket(fd), m_pool(pool), m_state(State::Connected), m_writeError(0), m_readError(0), m_sendBuffer(nullptr),
     m_sendBufferQueue(), m_sendBufferMutex(), m_receiveBuffer()
 {
-    if (addr->sa_family == PF_INET) {
+    if (addr->sa_family == AF_INET) {
         m_proto = ConnectionProtoIpv4;
         const sockaddr_in *addr4 = reinterpret_cast<const sockaddr_in*>(addr);
         m_port = ntohs(addr4->sin_port);
 
         char ipv4[INET_ADDRSTRLEN];
-        inet_ntop(PF_INET, &addr4->sin_addr, ipv4, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &addr4->sin_addr, ipv4, INET_ADDRSTRLEN);
         m_address.assign(ipv4);
     } else {
         m_proto = ConnectionProtoIpv6;
@@ -44,7 +44,7 @@ Client::Client(uint id, int fd, const sockaddr *addr, ListenPool *pool) :
         m_port = ntohs(addr6->sin6_port);
 
         char ipv6[INET6_ADDRSTRLEN];
-        inet_ntop(PF_INET6, &addr6->sin6_addr, ipv6, INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, &addr6->sin6_addr, ipv6, INET6_ADDRSTRLEN);
         m_address.assign(ipv6);
     }
 }

@@ -15,10 +15,21 @@ struct PacketHeader {
 
 class Packet {
 public:
+    enum class Direction : u8 {
+        ClientToSlave = 0, // <1;
+        SlaveToClient = 1, // <8192;
+        ClientToMaster = 2, // <16384;
+        MasterToClient = 3, // <24576;
+        SlaveToMaster = 4, // <32768;
+        MasterToSlave = 5, // <40960;
+        SlaveToSlave = 6, // <49152;
+        Unknown = 7
+    };
+
     enum class Type : u16 {
         Unknown = 0,
-        RequestServers = 1,
-        ServerList = 2
+        RequestServers = 16384,
+        ServerList = 24576
     };
 
     Packet(Type type) : m_packetType(type), m_packetReaderPos(0) {}
@@ -30,6 +41,8 @@ public:
     void encode(Vector<char> &packet) const;
     Vector<char> encode() const;
     Type packetType() const { return m_packetType; }
+
+    static bool checkDirection(u16 rawType, Direction dir);
 
 protected:
     void write(Vector<char> &payload, u8 data) const;
