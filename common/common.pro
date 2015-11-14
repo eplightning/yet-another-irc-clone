@@ -15,4 +15,5 @@ INCLUDEPATH += include
 
 SOURCES += \
     packet.cpp \
-    packets/master_client.cpp
+    packets/master_client.cpp \
+    types.cpp
