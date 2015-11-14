@@ -16,7 +16,9 @@ HEADERS += \
     include/server/event.h \
     include/server/socket_utils.h \
     include/server/dispatcher.h \
-    include/server/misc_utils.h
+    include/server/misc_utils.h \
+    include/server/log.h \
+    include/server/log/stdout.h
 
 SOURCES += \
     selector.cpp \
@@ -24,7 +26,9 @@ SOURCES += \
     event.cpp \
     socket_utils.cpp \
     dispatcher.cpp \
-    misc_utils.cpp
+    misc_utils.cpp \
+    log.cpp \
+    log/stdout.cpp
 
 macx {
     SOURCES += \
