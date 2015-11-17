@@ -17,7 +17,8 @@ static const int TCP_SELECTOR_TYPE_PIPE = 3;
 enum TcpPipeNotificationType {
     TcpPipeTypeSendBufferReceived,
     TcpPipeTypeDisconnect,
-    TcpPipeTypeTerminateLoop
+    TcpPipeTypeTerminateLoop,
+    TcpPipeTypeDisconnectAll
 };
 
 struct TcpPipeNotification {
@@ -100,6 +101,9 @@ TcpServer::~TcpServer()
         delete x.second;
     }
 
+    for (auto &x : m_clients)
+        close(x.second->socket());
+
     close(m_pipe[0]);
     close(m_pipe[1]);
 }
@@ -116,6 +120,15 @@ void TcpServer::disconnect(SharedPtr<Client> client, bool force)
     TcpPipeNotification notify;
     notify.type = TcpPipeTypeDisconnect;
     notify.clientid = client->id();
+    notify.options = static_cast<int>(force);
+    write(m_pipe[1], &notify, sizeof(notify));
+}
+
+void TcpServer::disconnectAll(bool force)
+{
+    TcpPipeNotification notify;
+    notify.type = TcpPipeTypeDisconnectAll;
+    notify.clientid = 0;
     notify.options = static_cast<int>(force);
     write(m_pipe[1], &notify, sizeof(notify));
 }
@@ -243,6 +256,17 @@ bool TcpServer::pipeNotification(Selector *select, Vector<Client*> &eraseList)
 
     if (notify.type == TcpPipeTypeTerminateLoop) {
         return true;
+    } else if (notify.type == TcpPipeTypeDisconnectAll) {
+        for (auto &x : m_clients) {
+            Client *client = x.second.get();
+
+            if (notify.options) {
+                if (client->state() != Client::State::Closing)
+                    eraseList.push_back(client);
+            } else if (client->state() == Client::State::Connected) {
+                client->setState(Client::State::Disconnecting);
+            }
+        }
     } else {
         auto clientIt = m_clients.find(notify.clientid);
         if (clientIt == m_clients.end())

@@ -24,6 +24,11 @@ void LogStdout::print(Log::Line marker)
     }
 }
 
+void LogStdout::print(unsigned long long integer)
+{
+    std::cout << integer;
+}
+
 void LogStdout::print(long long integer)
 {
     std::cout << integer;

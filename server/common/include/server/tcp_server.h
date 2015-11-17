@@ -110,6 +110,7 @@ public:
 
     void createPool(String name, ListenPool *pool);
     void disconnect(SharedPtr<Client> client, bool force = false);
+    void disconnectAll(bool force = false);
     void sendTo(SharedPtr<Client> client, ClientSendBuffer *buffer);
     void sendTo(SharedPtr<Client> client, const Packet *packet);
     void sendTo(const Vector<SharedPtr<Client>> &clients, const Packet *packet);

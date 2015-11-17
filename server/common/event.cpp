@@ -58,4 +58,21 @@ int EventPacket::source() const
     return m_source;
 }
 
+EventSimple::EventSimple(EventSimple::EventId type) : m_id(type)
+{
+
+}
+
+Event::Type EventSimple::type() const
+{
+    return Event::Type::Simple;
+}
+
+EventSimple::EventId EventSimple::id() const
+{
+    return m_id;
+}
+
+
+
 END_NAMESPACE

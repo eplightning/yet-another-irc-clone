@@ -3,9 +3,9 @@
 #include <common/packet.h>
 #include <common/types.h>
 
-#define MCPACKETS_NAMESPACE namespace MasterClientPackets {
+#define MUPACKETS_NAMESPACE namespace MasterUserPackets {
 
-YAIC_NAMESPACE MCPACKETS_NAMESPACE
+YAIC_NAMESPACE MUPACKETS_NAMESPACE
 
 class RequestServers : public Packet {
 public:

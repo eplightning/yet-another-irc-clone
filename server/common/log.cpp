@@ -24,6 +24,24 @@ Log &operator<<(Log &log, long long integer)
     return log;
 }
 
+Log &operator<<(Log &log, unsigned long long integer)
+{
+    log.print(integer);
+    return log;
+}
+
+Log &operator<<(Log &log, int integer)
+{
+    log.print(static_cast<long long>(integer));
+    return log;
+}
+
+Log &operator<<(Log &log, uint integer)
+{
+    log.print(static_cast<unsigned long long>(integer));
+    return log;
+}
+
 Log &operator<<(Log &log, double floating)
 {
     log.print(floating);

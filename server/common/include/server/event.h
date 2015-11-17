@@ -12,7 +12,8 @@ YAIC_NAMESPACE
 class Event {
 public:
     enum class Type {
-        Packet = 1
+        Packet = 1,
+        Simple = 2
     };
 
     virtual ~Event() {}
@@ -46,6 +47,23 @@ protected:
     Packet *m_packet;
     uint m_clientid;
     int m_source;
+};
+
+class EventSimple : public Event {
+public:
+    enum class EventId {
+        SignalTerminate = 0,
+        SignalInterrupt = 1,
+        TcpLoopDied = 2
+    };
+
+    EventSimple(EventId type);
+
+    Type type() const;
+    EventId id() const;
+
+protected:
+    EventId m_id;
 };
 
 END_NAMESPACE

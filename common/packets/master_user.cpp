@@ -1,14 +1,15 @@
-#include <common/packets/master_client.h>
+#include <common/packets/master_user.h>
 
 #include <common/packet.h>
 #include <common/types.h>
 
-YAIC_NAMESPACE MCPACKETS_NAMESPACE
+YAIC_NAMESPACE MUPACKETS_NAMESPACE
 
 const int RequestServers::FlagIpv4Only = 1 << 0;
 const int RequestServers::FlagIpv6Only = 1 << 1;
 
-RequestServers::RequestServers() : Packet(Packet::Type::RequestServers), m_flags(0), m_max(0)
+RequestServers::RequestServers()
+    : Packet(Packet::Type::RequestServers), m_flags(0), m_max(0)
 {
 
 }

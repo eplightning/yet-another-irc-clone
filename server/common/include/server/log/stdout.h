@@ -12,6 +12,7 @@ public:
     void print(const String &str);
     void print(Line marker);
     void print(long long integer);
+    void print(unsigned long long integer);
     void print(double floating);
 };
 

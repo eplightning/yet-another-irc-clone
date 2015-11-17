@@ -2,7 +2,9 @@
 
 #include <common/types.h>
 
-#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#define PACKETFACTORY_CASE(X, Y) case X: out = new Y; break;
 
 YAIC_NAMESPACE
 
@@ -13,13 +15,17 @@ struct PacketHeader {
 };
 #pragma pack(pop)
 
+const static int PACKET_MAX_SIZE = 32 * 1024;
+const static int PACKET_HEADER_SIZE = sizeof(PacketHeader);
+const static int PACKET_MAX_PAYLOAD_SIZE = PACKET_MAX_SIZE - PACKET_HEADER_SIZE;
+
 class Packet {
 public:
     enum class Direction : u8 {
-        ClientToSlave = 0, // <1;
-        SlaveToClient = 1, // <8192;
-        ClientToMaster = 2, // <16384;
-        MasterToClient = 3, // <24576;
+        UserToSlave = 0, // <1;
+        SlaveToUser = 1, // <8192;
+        UserToMaster = 2, // <16384;
+        MasterToUser = 3, // <24576;
         SlaveToMaster = 4, // <32768;
         MasterToSlave = 5, // <40960;
         SlaveToSlave = 6, // <49152;
@@ -32,17 +38,19 @@ public:
         ServerList = 24576
     };
 
-    Packet(Type type) : m_packetType(type), m_packetReaderPos(0) {}
-    virtual ~Packet() {}
+    static bool checkDirection(u16 rawType, Direction dir);
+    static Packet *factory(PacketHeader header, const Vector<char> &data);
+
+public:
+    Packet(Type type);
+    virtual ~Packet();
 
     virtual bool decodePayload(const Vector<char> &payload) = 0;
     virtual void encodePayload(Vector<char> &payload) const = 0;
 
     void encode(Vector<char> &packet) const;
     Vector<char> encode() const;
-    Type packetType() const { return m_packetType; }
-
-    static bool checkDirection(u16 rawType, Direction dir);
+    Type packetType() const;
 
 protected:
     void write(Vector<char> &payload, u8 data) const;
@@ -181,9 +189,5 @@ inline bool Packet::read(const Vector<char> &payload, String &data)
     m_packetReaderPos += len;
     return true;
 }
-
-const static int PACKET_MAX_SIZE = 32 * 1024;
-const static int PACKET_HEADER_SIZE = 2 * sizeof(u16);
-const static int PACKET_MAX_PAYLOAD_SIZE = PACKET_MAX_SIZE - PACKET_HEADER_SIZE;
 
 END_NAMESPACE
