@@ -1,7 +1,7 @@
 #include <common/types.h>
 #include <common/packet.h>
 
-#include <common/packets/master_client.h>
+#include <common/packets/master_user.h>
 
 #include <iostream>
 
@@ -30,8 +30,8 @@ int main()
     socklen_t len = sizeof(sockaddr_in);
     connect(sock, (sockaddr*) &addr, len);
 
-    MasterClientPackets::RequestServers req;
-    req.setFlags(MasterClientPackets::RequestServers::FlagIpv4Only);
+    MasterUserPackets::RequestServers req;
+    req.setFlags(MasterUserPackets::RequestServers::FlagIpv4Only);
     req.setMax(5);
 
     Vector<char> packet;
