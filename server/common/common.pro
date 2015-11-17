@@ -18,7 +18,8 @@ HEADERS += \
     include/server/dispatcher.h \
     include/server/misc_utils.h \
     include/server/log.h \
-    include/server/log/stdout.h
+    include/server/log/stdout.h \
+    include/server/timer.h
 
 SOURCES += \
     selector.cpp \
@@ -28,20 +29,25 @@ SOURCES += \
     dispatcher.cpp \
     misc_utils.cpp \
     log.cpp \
-    log/stdout.cpp
+    log/stdout.cpp \
+    timer.cpp
 
 macx {
     SOURCES += \
-        selector/selector_kqueue.cpp
+        selector/selector_kqueue.cpp \
+        timer/timer_kqueue.cpp
 
     HEADERS += \
-        selector/selector_kqueue.h
+        selector/selector_kqueue.h \
+        timer/timer_kqueue.h
 }
 
 unix:!macx {
     SOURCES += \
-        selector/selector_epoll.cpp
+        selector/selector_epoll.cpp \
+        timer/timer_linux.cpp
 
     HEADERS += \
-        selector/selector_epoll.h
+        selector/selector_epoll.h \
+        timer/timer_linux.h
 }
