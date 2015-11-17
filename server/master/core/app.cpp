@@ -1,25 +1,35 @@
-#include "core/app.h"
+#include <core/app.h>
 
-#include "core/context.h"
-
-#include <libconfig.h++>
+#include <core/context.h>
 #include <common/types.h>
 #include <server/log/stdout.h>
 #include <server/misc_utils.h>
 
+#include <libconfig.h++>
 #include <thread>
+
+#include <signal.h>
 
 YAIC_NAMESPACE
 
-MasterServerApplication::MasterServerApplication() :
-    m_clientHandler()
+EventQueue *MasterServerApplication::signalEvq = nullptr;
+
+MasterServerApplication::MasterServerApplication()
+    : m_context(new Context), m_userModule(nullptr)
 {
-    m_context = new Context;
+
 }
 
 MasterServerApplication::~MasterServerApplication()
 {
-    delete m_context->log;
+    if (m_tcpThread.joinable()) {
+        m_context->tcp.stopLoop();
+        m_tcpThread.join();
+    }
+
+    if (m_userModule != nullptr)
+        delete m_userModule;
+
     delete m_context;
 }
 
@@ -29,33 +39,68 @@ int MasterServerApplication::run(const char *configPath)
     m_context->configPath = configPath;
     m_context->log = new LogStdout; // todo: z configa
 
-    // kontekst gotowy, handlery możemy utworzyć
-    m_clientHandler = std::make_shared<ClientHandler>(m_context);
+    // kontekst gotowy, moduły możemy utworzyć
+    m_userModule = new UserModule(m_context);
 
     if (!loadConfig())
         return 1;
 
-    if (!initHandlers())
+    if (!initModules())
         return 2;
 
     if (!initTcpServer())
         return 3;
 
+    if (!installSignalHandler())
+        return 4;
+
     // event loop
-    while (true) {
+    bool looping = true;
+
+    while (looping) {
         Event *ev = m_context->eventQueue.pop();
 
         if (ev->type() == Event::Type::Packet) {
             EventPacket *evp = static_cast<EventPacket*>(ev);
 
             if (evp->source() == 1)
-                m_context->clientDispatcher.dispatch(evp->clientid(), evp->packet());
+                m_context->userDispatcher.dispatch(evp->clientid(), evp->packet());
             else if (evp->source() == 2)
                 m_context->slaveDispatcher.dispatch(evp->clientid(), evp->packet());
+        } else if (ev->type() == Event::Type::Simple) {
+            // killing
+            looping = false;
+
+            *m_context->log << Log::Line::Start
+                            << "Exit command received ..."
+                            << Log::Line::End;
         }
+
+        delete ev;
     }
 
+    // todo: może nie wymuszać ale dać timeouta
+    m_context->tcp.disconnectAll(true);
+
     return 0;
+}
+
+void MasterServerApplication::signalHandler(int signum)
+{
+    EventSimple::EventId eid;
+
+    switch (signum) {
+    case SIGINT:
+        eid = EventSimple::EventId::SignalInterrupt;
+        break;
+    case SIGTERM:
+        eid = EventSimple::EventId::SignalTerminate;
+        break;
+    default:
+        return;
+    }
+
+    MasterServerApplication::signalEvq->append(new EventSimple(eid));
 }
 
 bool MasterServerApplication::loadConfig()
@@ -63,15 +108,15 @@ bool MasterServerApplication::loadConfig()
     try {
         m_config.readFile((m_context->configPath + "/master.cfg").c_str());
 
-        if (m_config.exists("clientHandler")) {
-            const libconfig::Setting &section = m_config.lookup("clientHandler");
+        if (m_config.exists("user_module")) {
+            const libconfig::Setting &section = m_config.lookup("user_module");
 
             if (section.isGroup())
-                m_clientHandler->loadFromLibconfig(section);
+                m_userModule->loadFromLibconfig(section);
         }
     } catch (std::exception &e) {
         *m_context->log << Log::Line::Start
-                        << "Błąd podczas wczytywania konfiguracji: " << e.what()
+                        << "Error while reading configuration: " << e.what()
                         << Log::Line::End;
 
         return false;
@@ -80,13 +125,13 @@ bool MasterServerApplication::loadConfig()
     return true;
 }
 
-bool MasterServerApplication::initHandlers()
+bool MasterServerApplication::initModules()
 {
     try {
-        m_clientHandler->init();
+        m_userModule->init();
     } catch (std::exception &e) {
         *m_context->log << Log::Line::Start
-                        << "Błąd podczas inicjalizacji handlerów: " << e.what()
+                        << "Error while initializing modules: " << e.what()
                         << Log::Line::End;
 
         return false;
@@ -99,11 +144,19 @@ bool MasterServerApplication::initTcpServer()
 {
     m_tcpThread = std::thread([&] {
         MiscUtils::blockSignals();
-
         m_context->tcp.runLoop();
-
-        // todo: dodać do event loopa błąd
+        m_context->eventQueue.append(new EventSimple(EventSimple::EventId::TcpLoopDied));
     });
+
+    return true;
+}
+
+bool MasterServerApplication::installSignalHandler()
+{
+    MasterServerApplication::signalEvq = &m_context->eventQueue;
+
+    signal(SIGINT, &MasterServerApplication::signalHandler);
+    signal(SIGTERM, &MasterServerApplication::signalHandler);
 
     return true;
 }

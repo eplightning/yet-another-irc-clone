@@ -6,11 +6,13 @@
 #include <server/dispatcher.h>
 #include <server/log.h>
 
+#include <mutex>
+
 YAIC_NAMESPACE
 
-class MasterClient {
+class User {
 public:
-    MasterClient(SharedPtr<Client> client);
+    User(SharedPtr<Client> client);
 
     SharedPtr<Client> client() const;
 
@@ -46,19 +48,26 @@ protected:
     uint m_capacity;
 };
 
-struct Context {
+class Context {
+public:
+    Context();
+    ~Context();
+
+    SharedPtr<User> user(uint clientid);
+
+public:
     EventQueue eventQueue;
     TcpServer tcp;
-
-    HashMap<uint, MasterClient> clients;
-    PacketDispatcher clientDispatcher;
-
-    HashMap<uint, SlaveServer> slaves;
-    PacketDispatcher slaveDispatcher;
-
     String configPath;
-
     Log *log;
+
+    std::mutex usersMutex;
+    HashMap<uint, SharedPtr<User>> users;
+    PacketDispatcher userDispatcher;
+
+    std::mutex slavesMutex;
+    HashMap<uint, SharedPtr<SlaveServer>> slaves;
+    PacketDispatcher slaveDispatcher;
 };
 
 END_NAMESPACE

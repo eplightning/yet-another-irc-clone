@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/context.h"
+#include <core/context.h>
 
 #include <common/types.h>
 
@@ -13,24 +13,24 @@ enum SlaveAuthMode {
     PlainText = 1
 };
 
-struct SlaveHandlerConfig {
+struct SlaveModuleConfig {
     Vector<String> listen;
     SlaveAuthMode authMode;
     String plainTextPassword;
 };
 
-class SlaveHandler {
+class SlaveModule {
 public:
-    SlaveHandler(Context *context);
+    SlaveModule(Context *context);
 
-    ~SlaveHandler();
+    ~SlaveModule();
 
     void loadFromLibconfig(const libconfig::Setting &section);
     void init();
 
 protected:
     Context *m_context;
-    SlaveHandlerConfig m_config;
+    SlaveModuleConfig m_config;
 };
 
 END_NAMESPACE

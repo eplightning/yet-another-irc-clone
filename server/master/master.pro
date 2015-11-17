@@ -6,7 +6,7 @@ CONFIG += console c++11 thread
 SOURCES += main.cpp \
     core/context.cpp \
     core/app.cpp \
-    handlers/client.cpp
+    modules/user.cpp
 
 # libconfig
 LIBS += -lconfig++
@@ -22,5 +22,5 @@ TARGET = yaic-master
 HEADERS += \
     core/app.h \
     core/context.h \
-    handlers/slave.h \
-    handlers/client.h
+    modules/slave.h \
+    modules/user.h

@@ -7,13 +7,13 @@
 
 YAIC_NAMESPACE
 
-MasterClient::MasterClient(SharedPtr<Client> client) :
+User::User(SharedPtr<Client> client) :
     m_client(client)
 {
 
 }
 
-SharedPtr<Client> MasterClient::client() const
+SharedPtr<Client> User::client() const
 {
     return m_client;
 }
@@ -76,5 +76,30 @@ u32 SlaveServer::id() const
 {
     return m_id;
 }
+
+Context::Context()
+    : log(nullptr)
+{
+
+}
+
+Context::~Context()
+{
+    if (log != nullptr)
+        delete log;
+}
+
+SharedPtr<User> Context::user(uint clientid)
+{
+    std::lock_guard<std::mutex> lock(usersMutex);
+
+    auto it = users.find(clientid);
+
+    if (it == users.end())
+        return nullptr;
+
+    return it->second;
+}
+
 
 END_NAMESPACE
