@@ -5,10 +5,12 @@
 #include <server/tcp_server.h>
 #include <server/dispatcher.h>
 
+#include <chrono>
+
 YAIC_NAMESPACE
 
 User::User(SharedPtr<Client> client) :
-    m_client(client)
+    m_client(client), m_connectedAt(std::chrono::steady_clock::now())
 {
 
 }
@@ -17,6 +19,12 @@ SharedPtr<Client> User::client() const
 {
     return m_client;
 }
+
+const std::chrono::steady_clock::time_point &User::connectedAt() const
+{
+    return m_connectedAt;
+}
+
 
 SlaveServer::SlaveServer(SharedPtr<Client> client) :
     m_client(client), m_id(0), m_port(0), m_load(0), m_capacity(0)

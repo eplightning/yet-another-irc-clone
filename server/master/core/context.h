@@ -6,6 +6,7 @@
 #include <server/dispatcher.h>
 #include <server/log.h>
 
+#include <chrono>
 #include <mutex>
 
 YAIC_NAMESPACE
@@ -16,8 +17,11 @@ public:
 
     SharedPtr<Client> client() const;
 
+    const std::chrono::steady_clock::time_point &connectedAt() const;
+
 protected:
     SharedPtr<Client> m_client;
+    std::chrono::steady_clock::time_point m_connectedAt;
 };
 
 class SlaveServer {
