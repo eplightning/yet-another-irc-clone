@@ -2,6 +2,8 @@
 
 #include <common/types.h>
 
+#include <cstring>
+
 #include <fcntl.h>
 #include <unistd.h>
 #include <arpa/inet.h>

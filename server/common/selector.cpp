@@ -27,7 +27,7 @@ Selector *Selector::factory()
 #if defined(SELECTOR_API_KQUEUE)
     return new SelectorApiKqueue(32);
 #elif defined(SELECTOR_API_EPOLL)
-    return new SelectorApiEpoll;
+    return new SelectorApiEpoll(32);
 #endif
 }
 
