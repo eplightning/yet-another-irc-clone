@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>
-
 #include <sys/epoll.h>
 
 YAIC_NAMESPACE
@@ -36,6 +35,7 @@ void SelectorApiEpoll::add(int fd, int type, void *data, int eventType)
 
     struct epoll_event event;
     event.data.fd = fd;
+    event.events = EPOLLRDHUP;
 
     if (eventType & SelectorInfo::ReadEvent)
         event.events |= EPOLLIN;
@@ -68,6 +68,7 @@ void SelectorApiEpoll::modify(int fd, int eventType)
 
     struct epoll_event event;
     event.data.fd = fd;
+    event.events = EPOLLRDHUP;
 
     if (eventType & SelectorInfo::ReadEvent)
         event.events |= EPOLLIN;
@@ -95,9 +96,9 @@ void SelectorApiEpoll::remove(int fd)
 
 Selector::WaitRetval SelectorApiEpoll::wait(Vector<SelectorEvent> &events)
 {
-     events.clear();
-    // zmiany oraz eventy
-     struct epoll_event returnedEvents[m_bufsize];
+    events.clear();
+
+    struct epoll_event returnedEvents[m_bufsize];
     int nevents = epoll_wait(m_epollfd, returnedEvents, m_bufsize, -1);
     if (nevents == -1)
         return WaitRetval::Error;
@@ -115,12 +116,13 @@ Selector::WaitRetval SelectorApiEpoll::wait(Vector<SelectorEvent> &events)
         {
             events.emplace_back(info, SelectorInfo::WriteEvent);
         }
-        if ((returnedEvents[i].events & EPOLLIN) || (returnedEvents[i].events & EPOLLERR) || (returnedEvents[i].events & EPOLLHUP))
+        if ((returnedEvents[i].events & EPOLLIN) || (returnedEvents[i].events & EPOLLERR) || (returnedEvents[i].events & EPOLLHUP)
+                || (returnedEvents[i].events & EPOLLRDHUP))
         {
             events.emplace_back(info, SelectorInfo::ReadEvent);
         }
 
-        if ((returnedEvents[i].events & EPOLLERR) || (returnedEvents[i].events & EPOLLHUP))
+        if ((returnedEvents[i].events & EPOLLERR) || (returnedEvents[i].events & EPOLLHUP) || (returnedEvents[i].events & EPOLLRDHUP))
         {
             info->setClosed(true);
         }

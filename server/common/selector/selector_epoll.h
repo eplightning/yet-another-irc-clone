@@ -3,8 +3,6 @@
 #include <common/types.h>
 #include <server/selector.h>
 
-#include <set>
-
 #include <sys/types.h>
 #include <sys/epoll.h>
 #include <sys/time.h>
