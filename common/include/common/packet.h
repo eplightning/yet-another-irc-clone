@@ -18,6 +18,7 @@ struct PacketHeader {
 const static uint PACKET_MAX_SIZE = 32 * 1024;
 const static uint PACKET_HEADER_SIZE = sizeof(PacketHeader);
 const static uint PACKET_MAX_PAYLOAD_SIZE = PACKET_MAX_SIZE - PACKET_HEADER_SIZE;
+const static uint PACKET_MAX_VECTOR_SIZE = 16 * 1024;
 
 class Packet {
 public:

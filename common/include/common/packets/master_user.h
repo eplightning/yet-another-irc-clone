@@ -7,6 +7,10 @@
 
 YAIC_NAMESPACE MUPACKETS_NAMESPACE
 
+// -------------------------
+// User -> Master
+// -------------------------
+
 class RequestServers : public Packet {
 public:
     const static int FlagIpv4Only;
@@ -26,6 +30,29 @@ public:
 protected:
     s32 m_flags;
     u8 m_max;
+};
+
+// -------------------------
+// Master -> User
+// -------------------------
+
+class ServerList : public Packet {
+public:
+    struct Server {
+        String address;
+        u16 port;
+    };
+
+    ServerList();
+
+    bool decodePayload(const Vector<char> &payload);
+    void encodePayload(Vector<char> &payload) const;
+
+    Vector<Server> &servers();
+    const Vector<Server> &servers() const;
+
+protected:
+    Vector<Server> m_servers;
 };
 
 END_NAMESPACE END_NAMESPACE

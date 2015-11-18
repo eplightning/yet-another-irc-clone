@@ -4,8 +4,10 @@
 #include <server/socket_utils.h>
 #include <server/timer.h>
 #include <server/misc_utils.h>
+#include <common/packets/master_user.h>
 
 #include <libconfig.h++>
+#include <algorithm>
 
 YAIC_NAMESPACE
 
@@ -183,8 +185,53 @@ void UserModule::tcpReceive(uint clientid, PacketHeader header, const Vector<cha
 
 PacketDispatcher::Result UserModule::serversRequest(uint clientid, Packet *packet)
 {
+    SharedPtr<User> user = m_context->user(clientid);
+    if (!user)
+        return PacketDispatcher::Result::Stop;
+
+    MasterUserPackets::RequestServers *request = static_cast<MasterUserPackets::RequestServers*>(packet);
+
+    // zbieramy serwery
+    Vector<SharedPtr<SlaveServer>> servers;
+    {
+        std::lock_guard<std::mutex> lock(m_context->slavesMutex);
+
+        for (auto &x : m_context->slaves) {
+            ConnectionProto proto = x.second->client()->proto();
+
+            if (request->flags() & MasterUserPackets::RequestServers::FlagIpv4Only && proto != ConnectionProtoIpv4)
+                continue;
+            else if (request->flags() & MasterUserPackets::RequestServers::FlagIpv6Only && proto != ConnectionProtoIpv6)
+                continue;
+
+            servers.push_back(x.second);
+        }
+    }
+
+    std::sort(servers.begin(), servers.end(), [] (const SharedPtr<SlaveServer> &a, const SharedPtr<SlaveServer> &b) {
+        return a->load() <= b->load();
+    });
+
+    // budujemy pakiet
+    MasterUserPackets::ServerList response;
+
+    auto &out = response.servers();
+    out.resize(std::min(request->max(), static_cast<u8>(servers.size())));
+    uint i = 0;
+    for (auto &x : servers) {
+        if (i >= request->max())
+            break;
+
+        out[i].address.assign(x->client()->address());
+        out[i].port = x->port();
+        i = i + 1;
+    }
+
+    // wysyłamy
+    m_context->tcp.sendTo(user->client(), &response);
+
     *m_context->log << Log::Line::Start
-                    << "Server Request"
+                    << "Server request served [ID: " << clientid << "]"
                     << Log::Line::End;
 
     return PacketDispatcher::Result::Continue;

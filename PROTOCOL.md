@@ -51,7 +51,6 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
 #### ServerList (id: 24576)
 
     struct ServerList {
-        u8 count;                       // Ilość serwerów
         Vector<Server> servers[count];  // Serwery
     }
     

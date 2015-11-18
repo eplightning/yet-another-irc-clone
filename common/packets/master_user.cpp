@@ -50,4 +50,55 @@ void RequestServers::setMax(u8 value)
     m_max = value;
 }
 
+ServerList::ServerList()
+    : Packet(Packet::Type::ServerList)
+{
+
+}
+
+bool ServerList::decodePayload(const Vector<char> &payload)
+{
+    bool result = true;
+
+    u32 size;
+    result &= read(payload, size);
+
+    if (!result || size > PACKET_MAX_VECTOR_SIZE)
+        return false;
+
+    m_servers.clear();
+    m_servers.resize(size);
+
+    for (uint i = 0; i < size; i++) {
+        result &= read(payload, m_servers[i].address);
+        result &= read(payload, m_servers[i].port);
+
+        if (!result)
+            return false;
+    }
+
+    return result;
+}
+
+void ServerList::encodePayload(Vector<char> &payload) const
+{
+    write(payload, static_cast<u32>(m_servers.size()));
+
+    for (auto &x : m_servers) {
+        write(payload, x.address);
+        write(payload, x.port);
+    }
+}
+
+Vector<ServerList::Server> &ServerList::servers()
+{
+    return m_servers;
+}
+
+const Vector<ServerList::Server> &ServerList::servers() const
+{
+    return m_servers;
+}
+
+
 END_NAMESPACE END_NAMESPACE
