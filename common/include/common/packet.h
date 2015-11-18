@@ -15,9 +15,9 @@ struct PacketHeader {
 };
 #pragma pack(pop)
 
-const static int PACKET_MAX_SIZE = 32 * 1024;
-const static int PACKET_HEADER_SIZE = sizeof(PacketHeader);
-const static int PACKET_MAX_PAYLOAD_SIZE = PACKET_MAX_SIZE - PACKET_HEADER_SIZE;
+const static uint PACKET_MAX_SIZE = 32 * 1024;
+const static uint PACKET_HEADER_SIZE = sizeof(PacketHeader);
+const static uint PACKET_MAX_PAYLOAD_SIZE = PACKET_MAX_SIZE - PACKET_HEADER_SIZE;
 
 class Packet {
 public:
