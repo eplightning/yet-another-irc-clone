@@ -1,7 +1,7 @@
 include(../../global.pri)
 TEMPLATE = lib
 CONFIG -= qt app_bundle
-CONFIG += shared c++11 thread
+CONFIG += static c++11 thread
 
 INCLUDEPATH += ../../common/include include
 DEPENDPATH += ../../common/include include
