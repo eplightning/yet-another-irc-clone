@@ -67,7 +67,6 @@ bool SysEventLoopApiKqueue::runLoop()
     EV_SET(&events[2], SIGINT, EVFILT_SIGNAL, EV_ADD, 0, 0, 0);
     EV_SET(&events[3], SIGQUIT, EVFILT_SIGNAL, EV_ADD, 0, 0, 0);
     EV_SET(&events[4], SIGHUP, EVFILT_SIGNAL, EV_ADD, 0, 0, 0);
-    EV_SET(&events[5], SIGPIPE, EVFILT_SIGNAL, EV_ADD, 0, 0, 0);
 
     if (kevent(m_kqueuefd, events, 6, NULL, 0, NULL) == -1)
         return false;
