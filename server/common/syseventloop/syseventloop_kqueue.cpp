@@ -61,14 +61,14 @@ bool SysEventLoopApiKqueue::runLoop()
     MiscUtils::unblockSignals();
 
     // rejestrujemy wszystko z kqueue
-    struct kevent events[6];
+    struct kevent events[5];
     EV_SET(&events[0], 1, EVFILT_USER, EV_ADD | EV_ENABLE | EV_CLEAR, NOTE_FFNOP, 0, 0);
     EV_SET(&events[1], SIGTERM, EVFILT_SIGNAL, EV_ADD, 0, 0, 0);
     EV_SET(&events[2], SIGINT, EVFILT_SIGNAL, EV_ADD, 0, 0, 0);
     EV_SET(&events[3], SIGQUIT, EVFILT_SIGNAL, EV_ADD, 0, 0, 0);
     EV_SET(&events[4], SIGHUP, EVFILT_SIGNAL, EV_ADD, 0, 0, 0);
 
-    if (kevent(m_kqueuefd, events, 6, NULL, 0, NULL) == -1)
+    if (kevent(m_kqueuefd, events, 5, NULL, 0, NULL) == -1)
         return false;
 
     struct kevent incoming[16];
