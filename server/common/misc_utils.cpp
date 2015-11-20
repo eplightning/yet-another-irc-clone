@@ -15,4 +15,12 @@ void MiscUtils::blockSignals()
     pthread_sigmask(SIG_SETMASK, &set, NULL);
 }
 
+void MiscUtils::unblockSignals()
+{
+    sigset_t set;
+
+    sigemptyset(&set);
+    pthread_sigmask(SIG_SETMASK, &set, NULL);
+}
+
 END_NAMESPACE

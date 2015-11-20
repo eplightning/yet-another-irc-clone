@@ -36,23 +36,26 @@ protected:
 // Master -> User
 // -------------------------
 
+struct ServerListServer {
+    ServerListServer();
+    ServerListServer(const String &addr, u16 port);
+
+    String address;
+    u16 port;
+};
+
 class ServerList : public Packet {
 public:
-    struct Server {
-        String address;
-        u16 port;
-    };
-
     ServerList();
 
     bool decodePayload(const Vector<char> &payload);
     void encodePayload(Vector<char> &payload) const;
 
-    Vector<Server> &servers();
-    const Vector<Server> &servers() const;
+    Vector<ServerListServer> &servers();
+    const Vector<ServerListServer> &servers() const;
 
 protected:
-    Vector<Server> m_servers;
+    Vector<ServerListServer> m_servers;
 };
 
 END_NAMESPACE END_NAMESPACE

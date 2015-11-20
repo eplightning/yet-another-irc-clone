@@ -58,7 +58,8 @@ int EventPacket::source() const
     return m_source;
 }
 
-EventSimple::EventSimple(EventSimple::EventId type) : m_id(type)
+EventSimple::EventSimple(EventSimple::EventId type) :
+    m_id(type)
 {
 
 }
@@ -71,6 +72,22 @@ Event::Type EventSimple::type() const
 EventSimple::EventId EventSimple::id() const
 {
     return m_id;
+}
+
+EventTimer::EventTimer(int timer) :
+    m_timer(timer)
+{
+
+}
+
+Event::Type EventTimer::type() const
+{
+    return Event::Type::Timer;
+}
+
+int EventTimer::timer() const
+{
+    return m_timer;
 }
 
 

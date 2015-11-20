@@ -39,9 +39,25 @@ int main()
 
     int written = write(sock, &(packet[0]), packet.size());
 
+    MasterUserPackets::ServerList srvlist;
 
+    PacketHeader header;
+    read(sock, (char*) &header, PACKET_HEADER_SIZE);
+    header.payloadSize = ntohs(header.payloadSize);
+    packet.clear();
+    packet.resize(header.payloadSize);
 
-    cout << "Hello World! " << written << endl;
+    cout << "Payload: " << header.payloadSize << endl;
+
+    read(sock, &(packet[0]), header.payloadSize);
+
+    srvlist.decodePayload(packet);
+
+    cout << "Servers: " << srvlist.servers().size() << endl;
+
+    for (auto &x : srvlist.servers()) {
+        std::cout << x.address  << " : " << x.port << std::endl;
+    }
 
     getchar();
 

@@ -3,7 +3,7 @@
 #include <core/context.h>
 
 #include <common/types.h>
-#include <server/timer.h>
+#include <server/dispatcher.h>
 
 #include <libconfig.h++>
 #include <thread>
@@ -25,9 +25,9 @@ public:
 
 protected:
     void initTcp();
-    void initTimeoutThread();
+    void initTimeout();
 
-    void timeoutThread();
+    TimerDispatcher::Result timeoutHandler(int timer);
 
     void tcpDropped(uint clientid);
     void tcpLost(uint clientid);
@@ -40,8 +40,7 @@ protected:
     Context *m_context;
     UserModuleConfig m_config;
 
-    std::thread m_timeoutThread;
-    Timer *m_timeoutTimer;
+    int m_timeoutTimer;
 };
 
 END_NAMESPACE

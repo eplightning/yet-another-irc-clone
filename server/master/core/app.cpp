@@ -4,6 +4,7 @@
 #include <common/types.h>
 #include <server/log/stdout.h>
 #include <server/misc_utils.h>
+#include <server/syseventloop.h>
 
 #include <libconfig.h++>
 #include <thread>
@@ -11,8 +12,6 @@
 #include <signal.h>
 
 YAIC_NAMESPACE
-
-EventQueue *MasterServerApplication::signalEvq = nullptr;
 
 MasterServerApplication::MasterServerApplication()
     : m_context(new Context), m_userModule(nullptr)
@@ -27,6 +26,11 @@ MasterServerApplication::~MasterServerApplication()
         m_tcpThread.join();
     }
 
+    if (m_sysThread.joinable()) {
+        m_context->sysLoop->stopLoop();
+        m_sysThread.join();
+    }
+
     if (m_userModule != nullptr)
         delete m_userModule;
 
@@ -35,9 +39,13 @@ MasterServerApplication::~MasterServerApplication()
 
 int MasterServerApplication::run(const char *configPath)
 {
+    // blokujemy ood razu wszystkie sygnały
+    MiscUtils::blockSignals();
+
     // tworzenie kontekstu
     m_context->configPath = configPath;
     m_context->log = new LogStdout; // todo: z configa
+    m_context->sysLoop = SysEventLoop::factory(&m_context->eventQueue);
 
     // kontekst gotowy, moduły możemy utworzyć
     m_userModule = new UserModule(m_context);
@@ -51,7 +59,7 @@ int MasterServerApplication::run(const char *configPath)
     if (!initTcpServer())
         return 3;
 
-    if (!installSignalHandler())
+    if (!initSysEvent())
         return 4;
 
     // event loop
@@ -70,37 +78,23 @@ int MasterServerApplication::run(const char *configPath)
         } else if (ev->type() == Event::Type::Simple) {
             // killing
             looping = false;
+        } else if (ev->type() == Event::Type::Timer) {
+            EventTimer *evt = static_cast<EventTimer*>(ev);
 
-            *m_context->log << Log::Line::Start
-                            << "Exit command received ..."
-                            << Log::Line::End;
+            m_context->timerDispatcher.dispatch(evt->timer());
         }
 
         delete ev;
     }
 
+    *m_context->log << Log::Line::Start
+                    << "Main loop finished ..."
+                    << Log::Line::End;
+
     // todo: może nie wymuszać ale dać timeouta
     m_context->tcp.disconnectAll(true);
 
     return 0;
-}
-
-void MasterServerApplication::signalHandler(int signum)
-{
-    EventSimple::EventId eid;
-
-    switch (signum) {
-    case SIGINT:
-        eid = EventSimple::EventId::SignalInterrupt;
-        break;
-    case SIGTERM:
-        eid = EventSimple::EventId::SignalTerminate;
-        break;
-    default:
-        return;
-    }
-
-    MasterServerApplication::signalEvq->append(new EventSimple(eid));
 }
 
 bool MasterServerApplication::loadConfig()
@@ -143,7 +137,6 @@ bool MasterServerApplication::initModules()
 bool MasterServerApplication::initTcpServer()
 {
     m_tcpThread = std::thread([&] {
-        MiscUtils::blockSignals();
         m_context->tcp.runLoop();
         m_context->eventQueue.append(new EventSimple(EventSimple::EventId::TcpLoopDied));
     });
@@ -151,12 +144,12 @@ bool MasterServerApplication::initTcpServer()
     return true;
 }
 
-bool MasterServerApplication::installSignalHandler()
+bool MasterServerApplication::initSysEvent()
 {
-    MasterServerApplication::signalEvq = &m_context->eventQueue;
-
-    signal(SIGINT, &MasterServerApplication::signalHandler);
-    signal(SIGTERM, &MasterServerApplication::signalHandler);
+    m_sysThread = std::thread([&] {
+        m_context->sysLoop->runLoop();
+        m_context->eventQueue.append(new EventSimple(EventSimple::EventId::SysLoopDied));
+    });
 
     return true;
 }

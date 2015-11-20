@@ -66,7 +66,6 @@ bool ServerList::decodePayload(const Vector<char> &payload)
     if (!result || size > PACKET_MAX_VECTOR_SIZE)
         return false;
 
-    m_servers.clear();
     m_servers.resize(size);
 
     for (uint i = 0; i < size; i++) {
@@ -90,14 +89,25 @@ void ServerList::encodePayload(Vector<char> &payload) const
     }
 }
 
-Vector<ServerList::Server> &ServerList::servers()
+Vector<ServerListServer> &ServerList::servers()
 {
     return m_servers;
 }
 
-const Vector<ServerList::Server> &ServerList::servers() const
+const Vector<ServerListServer> &ServerList::servers() const
 {
     return m_servers;
+}
+
+ServerListServer::ServerListServer()
+{
+
+}
+
+ServerListServer::ServerListServer(const String &addr, u16 port)
+    : address(addr), port(port)
+{
+
 }
 
 

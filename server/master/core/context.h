@@ -5,6 +5,7 @@
 #include <server/tcp_server.h>
 #include <server/dispatcher.h>
 #include <server/log.h>
+#include <server/syseventloop.h>
 
 #include <chrono>
 #include <mutex>
@@ -62,6 +63,7 @@ public:
 public:
     EventQueue eventQueue;
     TcpServer tcp;
+    SysEventLoop *sysLoop;
     String configPath;
     Log *log;
 
@@ -72,6 +74,8 @@ public:
     std::mutex slavesMutex;
     HashMap<uint, SharedPtr<SlaveServer>> slaves;
     PacketDispatcher slaveDispatcher;
+
+    TimerDispatcher timerDispatcher;
 };
 
 END_NAMESPACE

@@ -19,21 +19,18 @@ public:
 
     int run(const char *configPath);
 
-private:
-    static void signalHandler(int signum);
-    static EventQueue *signalEvq;
-
 protected:
     bool loadConfig();
     bool initModules();
     bool initTcpServer();
-    bool installSignalHandler();
+    bool initSysEvent();
 
 protected:
     Context *m_context;
     UserModule *m_userModule;
     libconfig::Config m_config;
     std::thread m_tcpThread;
+    std::thread m_sysThread;
 };
 
 END_NAMESPACE

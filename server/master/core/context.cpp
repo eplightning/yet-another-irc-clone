@@ -86,7 +86,7 @@ u32 SlaveServer::id() const
 }
 
 Context::Context()
-    : log(nullptr)
+    : sysLoop(nullptr), log(nullptr)
 {
 
 }
@@ -95,6 +95,9 @@ Context::~Context()
 {
     if (log != nullptr)
         delete log;
+
+    if (sysLoop != nullptr)
+        delete sysLoop;
 }
 
 SharedPtr<User> Context::user(uint clientid)

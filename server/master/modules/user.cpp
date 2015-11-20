@@ -2,7 +2,7 @@
 
 #include <common/types.h>
 #include <server/socket_utils.h>
-#include <server/timer.h>
+#include <server/syseventloop.h>
 #include <server/misc_utils.h>
 #include <common/packets/master_user.h>
 
@@ -12,20 +12,14 @@
 YAIC_NAMESPACE
 
 UserModule::UserModule(Context *context) :
-    m_context(context), m_timeoutTimer(nullptr)
+    m_context(context)
 {
     m_config.timeout = 600;
 }
 
 UserModule::~UserModule()
 {
-    if (m_timeoutThread.joinable()) {
-        m_timeoutTimer->stop();
-        m_timeoutThread.join();
-    }
 
-    if (m_timeoutTimer != nullptr)
-        delete m_timeoutTimer;
 }
 
 void UserModule::loadFromLibconfig(const libconfig::Setting &section)
@@ -54,7 +48,7 @@ void UserModule::loadFromLibconfig(const libconfig::Setting &section)
 void UserModule::init()
 {
     initTcp();
-    initTimeoutThread();
+    initTimeout();
 
     m_context->userDispatcher.append(Packet::Type::RequestServers,
                                      BIND_DISPATCH(this, &UserModule::serversRequest));
@@ -95,35 +89,38 @@ void UserModule::initTcp()
     m_context->tcp.createPool("client", pool);
 }
 
-void UserModule::initTimeoutThread()
+void UserModule::initTimeout()
 {
-    m_timeoutTimer = Timer::factory(m_config.timeout);
-    m_timeoutThread = std::thread(&UserModule::timeoutThread, this);
+    m_timeoutTimer = m_context->sysLoop->addTimer(m_config.timeout);
+
+    if (m_timeoutTimer < 0)
+        throw Exception("Couldn't create timeout");
+
+    m_context->timerDispatcher.append(m_timeoutTimer, BIND_TIMER(this, &UserModule::timeoutHandler));
 }
 
-void UserModule::timeoutThread()
+TimerDispatcher::Result UserModule::timeoutHandler(int timer)
 {
-    MiscUtils::blockSignals();
-    m_timeoutTimer->start();
+    UNUSED(timer);
 
-    while (m_timeoutTimer->wait()) {
-        auto now = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
 
-        std::lock_guard<std::mutex> lock(m_context->usersMutex);
+    std::lock_guard<std::mutex> lock(m_context->usersMutex);
 
-        for (auto &x : m_context->users) {
-            // timeout liczony od momentu połączenia jako że klient jedyne co powinien zrobić to zapytać się o serwery...
-            uint seconds = std::chrono::duration_cast<std::chrono::seconds>(now - x.second->connectedAt()).count();
+    for (auto &x : m_context->users) {
+        // timeout liczony od momentu połączenia jako że klient jedyne co powinien zrobić to zapytać się o serwery...
+        uint seconds = std::chrono::duration_cast<std::chrono::seconds>(now - x.second->connectedAt()).count();
 
-            if (seconds >= m_config.timeout) {
-                *m_context->log << Log::Line::Start
-                                << "Client timeout: " << seconds << "s"
-                                << Log::Line::End;
+        if (seconds >= m_config.timeout) {
+            *m_context->log << Log::Line::Start
+                            << "Client timeout: " << seconds << "s"
+                            << Log::Line::End;
 
-                m_context->tcp.disconnect(x.second->client(), true);
-            }
+            m_context->tcp.disconnect(x.second->client(), true);
         }
     }
+
+    return TimerDispatcher::Result::Continue;
 }
 
 void UserModule::tcpDropped(uint clientid)
@@ -215,16 +212,12 @@ PacketDispatcher::Result UserModule::serversRequest(uint clientid, Packet *packe
     // budujemy pakiet
     MasterUserPackets::ServerList response;
 
-    auto &out = response.servers();
-    out.resize(std::min(request->max(), static_cast<u8>(servers.size())));
-    uint i = 0;
+    response.servers().reserve(std::min(request->max(), static_cast<u8>(servers.size())));
     for (auto &x : servers) {
-        if (i >= request->max())
+        if (response.servers().size() >= request->max())
             break;
 
-        out[i].address.assign(x->client()->address());
-        out[i].port = x->port();
-        i = i + 1;
+        response.servers().emplace_back(x->client()->address(), x->port());
     }
 
     // wysyłamy

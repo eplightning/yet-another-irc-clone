@@ -19,7 +19,7 @@ HEADERS += \
     include/server/misc_utils.h \
     include/server/log.h \
     include/server/log/stdout.h \
-    include/server/timer.h
+    include/server/syseventloop.h
 
 SOURCES += \
     selector.cpp \
@@ -30,24 +30,25 @@ SOURCES += \
     misc_utils.cpp \
     log.cpp \
     log/stdout.cpp \
-    timer.cpp
+    syseventloop.cpp
 
 macx {
     SOURCES += \
         selector/selector_kqueue.cpp \
-        timer/timer_kqueue.cpp
+        syseventloop/syseventloop_kqueue.cpp
 
     HEADERS += \
         selector/selector_kqueue.h \
-        timer/timer_kqueue.h
+        syseventloop/syseventloop_kqueue.h
 }
 
 unix:!macx {
     SOURCES += \
         selector/selector_epoll.cpp \
-        timer/timer_linux.cpp
+        syseventloop/syseventloop_linux.cpp
+
 
     HEADERS += \
         selector/selector_epoll.h \
-        timer/timer_linux.h
+        syseventloop/syseventloop_linux.h
 }

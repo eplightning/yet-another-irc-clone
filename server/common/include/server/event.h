@@ -13,7 +13,8 @@ class Event {
 public:
     enum class Type {
         Packet = 1,
-        Simple = 2
+        Simple,
+        Timer
     };
 
     virtual ~Event() {}
@@ -53,8 +54,11 @@ class EventSimple : public Event {
 public:
     enum class EventId {
         SignalTerminate = 0,
-        SignalInterrupt = 1,
-        TcpLoopDied = 2
+        SignalInterrupt,
+        SignalQuit,
+        SignalHangUp,
+        TcpLoopDied,
+        SysLoopDied
     };
 
     EventSimple(EventId type);
@@ -64,6 +68,17 @@ public:
 
 protected:
     EventId m_id;
+};
+
+class EventTimer : public Event {
+public:
+    EventTimer(int timer);
+
+    Type type() const;
+    int timer() const;
+
+protected:
+    int m_timer;
 };
 
 END_NAMESPACE
