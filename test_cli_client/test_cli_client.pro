@@ -9,6 +9,10 @@ SOURCES += main.cpp
 INCLUDEPATH += ../common/include
 DEPENDPATH += ../common/include
 LIBS += -L../bin -lyaic
+# hack
+unix {
+    TARGETDEPS += ../bin/libyaic.a ../bin/libyaicserver.a
+}
 
 DESTDIR = ../bin
 TARGET = yaic-test-cli-client

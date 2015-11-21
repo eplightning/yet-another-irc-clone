@@ -2,7 +2,6 @@
 
 #include <common/types.h>
 #include <server/syseventloop.h>
-#include <server/misc_utils.h>
 
 #include <sys/types.h>
 #include <sys/timerfd.h>
@@ -18,41 +17,32 @@
 YAIC_NAMESPACE
 
 SysEventLoopApiLinux::SysEventLoopApiLinux(EventQueue *evq) :
-    SysEventLoop(evq), m_epollfd(epoll_create1(0)), m_eventfd(eventfd(0,EFD_NONBLOCK))
+    SysEventLoop(evq), m_epollfd(epoll_create1(0)), m_eventfd(eventfd(0, EFD_NONBLOCK))
 {
 
 }
 
 SysEventLoopApiLinux::~SysEventLoopApiLinux()
 {
-    for (int i=0; i<m_timerfd.size(); i++)
-    {
-        close(m_timerfd[i]);
-    }
+    for (auto x : m_timerfd)
+        close(x);
+
     close(m_epollfd);
     close(m_eventfd);
 }
 
 int SysEventLoopApiLinux::addTimer(uint seconds)
 {
-    int timerfd = timerfd_create(CLOCK_REALTIME,0);
+    int timerfd = timerfd_create(CLOCK_MONOTONIC, 0);
     m_timerfd.push_back(timerfd);
 
-    struct timespec time1;
-    time1.tv_sec = seconds;
-    time1.tv_nsec = 0;
-
-    struct timespec time2;
-    time2.tv_sec = seconds;
-    time2.tv_nsec = 0;
-
-    struct itimerspec itime;
-    itime.it_value = time1;
-    itime.it_interval = time2;
+    struct itimerspec itime {};
+    itime.it_value.tv_sec = seconds;
+    itime.it_interval.tv_sec = seconds;
 
     timerfd_settime(timerfd, TFD_TIMER_ABSTIME, &itime, NULL);
 
-    struct epoll_event event;
+    struct epoll_event event {};
     event.data.fd = timerfd;
     event.events = EPOLLIN;
 
@@ -64,23 +54,25 @@ int SysEventLoopApiLinux::addTimer(uint seconds)
 
 void SysEventLoopApiLinux::removeTimer(int fd)
 {
-    close(fd);
-    std::vector<int>::iterator it;
-    it = std::find(m_timerfd.begin(), m_timerfd.end(), fd);
+    auto it = std::find(m_timerfd.begin(), m_timerfd.end(), fd);
+
     if (it != m_timerfd.end())
     {
+        close(fd);
         m_timerfd.erase(it);
     }
 }
 
 bool SysEventLoopApiLinux::runLoop()
 {
-    struct epoll_event event1;
+    // eventfd
+    struct epoll_event event1 {};
     event1.data.fd = m_eventfd;
     event1.events = EPOLLIN;
     if (epoll_ctl(m_epollfd, EPOLL_CTL_ADD, m_eventfd, &event1) == -1)
         return false;
 
+    // signalfd
     sigset_t mask;
     sigemptyset(&mask);
     sigaddset(&mask, SIGTERM);
@@ -89,7 +81,7 @@ bool SysEventLoopApiLinux::runLoop()
     sigaddset(&mask, SIGHUP);
 
     int sfd = signalfd(-1, &mask, 0);
-    struct epoll_event event2;
+    struct epoll_event event2 {};
     event2.data.fd = sfd;
     event2.events = EPOLLIN;
     if (epoll_ctl(m_epollfd, EPOLL_CTL_ADD, sfd, &event2) == -1)
@@ -107,31 +99,32 @@ bool SysEventLoopApiLinux::runLoop()
             } else if (incoming[i].data.fd == sfd) {
                 EventSimple::EventId type;
 
-                struct signalfd_siginfo *fdsi;
-                int s = read(sfd, &fdsi, sizeof(struct signalfd_siginfo));
+                struct signalfd_siginfo fdsi;
+                if (read(sfd, &fdsi, sizeof(struct signalfd_siginfo)) == -1)
+                    continue;
 
-                for(int j=0; j<s; j++)
-                {
-                    switch (fdsi[j].ssi_signo) {
-                    case SIGTERM:
-                        type = EventSimple::EventId::SignalTerminate;
-                        break;
+                switch (fdsi.ssi_signo) {
+                case SIGTERM:
+                    type = EventSimple::EventId::SignalTerminate;
+                    break;
 
-                    case SIGQUIT:
-                        type = EventSimple::EventId::SignalQuit;
-                        break;
+                case SIGQUIT:
+                    type = EventSimple::EventId::SignalQuit;
+                    break;
 
-                    case SIGINT:
-                        type = EventSimple::EventId::SignalInterrupt;
-                        break;
+                case SIGINT:
+                    type = EventSimple::EventId::SignalInterrupt;
+                    break;
 
-                    default:
-                        type = EventSimple::EventId::SignalHangUp;
-                    }
+                default:
+                    type = EventSimple::EventId::SignalHangUp;
                 }
 
                 m_evq->append(new EventSimple(type));
             } else {
+                uint64_t expirations;
+                read(incoming[i].data.fd, &expirations, sizeof(expirations));
+
                 m_evq->append(new EventTimer(incoming[i].data.fd));
             }
         }

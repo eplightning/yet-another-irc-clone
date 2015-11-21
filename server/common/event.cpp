@@ -5,9 +5,19 @@
 
 YAIC_NAMESPACE
 
-EventQueue::EventQueue() : m_cond(), m_mutex(), m_events()
+EventQueue::EventQueue()
+    : m_cond(), m_mutex(), m_events()
 {
 
+}
+
+EventQueue::~EventQueue()
+{
+    while (!m_events.empty()) {
+        Event *ev = m_events.front();
+        delete ev;
+        m_events.pop();
+    }
 }
 
 void EventQueue::append(Event *event)

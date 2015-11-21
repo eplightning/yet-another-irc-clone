@@ -24,6 +24,7 @@ public:
 class EventQueue {
 public:
     EventQueue();
+    ~EventQueue();
 
     void append(Event *event);
     Event *pop();

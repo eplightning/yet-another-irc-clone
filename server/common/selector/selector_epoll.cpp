@@ -17,9 +17,8 @@ SelectorApiEpoll::SelectorApiEpoll(int bufsize) :
 
 SelectorApiEpoll::~SelectorApiEpoll()
 {
-    for (auto &kv : m_info) {
+    for (auto &kv : m_info)
         delete kv.second;
-    }
 
     close(m_epollfd);
 }
@@ -33,7 +32,7 @@ void SelectorApiEpoll::add(int fd, int type, void *data, int eventType)
 
     SelectorInfo *info = new SelectorInfo(fd, type, data, eventType);
 
-    struct epoll_event event;
+    struct epoll_event event {};
     event.data.fd = fd;
     event.events = EPOLLRDHUP;
 
@@ -66,7 +65,7 @@ void SelectorApiEpoll::modify(int fd, int eventType)
     SelectorInfo *info = (*it).second;
     info->setEventType(eventType);
 
-    struct epoll_event event;
+    struct epoll_event event {};
     event.data.fd = fd;
     event.events = EPOLLRDHUP;
 
@@ -84,11 +83,7 @@ void SelectorApiEpoll::remove(int fd)
     if (it == m_info.end())
         return;
 
-    struct epoll_event event;
-    event.data.fd = fd;
-    event.events = 0;
-
-    epoll_ctl(m_epollfd, EPOLL_CTL_DEL, fd, &event);
+    epoll_ctl(m_epollfd, EPOLL_CTL_DEL, fd, NULL);
 
     delete (*it).second;
     m_info.erase(it);
@@ -105,27 +100,21 @@ Selector::WaitRetval SelectorApiEpoll::wait(Vector<SelectorEvent> &events)
 
     for (int i = 0; i < nevents; i++)
     {
-        int fd = returnedEvents[i].data.fd;
-        auto it = m_info.find(fd);
+        auto it = m_info.find(returnedEvents[i].data.fd);
         if (it == m_info.end())
             continue;
 
         SelectorInfo *info = (*it).second;
 
         if (returnedEvents[i].events & EPOLLOUT)
-        {
             events.emplace_back(info, SelectorInfo::WriteEvent);
-        }
+
         if ((returnedEvents[i].events & EPOLLIN) || (returnedEvents[i].events & EPOLLERR) || (returnedEvents[i].events & EPOLLHUP)
                 || (returnedEvents[i].events & EPOLLRDHUP))
-        {
             events.emplace_back(info, SelectorInfo::ReadEvent);
-        }
 
         if ((returnedEvents[i].events & EPOLLERR) || (returnedEvents[i].events & EPOLLHUP) || (returnedEvents[i].events & EPOLLRDHUP))
-        {
             info->setClosed(true);
-        }
     }
 
     return WaitRetval::Success;

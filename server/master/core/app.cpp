@@ -75,6 +75,8 @@ int MasterServerApplication::run(const char *configPath)
                 m_context->userDispatcher.dispatch(evp->clientid(), evp->packet());
             else if (evp->source() == 2)
                 m_context->slaveDispatcher.dispatch(evp->clientid(), evp->packet());
+
+            delete evp->packet();
         } else if (ev->type() == Event::Type::Simple) {
             // killing
             looping = false;
@@ -136,7 +138,7 @@ bool MasterServerApplication::initModules()
 
 bool MasterServerApplication::initTcpServer()
 {
-    m_tcpThread = std::thread([&] {
+    m_tcpThread = std::thread([this] {
         m_context->tcp.runLoop();
         m_context->eventQueue.append(new EventSimple(EventSimple::EventId::TcpLoopDied));
     });
@@ -146,7 +148,7 @@ bool MasterServerApplication::initTcpServer()
 
 bool MasterServerApplication::initSysEvent()
 {
-    m_sysThread = std::thread([&] {
+    m_sysThread = std::thread([this]() {
         m_context->sysLoop->runLoop();
         m_context->eventQueue.append(new EventSimple(EventSimple::EventId::SysLoopDied));
     });
