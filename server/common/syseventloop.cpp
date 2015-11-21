@@ -14,7 +14,7 @@
 #if defined(SYSEVENT_API_KQUEUE)
     #include <syseventloop/syseventloop_kqueue.h>
 #elif defined(SYSEVENT_API_LINUX)
-    #include <syseventloop/syseventprocessor_linux.h>
+    #include <syseventloop/syseventloop_linux.h>
 #endif
 
 YAIC_NAMESPACE
