@@ -21,15 +21,14 @@ MasterServerApplication::MasterServerApplication()
 
 MasterServerApplication::~MasterServerApplication()
 {
-    if (m_tcpThread.joinable()) {
-        m_context->tcp.stopLoop();
-        m_tcpThread.join();
-    }
+    m_context->tcp.stopLoop();
+    m_context->sysLoop->stopLoop();
 
-    if (m_sysThread.joinable()) {
-        m_context->sysLoop->stopLoop();
+    if (m_tcpThread.joinable())
+        m_tcpThread.join();
+
+    if (m_sysThread.joinable())
         m_sysThread.join();
-    }
 
     if (m_userModule != nullptr)
         delete m_userModule;
