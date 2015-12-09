@@ -7,9 +7,9 @@ YAIC_NAMESPACE
 
 class SysEventLoop {
 public:
-    static SysEventLoop *factory(EventQueue *evq);
+    static SysEventLoop *factory(EventQueue &evq);
 
-    SysEventLoop(EventQueue *evq);
+    explicit SysEventLoop(EventQueue *evq);
     virtual ~SysEventLoop();
 
     virtual int addTimer(uint seconds) = 0;

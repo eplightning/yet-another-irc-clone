@@ -12,25 +12,25 @@ TARGET = yaicserver
 
 HEADERS += \
     include/server/selector.h \
-    include/server/tcp_server.h \
     include/server/event.h \
-    include/server/socket_utils.h \
     include/server/dispatcher.h \
     include/server/misc_utils.h \
-    include/server/log.h \
-    include/server/log/stdout.h \
-    include/server/syseventloop.h
+    include/server/logger/stdout.h \
+    include/server/syseventloop.h \
+    include/server/logger.h \
+    include/server/tcp.h \
+    include/server/tcp_manager.h
 
 SOURCES += \
     selector.cpp \
-    tcp_server.cpp \
     event.cpp \
-    socket_utils.cpp \
     dispatcher.cpp \
     misc_utils.cpp \
-    log.cpp \
-    log/stdout.cpp \
-    syseventloop.cpp
+    logger/stdout.cpp \
+    syseventloop.cpp \
+    logger.cpp \
+    tcp.cpp \
+    tcp_manager.cpp
 
 macx {
     SOURCES += \

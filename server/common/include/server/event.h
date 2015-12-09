@@ -17,7 +17,7 @@ public:
         Timer
     };
 
-    virtual ~Event() {}
+    virtual ~Event();
     virtual Type type() const = 0;
 };
 

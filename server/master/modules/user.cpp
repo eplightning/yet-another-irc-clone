@@ -1,7 +1,9 @@
 #include <modules/user.h>
 
+#include <modules/slave.h>
+
 #include <common/types.h>
-#include <server/socket_utils.h>
+#include <server/tcp.h>
 #include <server/syseventloop.h>
 #include <server/misc_utils.h>
 #include <common/packets/master_user.h>
@@ -11,10 +13,27 @@
 
 YAIC_NAMESPACE
 
+User::User(SharedPtr<Client> &client) :
+    m_client(client), m_connectedAt(SteadyClock::now())
+{
+
+}
+
+SharedPtr<Client> &User::client()
+{
+    return m_client;
+}
+
+const SteadyClock::time_point &User::connectedAt() const
+{
+    return m_connectedAt;
+}
+
 UserModule::UserModule(Context *context) :
     m_context(context)
 {
-    m_config.timeout = 600;
+    m_config.timeout = 10;
+    m_config.timeoutGranularity = 1;
 }
 
 UserModule::~UserModule()
@@ -22,7 +41,7 @@ UserModule::~UserModule()
 
 }
 
-void UserModule::loadFromLibconfig(const libconfig::Setting &section)
+void UserModule::loadConfig(const libconfig::Setting &section)
 {
     if (section.exists("listen")) {
         const libconfig::Setting &listenSection = section.lookup("listen");
@@ -36,128 +55,188 @@ void UserModule::loadFromLibconfig(const libconfig::Setting &section)
     }
 
     if (section.exists("timeout")) {
-        const libconfig::Setting &timeoutSection = section.lookup("timeout");
+        const libconfig::Setting &sub = section.lookup("timeout");
 
-        if (timeoutSection.isNumber()) {
-            m_config.timeout = timeoutSection;
-            m_config.timeout = m_config.timeout > 0 ? m_config.timeout : 600;
+        if (sub.isNumber()) {
+            m_config.timeout = sub;
+            m_config.timeout = m_config.timeout > 0 ? m_config.timeout : 10;
+        }
+    }
+
+    if (section.exists("timeout-granularity")) {
+        const libconfig::Setting &sub = section.lookup("timeout-granularity");
+
+        if (sub.isNumber()) {
+            m_config.timeoutGranularity = sub;
+            m_config.timeoutGranularity = m_config.timeoutGranularity > 0 ? m_config.timeoutGranularity : 1;
         }
     }
 }
 
-void UserModule::init()
+bool UserModule::init()
 {
-    initTcp();
-    initTimeout();
+    if (!initTcp())
+        return false;
 
-    m_context->userDispatcher.append(Packet::Type::RequestServers,
-                                     BIND_DISPATCH(this, &UserModule::serversRequest));
+    if (!initTimeout())
+        return false;
+
+    if (!initPackets())
+        return false;
+
+    return true;
 }
 
-void UserModule::initTcp()
+void UserModule::dispatchPacket(EventPacket *ev)
 {
-    ListenPool *pool = new ListenPool;
+    m_packetDispatcher.dispatch(ev->clientid(), ev->packet());
+}
 
-    pool->droppedConnection = std::bind(&UserModule::tcpDropped, this, std::placeholders::_1);
-    pool->lostConnection = std::bind(&UserModule::tcpLost, this, std::placeholders::_1);
-    pool->newConnection = std::bind(&UserModule::tcpNew, this, std::placeholders::_1);
-    pool->receive = std::bind(&UserModule::tcpReceive, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+void UserModule::dispatchTimer(EventTimer *ev)
+{
+    m_timerDispatcher.dispatch(ev->timer());
+}
 
-    pool->sockets.reserve(m_config.listen.size());
+void UserModule::dispatchSimple(EventSimple *ev)
+{
+    UNUSED(ev);
+}
 
-    int i = 0;
+HashMap<uint, SharedPtr<User> > &UserModule::users()
+{
+    return m_users;
+}
+
+std::mutex &UserModule::usersMutex()
+{
+    return m_usersMutex;
+}
+
+SharedPtr<User> UserModule::getUser(uint clientid)
+{
+    std::lock_guard<std::mutex> lock(m_usersMutex);
+
+    auto it = m_users.find(clientid);
+
+    if (it == m_users.end())
+        return nullptr;
+
+    return it->second;
+}
+
+bool UserModule::initPackets()
+{
+    m_packetDispatcher.append(Packet::Type::RequestServers,
+                              BIND_DISPATCH(this, &UserModule::serversRequest));
+
+    return true;
+}
+
+bool UserModule::initTcp()
+{
+    ListenTcpPool *pool = new ListenTcpPool(
+        BIND_TCP_STATE(this, &UserModule::tcpState),
+        BIND_TCP_NEW(this, &UserModule::tcpNew),
+        BIND_TCP_RECV(this, &UserModule::tcpReceive)
+    );
+
+    pool->listenSockets()->reserve(m_config.listen.size());
 
     for (auto &x : m_config.listen) {
-        ConnectionProto proto;
+        ConnectionProtocol proto;
         int sock = SocketUtils::createListenSocket(x, proto);
 
-        if (sock >= 0) {
-            pool->sockets.resize(i + 1);
-            pool->sockets[i].protocol = proto;
-            pool->sockets[i].socket = sock;
-            pool->sockets[i].pool = pool;
-
-            i = i + 1;
-        }
+        if (sock >= 0)
+            pool->appendListenSocket(proto, sock);
+        else
+            m_context->log->error("Error while creating listen socket");
     }
 
-    if (i == 0) {
+    if (pool->listenSockets()->empty()) {
         delete pool;
-        throw Exception("Couldn't create any client listen sockets");
+        m_context->log->error("Couldn't create any listen socket");
+        return false;
     }
 
-    m_context->tcp.createPool("client", pool);
+    m_context->tcp->createPool("user-server", pool);
+
+    return true;
 }
 
-void UserModule::initTimeout()
+bool UserModule::initTimeout()
 {
-    m_timeoutTimer = m_context->sysLoop->addTimer(m_config.timeout);
+    m_timerTimeout = m_context->sysLoop->addTimer(m_config.timeoutGranularity);
 
-    if (m_timeoutTimer < 0)
-        throw Exception("Couldn't create timeout");
+    if (m_timerTimeout < 0) {
+        m_context->log->error("Couldn't create timer for user timeout");
+        return false;
+    }
 
-    m_context->timerDispatcher.append(m_timeoutTimer, BIND_TIMER(this, &UserModule::timeoutHandler));
+    m_timerDispatcher.append(m_timerTimeout, BIND_TIMER(this, &UserModule::timeoutHandler));
+
+    return true;
 }
 
-TimerDispatcher::Result UserModule::timeoutHandler(int timer)
+bool UserModule::timeoutHandler(int timer)
 {
     UNUSED(timer);
 
-    auto now = std::chrono::steady_clock::now();
+    auto now = SteadyClock::now();
 
-    std::lock_guard<std::mutex> lock(m_context->usersMutex);
+    std::lock_guard<std::mutex> lock(m_usersMutex);
 
-    for (auto &x : m_context->users) {
+    for (auto &x : m_users) {
         // timeout liczony od momentu połączenia jako że klient jedyne co powinien zrobić to zapytać się o serwery...
-        uint seconds = std::chrono::duration_cast<std::chrono::seconds>(now - x.second->connectedAt()).count();
+        auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now - x.second->connectedAt()).count();
 
         if (seconds >= m_config.timeout) {
-            *m_context->log << Log::Line::Start
-                            << "Client timeout: " << seconds << "s"
-                            << Log::Line::End;
+            m_context->log << Logger::Line::Start
+                           << "Client timeout: " << seconds << "s"
+                           << Logger::Line::End;
 
-            m_context->tcp.disconnect(x.second->client(), true);
+            m_context->tcp->disconnect(x.second->client(), true);
         }
     }
 
-    return TimerDispatcher::Result::Continue;
+    return true;
 }
 
-void UserModule::tcpDropped(uint clientid)
+void UserModule::tcpState(uint clientid, TcpClientState state, int error)
 {
-    {
-        std::lock_guard<std::mutex> lock(m_context->usersMutex);
+    if (state == TCSDisconnecting) {
+        m_context->log << Logger::Line::Start
+                       << "Client connection lost: [ID: " << clientid << "]"
+                       << Logger::Line::End;
 
-        auto it = m_context->users.find(clientid);
-        if (it != m_context->users.end())
-            m_context->users.erase(it);
+        return;
     }
 
-    *m_context->log << Log::Line::Start
-                    << "Client connection dropped: [ID: " << clientid << "]"
-                    << Log::Line::End;
-}
-
-void UserModule::tcpLost(uint clientid)
-{
-    *m_context->log << Log::Line::Start
-                    << "Client connection lost: [ID: " << clientid << "]"
-                    << Log::Line::End;
-}
-
-bool UserModule::tcpNew(SharedPtr<Client> client)
-{
     {
-        std::lock_guard<std::mutex> lock(m_context->usersMutex);
+        std::lock_guard<std::mutex> lock(m_usersMutex);
 
-        auto it = m_context->users.find(client->id());
-        if (it == m_context->users.end())
-            m_context->users[client->id()] = std::make_shared<User>(client);
+        auto it = m_users.find(clientid);
+        if (it != m_users.end())
+            m_users.erase(it);
     }
 
-    *m_context->log << Log::Line::Start
-                    << "Client connection: [ID: " << client->id() << ", IP: " << client->address() <<"]"
-                    << Log::Line::End;
+    m_context->log << Logger::Line::Start
+                   << "Client connection dropped: [ID: " << clientid << "] (" << error << ")"
+                   << Logger::Line::End;
+}
+
+bool UserModule::tcpNew(SharedPtr<Client> &client)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_usersMutex);
+
+        auto it = m_users.find(client->id());
+        if (it == m_users.end())
+            m_users[client->id()] = std::make_shared<User>(client);
+    }
+
+    m_context->log << Logger::Line::Start
+                   << "Client connection: [ID: " << client->id() << ", IP: " << client->address() <<"]"
+                   << Logger::Line::End;
 
     return true;
 }
@@ -169,45 +248,45 @@ void UserModule::tcpReceive(uint clientid, PacketHeader header, const Vector<cha
     // jeśli błąd to instant disconnect
     if (!Packet::checkDirection(header.type, Packet::Direction::UserToMaster) ||
             (packet = Packet::factory(header, data)) == nullptr) {
-        SharedPtr<User> user = m_context->user(clientid);
+        SharedPtr<User> usr = getUser(clientid);
 
-        if (user)
-            m_context->tcp.disconnect(user->client(), true);
+        if (usr)
+            m_context->tcp->disconnect(usr->client(), true);
 
         return;
     }
 
-    m_context->eventQueue.append(new EventPacket(packet, clientid, 1));
+    m_context->eventQueue->append(new EventPacket(packet, clientid, MASTER_APP_SOURCE_USER));
 }
 
-PacketDispatcher::Result UserModule::serversRequest(uint clientid, Packet *packet)
+bool UserModule::serversRequest(uint clientid, Packet *packet)
 {
-    SharedPtr<User> user = m_context->user(clientid);
+    SharedPtr<User> user = getUser(clientid);
     if (!user)
-        return PacketDispatcher::Result::Stop;
+        return false;
 
     MasterUserPackets::RequestServers *request = static_cast<MasterUserPackets::RequestServers*>(packet);
 
-    // zbieramy serwery
+    // zbieramy serwery i je sortujemy
     Vector<SharedPtr<SlaveServer>> servers;
     {
-        std::lock_guard<std::mutex> lock(m_context->slavesMutex);
+        std::lock_guard<std::mutex> lock(m_context->slave->slavesMutex());
 
-        for (auto &x : m_context->slaves) {
-            ConnectionProto proto = x.second->client()->proto();
+        for (auto &x : m_context->slave->slaves()) {
+            ConnectionProtocol proto = x.second->client()->proto();
 
-            if (request->flags() & MasterUserPackets::RequestServers::FlagIpv4Only && proto != ConnectionProtoIpv4)
+            if (request->flags() & MasterUserPackets::RequestServers::FlagIpv4Only && proto != CPIpv4)
                 continue;
-            else if (request->flags() & MasterUserPackets::RequestServers::FlagIpv6Only && proto != ConnectionProtoIpv6)
+            else if (request->flags() & MasterUserPackets::RequestServers::FlagIpv6Only && proto != CPIpv6)
                 continue;
 
             servers.push_back(x.second);
         }
-    }
 
-    std::sort(servers.begin(), servers.end(), [] (const SharedPtr<SlaveServer> &a, const SharedPtr<SlaveServer> &b) {
-        return a->load() <= b->load();
-    });
+        std::sort(servers.begin(), servers.end(), [] (const SharedPtr<SlaveServer> &a, const SharedPtr<SlaveServer> &b) {
+            return a->load() <= b->load();
+        });
+    }
 
     // budujemy pakiet
     MasterUserPackets::ServerList response;
@@ -221,15 +300,13 @@ PacketDispatcher::Result UserModule::serversRequest(uint clientid, Packet *packe
     }
 
     // wysyłamy
-    m_context->tcp.sendTo(user->client(), &response);
+    m_context->tcp->sendTo(user->client(), &response);
 
-    *m_context->log << Log::Line::Start
-                    << "Server request served [ID: " << clientid << "]"
-                    << Log::Line::End;
+    m_context->log << Logger::Line::Start
+                   << "Server request served [ID: " << clientid << "]"
+                   << Logger::Line::End;
 
-    return PacketDispatcher::Result::Continue;
+    return true;
 }
-
-
 
 END_NAMESPACE

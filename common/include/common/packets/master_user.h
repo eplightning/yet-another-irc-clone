@@ -36,7 +36,8 @@ protected:
 // Master -> User
 // -------------------------
 
-struct ServerListServer {
+class ServerListServer {
+public:
     ServerListServer();
     ServerListServer(const String &addr, u16 port);
 

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <core/context.h>
+#include <core/global.h>
 #include <modules/user.h>
 
 #include <common/types.h>
 #include <server/event.h>
-#include <server/tcp_server.h>
+#include <server/tcp_manager.h>
 
 #include <libconfig.h++>
 #include <thread>
@@ -27,7 +27,6 @@ protected:
 
 protected:
     Context *m_context;
-    UserModule *m_userModule;
     libconfig::Config m_config;
     std::thread m_tcpThread;
     std::thread m_sysThread;

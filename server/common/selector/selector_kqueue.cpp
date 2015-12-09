@@ -1,4 +1,4 @@
-#include "selector/selector_kqueue.h"
+#include <selector/selector_kqueue.h>
 
 #include <common/types.h>
 #include <server/selector.h>
@@ -13,13 +13,13 @@ YAIC_NAMESPACE
 SelectorApiKqueue::SelectorApiKqueue(int bufsize) :
     m_bufsize(bufsize), m_kqueuefd(kqueue())
 {
+
 }
 
 SelectorApiKqueue::~SelectorApiKqueue()
 {
-    for (auto &kv : m_info) {
+    for (auto &kv : m_info)
         delete kv.second;
-    }
 
     close(m_kqueuefd);
 }
@@ -92,7 +92,7 @@ void SelectorApiKqueue::remove(int fd)
     m_info.erase(it);
 }
 
-Selector::WaitRetval SelectorApiKqueue::wait(Vector<SelectorEvent> &events)
+bool SelectorApiKqueue::wait(Vector<SelectorEvent> &events)
 {
     events.clear();
 
@@ -121,7 +121,7 @@ Selector::WaitRetval SelectorApiKqueue::wait(Vector<SelectorEvent> &events)
     // zmiany oraz eventy
     int nevents = kevent(m_kqueuefd, changelist, nchanges, kevents, m_bufsize, 0);
     if (nevents == -1)
-        return WaitRetval::Error;
+        return false;
 
     m_changes.clear();
     m_closedFds.clear();
@@ -130,21 +130,19 @@ Selector::WaitRetval SelectorApiKqueue::wait(Vector<SelectorEvent> &events)
         if (kevents[i].flags & EV_ERROR)
             continue;
 
+        SelectorInfo *info = static_cast<SelectorInfo*>(kevents[i].udata);
+
         if (kevents[i].filter == EVFILT_READ) {
-            events.emplace_back(static_cast<SelectorInfo*>(kevents[i].udata), SelectorInfo::ReadEvent);
+            events.emplace_back(info, SelectorInfo::ReadEvent);
         } else if (kevents[i].filter == EVFILT_WRITE) {
-            events.emplace_back(static_cast<SelectorInfo*>(kevents[i].udata), SelectorInfo::WriteEvent);
+            events.emplace_back(info, SelectorInfo::WriteEvent);
         }
 
-        if (kevents[i].flags & EV_EOF) {
-            SelectorInfo *info = static_cast<SelectorInfo*>(kevents[i].udata);
-
-            if (!info->closed())
-                info->setClosed(true);
-        }
+        if (kevents[i].flags & EV_EOF && !info->closed())
+            info->setClosed(true);
     }
 
-    return WaitRetval::Success;
+    return true;
 }
 
 void SelectorApiKqueue::appendChange(int fd, int filter, int flags, int fflags, SelectorInfo *info)

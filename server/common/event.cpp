@@ -5,6 +5,11 @@
 
 YAIC_NAMESPACE
 
+Event::~Event()
+{
+
+}
+
 EventQueue::EventQueue()
     : m_cond(), m_mutex(), m_events()
 {
@@ -99,7 +104,5 @@ int EventTimer::timer() const
 {
     return m_timer;
 }
-
-
 
 END_NAMESPACE

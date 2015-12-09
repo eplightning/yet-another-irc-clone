@@ -4,9 +4,9 @@ CONFIG -= qt app_bundle
 CONFIG += console c++11 thread
 
 SOURCES += main.cpp \
-    core/context.cpp \
     core/app.cpp \
-    modules/user.cpp
+    modules/user.cpp \
+    modules/slave.cpp
 
 # libconfig
 LIBS += -lconfig++
@@ -25,6 +25,6 @@ TARGET = yaic-master
 
 HEADERS += \
     core/app.h \
-    core/context.h \
     modules/slave.h \
-    modules/user.h
+    modules/user.h \
+    core/global.h

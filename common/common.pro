@@ -15,5 +15,4 @@ INCLUDEPATH += include
 
 SOURCES += \
     packet.cpp \
-    types.cpp \
     packets/master_user.cpp

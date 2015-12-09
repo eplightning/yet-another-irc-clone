@@ -1,4 +1,4 @@
-#include "selector/selector_epoll.h"
+#include <selector/selector_epoll.h>
 
 #include <common/types.h>
 #include <server/selector.h>
@@ -13,6 +13,7 @@ YAIC_NAMESPACE
 SelectorApiEpoll::SelectorApiEpoll(int bufsize) :
     m_bufsize(bufsize), m_epollfd(epoll_create1(0))
 {
+
 }
 
 SelectorApiEpoll::~SelectorApiEpoll()
@@ -89,14 +90,14 @@ void SelectorApiEpoll::remove(int fd)
     m_info.erase(it);
 }
 
-Selector::WaitRetval SelectorApiEpoll::wait(Vector<SelectorEvent> &events)
+bool SelectorApiEpoll::wait(Vector<SelectorEvent> &events)
 {
     events.clear();
 
     struct epoll_event returnedEvents[m_bufsize];
     int nevents = epoll_wait(m_epollfd, returnedEvents, m_bufsize, -1);
     if (nevents == -1)
-        return WaitRetval::Error;
+        return false;
 
     for (int i = 0; i < nevents; i++)
     {
@@ -109,15 +110,16 @@ Selector::WaitRetval SelectorApiEpoll::wait(Vector<SelectorEvent> &events)
         if (returnedEvents[i].events & EPOLLOUT)
             events.emplace_back(info, SelectorInfo::WriteEvent);
 
-        if ((returnedEvents[i].events & EPOLLIN) || (returnedEvents[i].events & EPOLLERR) || (returnedEvents[i].events & EPOLLHUP)
-                || (returnedEvents[i].events & EPOLLRDHUP))
+        if ((returnedEvents[i].events & EPOLLIN) || (returnedEvents[i].events & EPOLLERR)
+                || (returnedEvents[i].events & EPOLLHUP) || (returnedEvents[i].events & EPOLLRDHUP))
             events.emplace_back(info, SelectorInfo::ReadEvent);
 
-        if ((returnedEvents[i].events & EPOLLERR) || (returnedEvents[i].events & EPOLLHUP) || (returnedEvents[i].events & EPOLLRDHUP))
+        if ((returnedEvents[i].events & EPOLLERR) || (returnedEvents[i].events & EPOLLHUP)
+                || (returnedEvents[i].events & EPOLLRDHUP))
             info->setClosed(true);
     }
 
-    return WaitRetval::Success;
+    return true;
 }
 
 END_NAMESPACE

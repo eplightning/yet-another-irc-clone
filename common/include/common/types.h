@@ -5,7 +5,7 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
-#include <exception>
+#include <chrono>
 
 #include <limits.h>
 
@@ -17,6 +17,7 @@ YAIC_NAMESPACE
 
 // STL
 typedef std::string String;
+typedef std::chrono::steady_clock SteadyClock;
 template<class T> using UniquePtr = std::unique_ptr < T > ;
 template<class T> using SharedPtr = std::shared_ptr < T > ;
 template<class T> using WeakPtr = std::weak_ptr < T > ;
@@ -73,19 +74,5 @@ typedef unsigned int uint;
 #else
     #error "No 64-bit int type found"
 #endif
-
-// Exception
-class Exception : public std::exception {
-public:
-    explicit Exception();
-    explicit Exception(String message);
-
-    virtual ~Exception() throw();
-
-    virtual const char *what() const throw();
-
-protected:
-    String m_message;
-};
 
 END_NAMESPACE

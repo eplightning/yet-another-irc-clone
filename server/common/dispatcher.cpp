@@ -17,36 +17,21 @@ void PacketDispatcher::dispatch(uint clientid, Packet *packet) const
     if (it == m_routing.cend())
         return;
 
-    for (auto &x : it->second) {
-        Result res = x(clientid, packet);
-
-        if (res == Result::Stop)
+    for (auto &x : it->second)
+        if (!x(clientid, packet))
             break;
-    }
 }
 
-void PacketDispatcher::append(Packet::Type packet, PacketDispatcher::DispatchFunction func)
+void PacketDispatcher::append(Packet::Type packet, const PacketDispatcher::DispatchFunction &func)
 {
     append(static_cast<u16>(packet), func);
 }
 
-void PacketDispatcher::append(u16 packet, PacketDispatcher::DispatchFunction func)
+void PacketDispatcher::append(u16 packet, const PacketDispatcher::DispatchFunction &func)
 {
     auto it = m_routing.emplace(std::piecewise_construct, std::forward_as_tuple(packet), std::forward_as_tuple());
 
     (*(it.first)).second.push_back(func);
-}
-
-void PacketDispatcher::prepend(Packet::Type packet, PacketDispatcher::DispatchFunction func)
-{
-    prepend(static_cast<u16>(packet), func);
-}
-
-void PacketDispatcher::prepend(u16 packet, PacketDispatcher::DispatchFunction func)
-{
-    auto it = m_routing.emplace(std::piecewise_construct, std::forward_as_tuple(packet), std::forward_as_tuple());
-
-    (*(it.first)).second.push_front(func);
 }
 
 TimerDispatcher::TimerDispatcher()
@@ -61,15 +46,12 @@ void TimerDispatcher::dispatch(int timer) const
     if (it == m_routing.cend())
         return;
 
-    for (auto &x : it->second) {
-        Result res = x(timer);
-
-        if (res == Result::Stop)
+    for (auto &x : it->second)
+        if (!x(timer))
             break;
-    }
 }
 
-void TimerDispatcher::append(int timer, TimerDispatcher::DispatchFunction func)
+void TimerDispatcher::append(int timer, const TimerDispatcher::DispatchFunction &func)
 {
     auto it = m_routing.emplace(std::piecewise_construct, std::forward_as_tuple(timer),
                                 std::forward_as_tuple());
@@ -77,19 +59,9 @@ void TimerDispatcher::append(int timer, TimerDispatcher::DispatchFunction func)
     (*(it.first)).second.push_back(func);
 }
 
-void TimerDispatcher::prepend(int timer, TimerDispatcher::DispatchFunction func)
-{
-    auto it = m_routing.emplace(std::piecewise_construct, std::forward_as_tuple(timer),
-                                std::forward_as_tuple());
-
-    (*(it.first)).second.push_front(func);
-}
-
 void TimerDispatcher::remove(int timer)
 {
     m_routing.erase(timer);
 }
-
-
 
 END_NAMESPACE

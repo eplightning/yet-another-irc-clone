@@ -5,6 +5,11 @@
 
 YAIC_NAMESPACE
 
+const uint Packet::MaxSize = 32 * 1024;
+const uint Packet::HeaderSize = sizeof(PacketHeader);
+const uint Packet::MaxPayloadSize = Packet::MaxSize - Packet::HeaderSize;
+const uint Packet::MaxVectorSize = 16 * 1024;
+
 Packet::Packet(Packet::Type type)
     : m_packetType(type), m_packetReaderPos(0)
 {
@@ -42,9 +47,7 @@ Packet::Type Packet::packetType() const
 
 bool Packet::checkDirection(u16 rawType, Packet::Direction dir)
 {
-    rawType >>= 13;
-
-    return static_cast<u8>(dir) == rawType;
+    return static_cast<u8>(dir) == (rawType >> 13);
 }
 
 Packet *Packet::factory(PacketHeader header, const Vector<char> &data)

@@ -20,7 +20,6 @@ YAIC_NAMESPACE
 
 const int SelectorInfo::ReadEvent = 1 << 0;
 const int SelectorInfo::WriteEvent = 1 << 1;
-const int SelectorInfo::CloseEvent = 1 << 2;
 
 Selector *Selector::factory()
 {
@@ -31,16 +30,66 @@ Selector *Selector::factory()
 #endif
 }
 
+Selector::~Selector()
+{
+
+}
+
 SelectorEvent::SelectorEvent(const SelectorInfo *info, int type) :
     m_info(info), m_type(type)
 {
 
 }
 
+const SelectorInfo *SelectorEvent::info() const
+{
+    return m_info;
+}
+
+int SelectorEvent::type() const
+{
+    return m_type;
+}
+
 SelectorInfo::SelectorInfo(int fd, int type, void *data, int evtype) :
     m_fd(fd), m_type(type), m_data(data), m_eventType(evtype), m_closed(false)
 {
 
+}
+
+int SelectorInfo::fd() const
+{
+    return m_fd;
+}
+
+int SelectorInfo::type() const
+{
+    return m_type;
+}
+
+void *SelectorInfo::data() const
+{
+    return m_data;
+}
+
+int SelectorInfo::eventType() const
+{
+    return m_eventType;
+}
+
+bool SelectorInfo::closed() const
+{
+    return m_closed;
+}
+
+void SelectorInfo::setEventType(int value)
+{
+    m_eventType = value;
+}
+
+void SelectorInfo::setClosed(bool closed)
+{
+    m_closed = closed;
 }
 
 END_NAMESPACE

@@ -4,11 +4,13 @@
 #include <server/syseventloop.h>
 #include <vector>
 
+#include <mutex>
+
 YAIC_NAMESPACE
 
 class SysEventLoopApiLinux : public SysEventLoop {
 public:
-    SysEventLoopApiLinux(EventQueue *evq);
+    explicit SysEventLoopApiLinux(EventQueue *evq);
     ~SysEventLoopApiLinux();
 
     int addTimer(uint seconds);
@@ -18,7 +20,8 @@ public:
 
 protected:
     int m_epollfd;
-    Vector <int> m_timerfd;
+    Vector<int> m_timerfd;
+    std::mutex m_timerfdMutex;
     int m_eventfd;
 };
 

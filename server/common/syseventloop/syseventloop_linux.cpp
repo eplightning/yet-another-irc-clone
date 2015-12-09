@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <mutex>
 
 YAIC_NAMESPACE
 
@@ -34,7 +35,14 @@ SysEventLoopApiLinux::~SysEventLoopApiLinux()
 int SysEventLoopApiLinux::addTimer(uint seconds)
 {
     int timerfd = timerfd_create(CLOCK_MONOTONIC, 0);
-    m_timerfd.push_back(timerfd);
+
+    if (timerfd == -1)
+        return -1;
+
+    {
+        std::lock_guard<std::mutex> lock(m_timerfdMutex);
+        m_timerfd.push_back(timerfd);
+    }
 
     struct itimerspec itime {};
     itime.it_value.tv_sec = seconds;
@@ -54,6 +62,8 @@ int SysEventLoopApiLinux::addTimer(uint seconds)
 
 void SysEventLoopApiLinux::removeTimer(int fd)
 {
+    std::lock_guard<std::mutex> lock(m_timerfdMutex);
+
     auto it = std::find(m_timerfd.begin(), m_timerfd.end(), fd);
 
     if (it != m_timerfd.end())
@@ -65,11 +75,14 @@ void SysEventLoopApiLinux::removeTimer(int fd)
 
 bool SysEventLoopApiLinux::runLoop()
 {
+    if (m_eventfd == -1 || m_epollfd == -1)
+        return false;
+
     // eventfd
-    struct epoll_event event1 {};
-    event1.data.fd = m_eventfd;
-    event1.events = EPOLLIN;
-    if (epoll_ctl(m_epollfd, EPOLL_CTL_ADD, m_eventfd, &event1) == -1)
+    struct epoll_event event {};
+    event.data.fd = m_eventfd;
+    event.events = EPOLLIN;
+    if (epoll_ctl(m_epollfd, EPOLL_CTL_ADD, m_eventfd, &event) == -1)
         return false;
 
     // signalfd
@@ -81,10 +94,12 @@ bool SysEventLoopApiLinux::runLoop()
     sigaddset(&mask, SIGHUP);
 
     int sfd = signalfd(-1, &mask, 0);
-    struct epoll_event event2 {};
-    event2.data.fd = sfd;
-    event2.events = EPOLLIN;
-    if (epoll_ctl(m_epollfd, EPOLL_CTL_ADD, sfd, &event2) == -1)
+    if (sfd == -1)
+        return false;
+
+    event.data.fd = sfd;
+    event.events = EPOLLIN;
+    if (epoll_ctl(m_epollfd, EPOLL_CTL_ADD, sfd, &event) == -1)
         return false;
 
     struct epoll_event incoming[16];

@@ -10,10 +10,12 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <atomic>
+
 YAIC_NAMESPACE
 
 SysEventLoopApiKqueue::SysEventLoopApiKqueue(EventQueue *evq) :
-    SysEventLoop(evq), m_kqueuefd(kqueue()), m_timerid(0)
+    SysEventLoop(evq), m_kqueuefd(kqueue()), m_timerid(1)
 {
 
 }
@@ -25,16 +27,14 @@ SysEventLoopApiKqueue::~SysEventLoopApiKqueue()
 
 int SysEventLoopApiKqueue::addTimer(uint seconds)
 {
-    // NOT THREAD SAFE
-    // naprawić jak będzie potrzeba wywoływania tego spoza main loopa (nigdy?)
-    m_timerid = m_timerid + 1;
+    int id = m_timerid.fetch_add(1);
 
     struct kevent event;
 
-    EV_SET(&event, m_timerid, EVFILT_TIMER, EV_ADD | EV_ENABLE, NOTE_SECONDS, seconds, 0);
+    EV_SET(&event, id, EVFILT_TIMER, EV_ADD | EV_ENABLE, NOTE_SECONDS, seconds, 0);
 
     if (kevent(m_kqueuefd, &event, 1, NULL, 0, NULL) != -1)
-        return m_timerid;
+        return id;
 
     return -1;
 }
@@ -50,6 +50,9 @@ void SysEventLoopApiKqueue::removeTimer(int id)
 
 bool SysEventLoopApiKqueue::runLoop()
 {
+    if (m_kqueuefd == -1)
+        return false;
+
     // ignorujemy sygnały które nas zabijają
     signal(SIGTERM, SIG_IGN);
     signal(SIGINT, SIG_IGN);

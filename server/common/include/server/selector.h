@@ -8,18 +8,17 @@ class SelectorInfo {
 public:
     const static int ReadEvent;
     const static int WriteEvent;
-    const static int CloseEvent;
 
     SelectorInfo(int fd, int type, void *data, int evtype);
 
-    int fd() const { return m_fd; }
-    int type() const { return m_type; }
-    void *data() const { return m_data; }
-    int eventType() const { return m_eventType; }
-    bool closed() const { return m_closed; }
+    int fd() const;
+    int type() const;
+    void *data() const;
+    int eventType() const;
+    bool closed() const;
 
-    void setEventType(int value) { m_eventType = value; }
-    void setClosed(bool closed) { m_closed = closed; }
+    void setEventType(int value);
+    void setClosed(bool closed);
 
 protected:
     int m_fd;
@@ -33,8 +32,8 @@ class SelectorEvent {
 public:
     SelectorEvent(const SelectorInfo *info, int type);
 
-    const SelectorInfo *info() const { return m_info; }
-    int type() const { return m_type; }
+    const SelectorInfo *info() const;
+    int type() const;
 
 protected:
     const SelectorInfo *m_info;
@@ -43,20 +42,15 @@ protected:
 
 class Selector {
 public:
-    enum class WaitRetval {
-        Success = 0,
-        Error = 1
-    };
-
     static Selector *factory();
 
-    virtual ~Selector() {}
+    virtual ~Selector();
 
     virtual void add(int fd, int type, void *data, int eventType) = 0;
-    virtual void close(int fd) {UNUSED(fd);}
+    virtual void close(int fd) = 0;
     virtual void modify(int fd, int eventType) = 0;
     virtual void remove(int fd) = 0;
-    virtual WaitRetval wait(Vector<SelectorEvent> &events) = 0;
+    virtual bool wait(Vector<SelectorEvent> &events) = 0;
 };
 
 END_NAMESPACE

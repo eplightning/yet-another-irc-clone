@@ -3,11 +3,13 @@
 #include <common/types.h>
 #include <server/syseventloop.h>
 
+#include <atomic>
+
 YAIC_NAMESPACE
 
 class SysEventLoopApiKqueue : public SysEventLoop {
 public:
-    SysEventLoopApiKqueue(EventQueue *evq);
+    explicit SysEventLoopApiKqueue(EventQueue *evq);
     ~SysEventLoopApiKqueue();
 
     int addTimer(uint seconds);
@@ -17,7 +19,7 @@ public:
 
 protected:
     int m_kqueuefd;
-    int m_timerid;
+    std::atomic<int> m_timerid;
 };
 
 END_NAMESPACE

@@ -50,6 +50,17 @@ void RequestServers::setMax(u8 value)
     m_max = value;
 }
 
+ServerListServer::ServerListServer()
+{
+
+}
+
+ServerListServer::ServerListServer(const String &addr, u16 port)
+    : address(addr), port(port)
+{
+
+}
+
 ServerList::ServerList()
     : Packet(Packet::Type::ServerList)
 {
@@ -58,30 +69,26 @@ ServerList::ServerList()
 
 bool ServerList::decodePayload(const Vector<char> &payload)
 {
-    bool result = true;
-
     u32 size;
-    result &= read(payload, size);
-
-    if (!result || size > PACKET_MAX_VECTOR_SIZE)
+    if (!readVectorSize(payload, size))
         return false;
 
     m_servers.resize(size);
 
     for (uint i = 0; i < size; i++) {
-        result &= read(payload, m_servers[i].address);
+        bool result = read(payload, m_servers[i].address);
         result &= read(payload, m_servers[i].port);
 
         if (!result)
             return false;
     }
 
-    return result;
+    return true;
 }
 
 void ServerList::encodePayload(Vector<char> &payload) const
 {
-    write(payload, static_cast<u32>(m_servers.size()));
+    writeVectorSize(payload, m_servers.size());
 
     for (auto &x : m_servers) {
         write(payload, x.address);
@@ -97,17 +104,6 @@ Vector<ServerListServer> &ServerList::servers()
 const Vector<ServerListServer> &ServerList::servers() const
 {
     return m_servers;
-}
-
-ServerListServer::ServerListServer()
-{
-
-}
-
-ServerListServer::ServerListServer(const String &addr, u16 port)
-    : address(addr), port(port)
-{
-
 }
 
 

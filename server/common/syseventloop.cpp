@@ -19,12 +19,12 @@
 
 YAIC_NAMESPACE
 
-SysEventLoop *SysEventLoop::factory(EventQueue *evq)
+SysEventLoop *SysEventLoop::factory(EventQueue &evq)
 {
 #if defined(SYSEVENT_API_KQUEUE)
-    return new SysEventLoopApiKqueue(evq);
+    return new SysEventLoopApiKqueue(&evq);
 #elif defined(SYSEVENT_API_LINUX)
-    return new SysEventLoopApiLinux(evq);
+    return new SysEventLoopApiLinux(&evq);
 #endif
 }
 

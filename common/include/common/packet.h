@@ -15,13 +15,13 @@ struct PacketHeader {
 };
 #pragma pack(pop)
 
-const static uint PACKET_MAX_SIZE = 32 * 1024;
-const static uint PACKET_HEADER_SIZE = sizeof(PacketHeader);
-const static uint PACKET_MAX_PAYLOAD_SIZE = PACKET_MAX_SIZE - PACKET_HEADER_SIZE;
-const static uint PACKET_MAX_VECTOR_SIZE = 16 * 1024;
-
 class Packet {
 public:
+    const static uint MaxSize;
+    const static uint HeaderSize;
+    const static uint MaxPayloadSize;
+    const static uint MaxVectorSize;
+
     enum class Direction : u8 {
         UserToSlave = 0, // <1;
         SlaveToUser = 1, // <8192;
@@ -61,6 +61,7 @@ protected:
     void write(Vector<char> &payload, u32 data) const;
     void write(Vector<char> &payload, s32 data) const;
     void write(Vector<char> &payload, const String &data) const;
+    void writeVectorSize(Vector<char> &payload, size_t data) const;
 
     bool read(const Vector<char> &payload, u8 &data);
     bool read(const Vector<char> &payload, s8 &data);
@@ -69,6 +70,7 @@ protected:
     bool read(const Vector<char> &payload, s32 &data);
     bool read(const Vector<char> &payload, u32 &data);
     bool read(const Vector<char> &payload, String &data);
+    bool readVectorSize(const Vector<char> &payload, u32 &data);
 
 protected:
     Type m_packetType;
@@ -117,6 +119,11 @@ inline void Packet::write(Vector<char> &payload, const String &data) const
 {
     write(payload, static_cast<u32>(data.size()));
     payload.insert(payload.end(), data.cbegin(), data.cend());
+}
+
+inline void Packet::writeVectorSize(Vector<char> &payload, size_t data) const
+{
+    write(payload, static_cast<u32>(data));
 }
 
 inline bool Packet::read(const Vector<char> &payload, u8 &data)
@@ -189,6 +196,14 @@ inline bool Packet::read(const Vector<char> &payload, String &data)
     data.assign(payload.cbegin() + m_packetReaderPos, payload.cbegin() + m_packetReaderPos + len);
     m_packetReaderPos += len;
     return true;
+}
+
+inline bool Packet::readVectorSize(const Vector<char> &payload, u32 &data)
+{
+    if (!read(payload, data))
+        return false;
+
+    return data <= MaxVectorSize;
 }
 
 END_NAMESPACE

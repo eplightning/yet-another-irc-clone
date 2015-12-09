@@ -1,4 +1,4 @@
-#include "core/app.h"
+#include <core/app.h>
 
 int main(int argc, char *argv[])
 {
@@ -8,7 +8,5 @@ int main(int argc, char *argv[])
     if (argc >= 2)
         configPath = argv[1];
 
-    int ret = app.run(configPath);
-
-    return ret;
+    return app.run(configPath);
 }
