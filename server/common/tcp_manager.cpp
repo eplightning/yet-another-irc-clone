@@ -6,6 +6,7 @@
 #include <server/tcp.h>
 #include <server/misc_utils.h>
 
+#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 

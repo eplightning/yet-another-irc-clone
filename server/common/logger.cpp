@@ -32,6 +32,18 @@ UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, unsigned long long integer
     return log;
 }
 
+UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, unsigned long integer)
+{
+    log->print(static_cast<unsigned long long>(integer));
+    return log;
+}
+
+UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, long integer)
+{
+    log->print(static_cast<long long>(integer));
+    return log;
+}
+
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, int integer)
 {
     log->print(static_cast<long long>(integer));
@@ -57,21 +69,8 @@ Logger::~Logger()
 
 void Logger::error(const String &str)
 {
-    int err = errno;
-
-    this->print(Line::Start);
+    this->print(Line::StartError);
     this->print(str);
-
-    if (err && err != EAGAIN && err != EWOULDBLOCK) {
-        char buf[256];
-
-        buf[0] = ':';
-        buf[1] = ' ';
-
-        if (strerror_r(err, buf + 2, sizeof(buf) - 2) != -1)
-            this->print(buf);
-    }
-
     this->print(Line::End);
 }
 
@@ -94,6 +93,23 @@ String Logger::date() const
     strftime(buffer, sizeof(buffer), "%c", &local);
 
     return buffer;
+}
+
+String Logger::systemError(int num) const
+{
+    if (num && num != EAGAIN && num != EWOULDBLOCK) {
+        char buf[256]{};
+
+#ifdef _GNU_SOURCE
+        char *str = strerror_r(num, buf, sizeof(buf));
+        return str;
+#else
+        if (strerror_r(num, buf, sizeof(buf)) != -1)
+            return buf;
+#endif
+    }
+
+    return "";
 }
 
 END_NAMESPACE

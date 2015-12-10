@@ -18,6 +18,7 @@ public:
 
 protected:
     std::mutex m_lock;
+    int m_errno;
 };
 
 END_NAMESPACE

@@ -8,7 +8,8 @@ class Logger {
 public:
     enum class Line {
         Start = 0,
-        End = 1
+        End = 1,
+        StartError = 2
     };
 
     virtual ~Logger();
@@ -24,12 +25,15 @@ public:
 
 protected:
     String date() const;
+    String systemError(int num) const;
 };
 
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, const String &str);
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, Logger::Line marker);
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, long long integer);
+UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, long integer);
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, unsigned long long integer);
+UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, unsigned long integer);
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, int integer);
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, uint integer);
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, double floating);

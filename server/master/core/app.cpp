@@ -45,6 +45,10 @@ int MasterServerApplication::run(const char *configPath)
     m_context->sysLoop.reset(SysEventLoop::factory(*m_context->eventQueue));
     m_context->tcp.reset(new TcpManager);
 
+    m_context->log << Logger::Line::Start
+                   << "Starting master server using the following configuration path: " << configPath
+                   << Logger::Line::End;
+
     // kontekst gotowy, moduły możemy utworzyć
     m_context->user.reset(new UserModule(m_context));
     m_context->slave.reset(new SlaveModule(m_context));
@@ -63,6 +67,8 @@ int MasterServerApplication::run(const char *configPath)
 
     // event loop
     bool looping = true;
+
+    m_context->log->message("Entering main loop ...");
 
     while (looping) {
         Event *ev = m_context->eventQueue->pop();
@@ -96,7 +102,7 @@ int MasterServerApplication::run(const char *configPath)
         delete ev;
     }
 
-    m_context->log->message("Main loop finished ...");
+    m_context->log->message("Leaving main loop ...");
 
     // todo: może nie wymuszać ale dać timeouta
     m_context->tcp->disconnectAll(true);

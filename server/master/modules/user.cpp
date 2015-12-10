@@ -149,7 +149,9 @@ bool UserModule::initTcp()
         if (sock >= 0)
             pool->appendListenSocket(proto, sock);
         else
-            m_context->log->error("Error while creating listen socket");
+            m_context->log << Logger::Line::StartError
+                           << "Error while creating listen socket for " << x
+                           << Logger::Line::End;
     }
 
     if (pool->listenSockets()->empty()) {
