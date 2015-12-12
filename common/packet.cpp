@@ -5,7 +5,7 @@
 
 YAIC_NAMESPACE
 
-const uint Packet::MaxSize = 32 * 1024;
+const uint Packet::MaxSize = 96 * 1024;
 const uint Packet::HeaderSize = sizeof(PacketHeader);
 const uint Packet::MaxPayloadSize = Packet::MaxSize - Packet::HeaderSize;
 const uint Packet::MaxVectorSize = 16 * 1024;
@@ -25,12 +25,12 @@ void Packet::encode(Vector<char> &packet) const
 {
     packet.reserve(4);
     write(packet, static_cast<u16>(m_packetType));
-    write(packet, static_cast<u16>(0));
+    write(packet, static_cast<u32>(0));
 
     encodePayload(packet);
 
-    u16 *payloadSize = reinterpret_cast<u16*>(&packet[sizeof(u16)]);
-    *payloadSize = htons(static_cast<u16>(packet.size() - sizeof(u16) * 2));
+    u32 *payloadSize = reinterpret_cast<u32*>(&packet[sizeof(u16)]);
+    *payloadSize = htons(static_cast<u32>(packet.size() - sizeof(PacketHeader)));
 }
 
 Vector<char> Packet::encode() const

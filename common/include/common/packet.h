@@ -11,7 +11,7 @@ YAIC_NAMESPACE
 #pragma pack(push, 1)
 struct PacketHeader {
     u16 type;
-    u16 payloadSize;
+    u32 payloadSize;
 };
 #pragma pack(pop)
 
