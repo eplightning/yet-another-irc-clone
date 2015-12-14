@@ -52,6 +52,8 @@ Client::Client(uint id, int fd, const sockaddr *addr, TcpPool *pool) :
         char ipv4[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &addr4->sin_addr, ipv4, INET_ADDRSTRLEN);
         m_address.assign(ipv4);
+
+        memcpy(&m_sockaddr, addr4, sizeof(sockaddr_in));
     } else {
         m_proto = CPIpv6;
         const sockaddr_in6 *addr6 = reinterpret_cast<const sockaddr_in6*>(addr);
@@ -60,6 +62,8 @@ Client::Client(uint id, int fd, const sockaddr *addr, TcpPool *pool) :
         char ipv6[INET6_ADDRSTRLEN];
         inet_ntop(AF_INET6, &addr6->sin6_addr, ipv6, INET6_ADDRSTRLEN);
         m_address.assign(ipv6);
+
+        memcpy(&m_sockaddr, addr6, sizeof(sockaddr_in6));
     }
 }
 
@@ -98,6 +102,28 @@ TcpSendBuffer *Client::sendBuffer()
     m_sendBufferMutex.unlock();
 
     return m_sendBuffer;
+}
+
+bool Client::operator==(sockaddr_storage &saddr) const
+{
+    if (saddr.ss_family != m_sockaddr.ss_family)
+        return false;
+
+    if (saddr.ss_family == AF_INET) {
+        sockaddr_in *left = reinterpret_cast<sockaddr_in*>(&saddr);
+        const sockaddr_in *right = reinterpret_cast<const sockaddr_in*>(&m_sockaddr);
+
+        if (left->sin_addr.s_addr != right->sin_addr.s_addr)
+            return false;
+    } else if (saddr.ss_family == AF_INET6) {
+        sockaddr_in6 *left = reinterpret_cast<sockaddr_in6*>(&saddr);
+        const sockaddr_in6 *right = reinterpret_cast<const sockaddr_in6*>(&m_sockaddr);
+
+        if (memcmp(left->sin6_addr.s6_addr, right->sin6_addr.s6_addr, 16) != 0)
+            return false;
+    }
+
+    return true;
 }
 
 void Client::attachSendBuffer(TcpSendBuffer *buffer)

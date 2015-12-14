@@ -50,9 +50,19 @@ uint SlaveServer::load() const
     return (m_load * 100) / m_capacity;
 }
 
+bool SlaveServer::active() const
+{
+    return m_active;
+}
+
 void SlaveServer::setConnections(uint connections)
 {
     m_load = connections;
+}
+
+void SlaveServer::setActive(bool active)
+{
+    m_active = active;
 }
 
 SlaveModule::SlaveModule(Context *context)

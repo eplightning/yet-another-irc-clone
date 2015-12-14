@@ -30,7 +30,7 @@ public:
     u16 port() const { return m_port; }
     TcpPool *pool() const { return m_pool; }
     const String &address() const { return m_address; }
-
+    bool operator==(sockaddr_storage &saddr) const;
     void attachSendBuffer(TcpSendBuffer *buffer);
 
 protected:
@@ -52,6 +52,7 @@ protected:
     ConnectionProtocol m_proto;
     u16 m_port;
     String m_address;
+    sockaddr_storage m_sockaddr;
     TcpPool *m_pool;
     TcpClientState m_state;
     int m_writeError;

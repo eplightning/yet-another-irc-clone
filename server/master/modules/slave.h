@@ -21,8 +21,10 @@ public:
     // NOTE: not thread-safe, use only while holding m_slaves lock
     uint connections() const;
     uint load() const;
+    bool active() const;
 
     void setConnections(uint connections);
+    void setActive(bool active);
 
 protected:
     SharedPtr<Client> m_client;
@@ -30,6 +32,7 @@ protected:
     u16 m_port;
     uint m_load;
     uint m_capacity;
+    bool m_active;
 };
 
 enum SlaveAuthMode {

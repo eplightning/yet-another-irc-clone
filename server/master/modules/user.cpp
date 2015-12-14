@@ -275,6 +275,9 @@ bool UserModule::serversRequest(uint clientid, Packet *packet)
         std::lock_guard<std::mutex> lock(m_context->slave->slavesMutex());
 
         for (auto &x : m_context->slave->slaves()) {
+            if (!x.second->active())
+                continue;
+
             ConnectionProtocol proto = x.second->client()->proto();
 
             if (request->flags() & MasterUserPackets::RequestServers::FlagIpv4Only && proto != CPIpv4)
