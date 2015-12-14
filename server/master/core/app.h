@@ -30,6 +30,7 @@ protected:
     libconfig::Config m_config;
     std::thread m_tcpThread;
     std::thread m_sysThread;
+    int m_confWorkers;
 };
 
 END_NAMESPACE

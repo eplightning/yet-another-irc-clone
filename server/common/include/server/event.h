@@ -6,6 +6,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <queue>
+#include <thread>
 
 YAIC_NAMESPACE
 
@@ -28,11 +29,33 @@ public:
 
     void append(Event *event);
     Event *pop();
+    void stop();
 
 protected:
     std::condition_variable m_cond;
     std::mutex m_mutex;
     std::queue<Event*> m_events;
+    bool m_stopped;
+};
+
+#define BIND_EVENT_LOOP_HANDLER(O, F) std::bind(F, O, std::placeholders::_1)
+
+typedef std::function<bool(Event*)> EventLoopDelegate;
+
+class EventLoop {
+public:
+    EventLoop(int workers, EventQueue *evq, EventLoopDelegate func);
+    ~EventLoop();
+
+    void run();
+    void startThreads();
+    void waitForThreads();
+
+protected:
+    int m_workers;
+    EventQueue *m_evq;
+    EventLoopDelegate m_handler;
+    Vector<std::thread> m_threads;
 };
 
 class EventPacket : public Event {

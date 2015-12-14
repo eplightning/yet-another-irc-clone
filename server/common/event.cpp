@@ -11,7 +11,7 @@ Event::~Event()
 }
 
 EventQueue::EventQueue()
-    : m_cond(), m_mutex(), m_events()
+    : m_cond(), m_mutex(), m_events(), m_stopped(false)
 {
 
 }
@@ -38,13 +38,25 @@ Event *EventQueue::pop()
 {
     std::unique_lock<std::mutex> lock(m_mutex);
 
-    while (m_events.empty())
+    while (!m_stopped && m_events.empty())
         m_cond.wait(lock);
+
+    if (m_stopped)
+        return nullptr;
 
     Event *ev = m_events.front();
     m_events.pop();
 
     return ev;
+}
+
+void EventQueue::stop()
+{
+    m_mutex.lock();
+    m_stopped = true;
+    m_mutex.unlock();
+
+    m_cond.notify_all();
 }
 
 EventPacket::EventPacket(Packet *packet, uint clientid, int source) :
@@ -103,6 +115,48 @@ Event::Type EventTimer::type() const
 int EventTimer::timer() const
 {
     return m_timer;
+}
+
+EventLoop::EventLoop(int workers, EventQueue *evq, EventLoopDelegate func)
+    : m_workers(workers), m_evq(evq), m_handler(func)
+{
+
+}
+
+EventLoop::~EventLoop()
+{
+    waitForThreads();
+}
+
+void EventLoop::run()
+{
+    Event *ev;
+
+    do {
+        ev = m_evq->pop();
+
+        if (ev == nullptr)
+            break;
+    } while (m_handler(ev));
+}
+
+void EventLoop::startThreads()
+{
+    if (!m_threads.empty())
+        waitForThreads();
+
+    for (int i = 0; i < m_workers; i++)
+        m_threads.emplace_back(&EventLoop::run, this);
+}
+
+void EventLoop::waitForThreads()
+{
+    for (auto &x : m_threads) {
+        if (x.joinable())
+            x.join();
+    }
+
+    m_threads.clear();
 }
 
 END_NAMESPACE

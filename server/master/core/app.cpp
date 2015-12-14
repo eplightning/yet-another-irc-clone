@@ -14,7 +14,7 @@
 YAIC_NAMESPACE
 
 MasterServerApplication::MasterServerApplication()
-    : m_context(new Context)
+    : m_context(new Context), m_confWorkers(5)
 {
 
 }
@@ -65,13 +65,8 @@ int MasterServerApplication::run(const char *configPath)
     if (!initSysEvent())
         return 4;
 
-    // event loop
-    bool looping = true;
-
-    m_context->log->message("Entering main loop ...");
-
-    while (looping) {
-        Event *ev = m_context->eventQueue->pop();
+    EventLoop loop(m_confWorkers, m_context->eventQueue.get(), [this] (Event *ev) {
+        bool looping = true;
 
         if (ev->type() == Event::Type::Packet) {
             EventPacket *evp = static_cast<EventPacket*>(ev);
@@ -90,8 +85,11 @@ int MasterServerApplication::run(const char *configPath)
 
             if (evs->id() == EventSimple::EventId::SignalHangUp || evs->id() == EventSimple::EventId::SignalInterrupt
                     || evs->id() == EventSimple::EventId::SignalQuit || evs->id() == EventSimple::EventId::SignalTerminate
-                    || evs->id() == EventSimple::EventId::SysLoopDied || evs->id() == EventSimple::EventId::TcpLoopDied)
-            looping = false;
+                    || evs->id() == EventSimple::EventId::SysLoopDied || evs->id() == EventSimple::EventId::TcpLoopDied) {
+                looping = false;
+                m_context->log->message("Stopping execution ...");
+                m_context->eventQueue->stop();
+            }
         } else if (ev->type() == Event::Type::Timer) {
             EventTimer *evt = static_cast<EventTimer*>(ev);
 
@@ -100,11 +98,17 @@ int MasterServerApplication::run(const char *configPath)
         }
 
         delete ev;
-    }
 
-    m_context->log->message("Leaving main loop ...");
+        return looping;
+    });
 
-    // todo: może nie wymuszać ale dać timeouta
+    m_context->log->message("Starting worker threads ...");
+    loop.startThreads();
+    m_context->log->message("Starting event loop inside main thread ...");
+    loop.run();
+    m_context->log->message("Waiting for worker threads to finish ...");
+    loop.waitForThreads();
+    m_context->log->message("Force closing sockets ...");
     m_context->tcp->disconnectAll(true);
 
     return 0;
@@ -134,6 +138,16 @@ bool MasterServerApplication::loadConfig()
 
         if (section.isGroup())
             m_context->slave->loadConfig(section);
+    }
+
+    if (m_config.exists("worker-threads")) {
+        const libconfig::Setting &section = m_config.lookup("worker-threads");
+
+        if (section.isNumber())
+            m_confWorkers = section;
+
+        if (m_confWorkers < 0)
+            m_confWorkers = 0;
     }
 
     return true;
