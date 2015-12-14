@@ -65,36 +65,37 @@ int MasterServerApplication::run(const char *configPath)
     if (!initSysEvent())
         return 4;
 
-    EventLoop loop(m_confWorkers, m_context->eventQueue.get(), [this] (Event *ev) {
+    Context *context = m_context;
+    EventLoop *loop = new EventLoop(m_confWorkers, m_context->eventQueue.get(), [context] (Event *ev) {
         bool looping = true;
 
         if (ev->type() == Event::Type::Packet) {
             EventPacket *evp = static_cast<EventPacket*>(ev);
 
             if (evp->source() == MASTER_APP_SOURCE_USER)
-                m_context->user->dispatchPacket(evp);
+                context->user->dispatchPacket(evp);
             else if (evp->source() == MASTER_APP_SOURCE_SLAVE)
-                m_context->slave->dispatchPacket(evp);
+                context->slave->dispatchPacket(evp);
 
             delete evp->packet();
         } else if (ev->type() == Event::Type::Simple) {
             EventSimple *evs = static_cast<EventSimple*>(ev);
 
-            m_context->user->dispatchSimple(evs);
-            m_context->slave->dispatchSimple(evs);
+            context->user->dispatchSimple(evs);
+            context->slave->dispatchSimple(evs);
 
             if (evs->id() == EventSimple::EventId::SignalHangUp || evs->id() == EventSimple::EventId::SignalInterrupt
                     || evs->id() == EventSimple::EventId::SignalQuit || evs->id() == EventSimple::EventId::SignalTerminate
                     || evs->id() == EventSimple::EventId::SysLoopDied || evs->id() == EventSimple::EventId::TcpLoopDied) {
                 looping = false;
-                m_context->log->message("Stopping execution ...");
-                m_context->eventQueue->stop();
+                context->log->message("Stopping execution ...");
+                context->eventQueue->stop();
             }
         } else if (ev->type() == Event::Type::Timer) {
             EventTimer *evt = static_cast<EventTimer*>(ev);
 
-            m_context->user->dispatchTimer(evt);
-            m_context->slave->dispatchTimer(evt);
+            context->user->dispatchTimer(evt);
+            context->slave->dispatchTimer(evt);
         }
 
         delete ev;
@@ -103,13 +104,15 @@ int MasterServerApplication::run(const char *configPath)
     });
 
     m_context->log->message("Starting worker threads ...");
-    loop.startThreads();
+    loop->startThreads();
     m_context->log->message("Starting event loop inside main thread ...");
-    loop.run();
+    loop->run();
     m_context->log->message("Waiting for worker threads to finish ...");
-    loop.waitForThreads();
+    loop->waitForThreads();
     m_context->log->message("Force closing sockets ...");
     m_context->tcp->disconnectAll(true);
+
+    delete loop;
 
     return 0;
 }
