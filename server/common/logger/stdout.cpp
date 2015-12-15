@@ -1,6 +1,7 @@
 #include <server/logger/stdout.h>
 
 #include <common/types.h>
+#include <server/misc_utils.h>
 #include <server/logger.h>
 
 #include <iostream>
@@ -21,7 +22,7 @@ void LoggerStdout::print(Logger::Line marker)
     switch (marker) {
     case Logger::Line::End:
         if (m_errno != 0) {
-            String error = systemError(m_errno);
+            String error = MiscUtils::systemError(m_errno);
 
             if (!error.empty())
                 std::cout << ": " << error;

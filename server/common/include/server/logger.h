@@ -25,7 +25,6 @@ public:
 
 protected:
     String date() const;
-    String systemError(int num) const;
 };
 
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, const String &str);

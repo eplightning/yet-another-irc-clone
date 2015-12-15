@@ -132,6 +132,9 @@ public:
     void runLoop();
     void stopLoop();
 
+    // ONLY CALL INSIDE CALLBACK!
+    SharedPtr<Client> client(uint clientid) const;
+
 protected:
     void newConnection(ListenTcpPoolSocket *listen, Selector *select);
     bool pipeNotification(Selector *select, Vector<Client*> &eraseList);

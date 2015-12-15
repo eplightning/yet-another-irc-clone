@@ -228,7 +228,8 @@ bool TcpManager::connect(const String &address, const String &pool)
     if (!SocketUtils::makeNonBlocking(socket))
         return false;
 
-    if (::connect(socket, (sockaddr*) &saddr, sizeof(sockaddr_storage)) == -1 && errno != EINPROGRESS)
+    if (::connect(socket, (sockaddr*) &saddr, (proto == CPIpv4) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6)) == -1
+            && errno != EINPROGRESS)
         return false;
 
     TcpManagerConnectInfo *info = new TcpManagerConnectInfo;
@@ -378,6 +379,16 @@ void TcpManager::stopLoop()
     notify.clientid = 0;
     notify.options.ptr = 0;
     write(m_pipe[1], &notify, sizeof(notify));
+}
+
+SharedPtr<Client> TcpManager::client(uint clientid) const
+{
+    auto it = m_clients.find(clientid);
+
+    if (it == m_clients.end())
+        return nullptr;
+
+    return it->second;
 }
 
 void TcpManager::newConnection(ListenTcpPoolSocket *listen, Selector *select)

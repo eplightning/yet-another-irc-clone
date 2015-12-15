@@ -95,21 +95,4 @@ String Logger::date() const
     return buffer;
 }
 
-String Logger::systemError(int num) const
-{
-    if (num && num != EAGAIN && num != EWOULDBLOCK) {
-        char buf[256]{};
-
-#ifdef _GNU_SOURCE
-        char *str = strerror_r(num, buf, sizeof(buf));
-        return str;
-#else
-        if (strerror_r(num, buf, sizeof(buf)) != -1)
-            return buf;
-#endif
-    }
-
-    return "";
-}
-
 END_NAMESPACE

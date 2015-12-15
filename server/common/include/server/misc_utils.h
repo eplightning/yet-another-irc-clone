@@ -11,6 +11,8 @@ class MiscUtils {
 public:
     static void blockSignals();
     static void unblockSignals();
+
+    static String systemError(int num);
 };
 
 END_NAMESPACE
