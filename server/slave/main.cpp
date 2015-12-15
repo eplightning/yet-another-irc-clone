@@ -1,10 +1,18 @@
-#include <iostream>
+#include <core/app.h>
 
-using namespace std;
-
-int main()
+int main(int argc, char *argv[])
 {
-    cout << "Hello World!" << endl;
-    return 0;
-}
+    YAIC::SlaveServerApplication app;
 
+    const char *configPath = "/etc/yaic";
+    const char *configName = "slave";
+
+    if (argc >= 3)
+        configName = argv[2];
+    if (argc >= 2)
+        configPath = argv[1];
+
+    int ret = app.run(configPath, configName);
+
+    return ret;
+}

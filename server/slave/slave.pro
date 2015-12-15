@@ -3,7 +3,12 @@ TEMPLATE = app
 CONFIG -= qt app_bundle
 CONFIG += console c++11 thread
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    core/app.cpp \
+    modules/master.cpp
+
+# libconfig
+LIBS += -lconfig++
 
 # our own libraries
 INCLUDEPATH += ../../common/include ../common/include
@@ -16,3 +21,9 @@ unix {
 
 DESTDIR = ../../bin
 TARGET = yaic-slave
+
+HEADERS += \
+    core/app.h \
+    modules/master.h \
+    core/global.h \
+    core/context.h
