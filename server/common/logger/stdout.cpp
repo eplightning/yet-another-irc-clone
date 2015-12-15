@@ -10,6 +10,12 @@
 
 YAIC_NAMESPACE
 
+LoggerStdout::LoggerStdout() :
+    m_errno(0)
+{
+
+}
+
 void LoggerStdout::print(const String &str)
 {
     std::cout << str;

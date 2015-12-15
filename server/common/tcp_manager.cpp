@@ -237,7 +237,7 @@ bool TcpManager::connect(const String &address, const String &pool)
     info->pool = (*it).second;
     memcpy(&info->saddr, &saddr, sizeof(sockaddr_storage));
 
-    TcpManagerMessage notify;
+    TcpManagerMessage notify{};
     notify.type = TMMTConnect;
     notify.clientid = 0;
     notify.options.ptr = info;
@@ -258,7 +258,7 @@ void TcpManager::createPool(const String &name, TcpPool *pool)
 
 void TcpManager::disconnect(SharedPtr<Client> &client, bool force)
 {
-    TcpManagerMessage notify;
+    TcpManagerMessage notify{};
     notify.type = TMMTDisconnect;
     notify.clientid = client->id();
     notify.options.flag = force;
@@ -267,7 +267,7 @@ void TcpManager::disconnect(SharedPtr<Client> &client, bool force)
 
 void TcpManager::disconnectAll(bool force)
 {
-    TcpManagerMessage notify;
+    TcpManagerMessage notify{};
     notify.type = TMMTDisconnectAll;
     notify.clientid = 0;
     notify.options.flag = force;
@@ -278,7 +278,7 @@ void TcpManager::sendTo(SharedPtr<Client> &client, TcpSendBuffer *buffer)
 {
     client->attachSendBuffer(buffer);
 
-    TcpManagerMessage notify;
+    TcpManagerMessage notify{};
     notify.type = TMMTSendBufferReceived;
     notify.clientid = client->id();
     notify.options.ptr = 0;

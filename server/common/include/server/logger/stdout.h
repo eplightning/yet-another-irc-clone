@@ -10,6 +10,8 @@ YAIC_NAMESPACE
 
 class LoggerStdout : public Logger {
 public:
+    LoggerStdout();
+
     void print(const String &str);
     void print(Line marker);
     void print(long long integer);
