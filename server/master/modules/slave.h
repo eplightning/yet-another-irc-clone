@@ -9,6 +9,8 @@
 
 YAIC_NAMESPACE
 
+struct Context;
+
 class SlaveServer {
 public:
     SlaveServer(SharedPtr<Client> &client, u32 id, u16 port, uint capacity);

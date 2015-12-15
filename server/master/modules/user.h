@@ -11,6 +11,8 @@
 
 YAIC_NAMESPACE
 
+struct Context;
+
 class User {
 public:
     User(SharedPtr<Client> &client);

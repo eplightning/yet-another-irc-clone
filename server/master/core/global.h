@@ -12,22 +12,4 @@ YAIC_NAMESPACE
 #define MASTER_APP_SOURCE_USER  1
 #define MASTER_APP_SOURCE_SLAVE 2
 
-class UserModule;
-class SlaveModule;
-
-struct Context {
-    // main objects
-    UniquePtr<EventQueue> eventQueue;
-    UniquePtr<TcpManager> tcp;
-    UniquePtr<SysEventLoop> sysLoop;
-    UniquePtr<Logger> log;
-
-    // modules
-    UniquePtr<UserModule> user;
-    UniquePtr<SlaveModule> slave;
-
-    // configuration
-    String configPath;
-};
-
 END_NAMESPACE

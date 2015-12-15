@@ -1,8 +1,10 @@
 #include <core/app.h>
 
 #include <core/global.h>
+#include <core/context.h>
 #include <modules/slave.h>
 #include <modules/user.h>
+
 #include <common/types.h>
 #include <server/logger/stdout.h>
 #include <server/misc_utils.h>

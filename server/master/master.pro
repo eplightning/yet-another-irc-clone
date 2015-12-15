@@ -27,4 +27,5 @@ HEADERS += \
     core/app.h \
     modules/slave.h \
     modules/user.h \
-    core/global.h
+    core/global.h \
+    core/context.h

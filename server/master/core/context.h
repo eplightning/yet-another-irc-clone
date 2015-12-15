@@ -1,0 +1,29 @@
+#pragma once
+
+#include <modules/slave.h>
+#include <modules/user.h>
+
+#include <common/types.h>
+#include <server/event.h>
+#include <server/tcp_manager.h>
+#include <server/logger.h>
+#include <server/syseventloop.h>
+
+YAIC_NAMESPACE
+
+struct Context {
+    // main objects
+    UniquePtr<EventQueue> eventQueue;
+    UniquePtr<TcpManager> tcp;
+    UniquePtr<SysEventLoop> sysLoop;
+    UniquePtr<Logger> log;
+
+    // modules
+    UniquePtr<UserModule> user;
+    UniquePtr<SlaveModule> slave;
+
+    // configuration
+    String configPath;
+};
+
+END_NAMESPACE

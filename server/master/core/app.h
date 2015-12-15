@@ -12,6 +12,8 @@
 
 YAIC_NAMESPACE
 
+struct Context;
+
 class MasterServerApplication {
 public:
     MasterServerApplication();

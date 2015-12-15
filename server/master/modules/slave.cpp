@@ -1,5 +1,7 @@
 #include <modules/slave.h>
 
+#include <core/global.h>
+#include <core/context.h>
 #include <modules/user.h>
 
 #include <common/types.h>
