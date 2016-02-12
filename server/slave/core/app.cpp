@@ -46,6 +46,7 @@ int SlaveServerApplication::run(const char *configPath, const char *configName)
     m_context->log.reset(new LoggerStdout);
     m_context->sysLoop.reset(SysEventLoop::factory(*m_context->eventQueue));
     m_context->tcp.reset(new TcpManager);
+    m_context->dispatcher.reset(new PacketDispatcher);
 
     m_context->log << Logger::Line::Start
                    << "Starting '" << configName << "' slave server using the following configuration path: " << configPath
@@ -84,7 +85,8 @@ int SlaveServerApplication::run(const char *configPath, const char *configName)
 
             if (evs->id() == EventSimple::EventId::SignalHangUp || evs->id() == EventSimple::EventId::SignalInterrupt
                     || evs->id() == EventSimple::EventId::SignalQuit || evs->id() == EventSimple::EventId::SignalTerminate
-                    || evs->id() == EventSimple::EventId::SysLoopDied || evs->id() == EventSimple::EventId::TcpLoopDied) {
+                    || evs->id() == EventSimple::EventId::SysLoopDied || evs->id() == EventSimple::EventId::TcpLoopDied
+                    || evs->id() == EventSimple::EventId::MasterDisconnected) {
                 looping = false;
                 context->log->message("Stopping execution ...");
                 context->eventQueue->stop();

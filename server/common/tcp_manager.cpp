@@ -346,7 +346,7 @@ void TcpManager::runLoop()
                 if (client->state() == TCSDisconnected && !connectEvent(client, eraseList))
                     continue;
 
-                // writeEvent sam sprawdza czy jest błąd dlatego tutaj nie ma drugiego wraunku
+                // writeEvent sam sprawdza czy jest błąd dlatego tutaj nie ma drugiego warunku
                 if (event.type() == SelectorInfo::WriteEvent)
                     writeEvent(client, select, eraseList);
                 else if (event.type() == SelectorInfo::ReadEvent && client->readError() == 0)

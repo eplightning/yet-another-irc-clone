@@ -7,7 +7,7 @@
 #include <server/tcp.h>
 #include <server/syseventloop.h>
 #include <server/misc_utils.h>
-#include <common/packets/master_user.h>
+#include <common/packets/master_slave.h>
 
 #include <libconfig.h++>
 
@@ -17,7 +17,9 @@ MasterModule::MasterModule(Context *context) :
     m_context(context)
 {
     m_config.address = "";
-    m_config.tries = 5;
+    m_config.timeout = 10;
+
+    m_lastPacket = SteadyClock::now();
 }
 
 MasterModule::~MasterModule()
@@ -34,11 +36,18 @@ void MasterModule::loadConfig(const libconfig::Setting &section)
             m_config.address = sub.c_str();
     }
 
-    if (section.exists("max-tries")) {
-        const libconfig::Setting &sub = section.lookup("max-tries");
+    if (section.exists("timeout")) {
+        const libconfig::Setting &sub = section.lookup("timeout");
 
         if (sub.isScalar())
-            m_config.tries = sub;
+            m_config.timeout = sub;
+    }
+
+    if (section.exists("heartbeat")) {
+        const libconfig::Setting &sub = section.lookup("heartbeat");
+
+        if (sub.isScalar())
+            m_config.heartbeatInterval = sub;
     }
 }
 
@@ -50,12 +59,20 @@ bool MasterModule::init()
     if (!initPackets())
         return false;
 
+    if (!initTimeout())
+        return false;
+
     return true;
 }
 
 void MasterModule::dispatchPacket(EventPacket *ev)
 {
-    m_packetDispatcher.dispatch(ev->clientid(), ev->packet());
+    {
+        MutexLock lock(m_lastPacketMutex);
+        m_lastPacket = SteadyClock::now();
+    }
+
+    m_context->dispatcher->dispatch(ev->clientid(), ev->packet());
 }
 
 void MasterModule::dispatchTimer(EventTimer *ev)
@@ -70,7 +87,7 @@ void MasterModule::dispatchSimple(EventSimple *ev)
 
 bool MasterModule::initPackets()
 {
-    //m_packetDispatcher.append(Packet::Type::RequestServers,
+    //m_context->dispatcher->append(Packet::Type::RequestServers,
     //                          BIND_DISPATCH(this, &MasterModule::serversRequest));
 
     return true;
@@ -94,9 +111,32 @@ bool MasterModule::initTcp()
     return result;
 }
 
+bool MasterModule::initTimeout()
+{
+    m_timeoutTimer = m_context->sysLoop->addTimer(m_config.timeout);
+    m_heartbeatTimer = m_context->sysLoop->addTimer(m_config.heartbeatInterval);
+
+    if (m_timeoutTimer == -1 || m_heartbeatTimer == -1) {
+        m_context->log->error("Unable to initialize timers");
+        return false;
+    }
+
+    m_timerDispatcher.append(m_timeoutTimer, BIND_TIMER(this, &MasterModule::timeoutHandler));
+    m_timerDispatcher.append(m_heartbeatTimer, BIND_TIMER(this, &MasterModule::heartbeatHandler));
+
+    return true;
+}
+
+SharedPtr<Client> MasterModule::getMaster()
+{
+    MutexLock lock(m_masterMutex);
+
+    return m_master;
+}
+
 void MasterModule::tcpState(uint clientid, TcpClientState state, int error)
 {
-    std::lock_guard<std::mutex> lock(m_masterMutex);
+    MutexLock lock(m_masterMutex);
 
     switch (state) {
     case TCSConnected:
@@ -107,7 +147,10 @@ void MasterModule::tcpState(uint clientid, TcpClientState state, int error)
         m_context->log << Logger::Line::Start
                        << "Master server disconnected! Reason: " << MiscUtils::systemError(error)
                        << Logger::Line::End;
-        // todo: reconnect
+
+        m_master.reset();
+        m_context->eventQueue->append(new EventSimple(EventSimple::EventId::MasterDisconnected));
+
         break;
 
     case TCSDisconnecting:
@@ -130,7 +173,7 @@ void MasterModule::tcpReceive(uint clientid, PacketHeader header, const Vector<c
     // jeśli błąd to instant disconnect
     if (!Packet::checkDirection(header.type, Packet::Direction::MasterToSlave) ||
             (packet = Packet::factory(header, data)) == nullptr) {
-        std::lock_guard<std::mutex> lock(m_masterMutex);
+        MutexLock lock(m_masterMutex);
 
         if (m_master)
             m_context->tcp->disconnect(m_master, true);
@@ -139,6 +182,48 @@ void MasterModule::tcpReceive(uint clientid, PacketHeader header, const Vector<c
     }
 
     m_context->eventQueue->append(new EventPacket(packet, clientid, SLAVE_APP_SOURCE_MASTER));
+}
+
+bool MasterModule::heartbeatHandler(int timer)
+{
+    UNUSED(timer);
+
+    SharedPtr<Client> master = getMaster();
+
+    if (!master)
+        return false;
+
+    // TODO: get slave load
+    MasterSlavePackets::SlaveHeartbeat packet(0);
+
+    m_context->tcp->sendTo(master, &packet);
+
+    return true;
+}
+
+bool MasterModule::timeoutHandler(int timer)
+{
+    UNUSED(timer);
+
+    std::chrono::time_point<SteadyClock> time;
+
+    {
+        MutexLock lock(m_lastPacketMutex);
+        time = m_lastPacket;
+    }
+
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(SteadyClock::now() - time).count();
+
+    if (seconds >= m_config.timeout) {
+        m_context->log << Logger::Line::Start
+                       << "Master server timeout: " << seconds << "s"
+                       << Logger::Line::End;
+
+        MutexLock lock(m_masterMutex);
+        m_context->tcp->disconnect(m_master, true);
+    }
+
+    return true;
 }
 
 END_NAMESPACE

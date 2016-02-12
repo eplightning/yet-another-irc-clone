@@ -8,6 +8,7 @@
 #include <server/tcp_manager.h>
 #include <server/logger.h>
 #include <server/syseventloop.h>
+#include <server/dispatcher.h>
 
 YAIC_NAMESPACE
 
@@ -17,6 +18,7 @@ struct Context {
     UniquePtr<TcpManager> tcp;
     UniquePtr<SysEventLoop> sysLoop;
     UniquePtr<Logger> log;
+    UniquePtr<PacketDispatcher> dispatcher;
 
     // modules
     UniquePtr<UserModule> user;

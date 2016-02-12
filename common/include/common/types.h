@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include <chrono>
+#include <mutex>
 
 #include <limits.h>
 
@@ -18,6 +19,10 @@ YAIC_NAMESPACE
 // STL
 typedef std::string String;
 typedef std::chrono::steady_clock SteadyClock;
+typedef std::lock_guard<std::mutex> MutexLock;
+typedef std::unique_lock<std::mutex> UniqueLock;
+typedef std::mutex Mutex;
+
 template<class T> using UniquePtr = std::unique_ptr < T > ;
 template<class T> using SharedPtr = std::shared_ptr < T > ;
 template<class T> using WeakPtr = std::weak_ptr < T > ;

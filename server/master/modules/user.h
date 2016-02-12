@@ -28,7 +28,6 @@ protected:
 struct UserModuleConfig {
     Vector<String> listen;
     uint timeout;
-    uint timeoutGranularity;
 };
 
 class UserModule {
@@ -42,13 +41,7 @@ public:
     void dispatchPacket(EventPacket *ev);
     void dispatchTimer(EventTimer *ev);
     void dispatchSimple(EventSimple *ev);
-
-    // getters for other modules
-    HashMap<uint, SharedPtr<User>> &users();
-    std::mutex &usersMutex();
-
-    // api for other modules
-    SharedPtr<User> getUser(uint clientid);
+    void dispatchGeneric(Event *ev);
 
 protected:
     bool initPackets();
@@ -63,10 +56,11 @@ protected:
 
     bool serversRequest(uint clientid, Packet *packet);
 
+    SharedPtr<User> getUser(uint clientid);
+
 protected:
     Context *m_context;
     UserModuleConfig m_config;
-    PacketDispatcher m_packetDispatcher;
     TimerDispatcher m_timerDispatcher;
 
     int m_timerTimeout;

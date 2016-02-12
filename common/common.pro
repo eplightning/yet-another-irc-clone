@@ -9,10 +9,12 @@ DESTDIR = ../bin
 HEADERS += \
     include/common/types.h \
     include/common/packet.h \
-    include/common/packets/master_user.h
+    include/common/packets/master_user.h \
+    include/common/packets/master_slave.h
 
 INCLUDEPATH += include
 
 SOURCES += \
     packet.cpp \
-    packets/master_user.cpp
+    packets/master_user.cpp \
+    packets/master_slave.cpp

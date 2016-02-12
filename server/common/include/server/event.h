@@ -82,7 +82,8 @@ public:
         SignalQuit,
         SignalHangUp,
         TcpLoopDied,
-        SysLoopDied
+        SysLoopDied,
+        MasterDisconnected
     };
 
     EventSimple(EventId type);

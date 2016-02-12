@@ -35,7 +35,6 @@ UserModule::UserModule(Context *context) :
     m_context(context)
 {
     m_config.timeout = 10;
-    m_config.timeoutGranularity = 1;
 }
 
 UserModule::~UserModule()
@@ -64,15 +63,6 @@ void UserModule::loadConfig(const libconfig::Setting &section)
             m_config.timeout = m_config.timeout > 0 ? m_config.timeout : 10;
         }
     }
-
-    if (section.exists("timeout-granularity")) {
-        const libconfig::Setting &sub = section.lookup("timeout-granularity");
-
-        if (sub.isNumber()) {
-            m_config.timeoutGranularity = sub;
-            m_config.timeoutGranularity = m_config.timeoutGranularity > 0 ? m_config.timeoutGranularity : 1;
-        }
-    }
 }
 
 bool UserModule::init()
@@ -91,7 +81,7 @@ bool UserModule::init()
 
 void UserModule::dispatchPacket(EventPacket *ev)
 {
-    m_packetDispatcher.dispatch(ev->clientid(), ev->packet());
+    m_context->dispatcher->dispatch(ev->clientid(), ev->packet());
 }
 
 void UserModule::dispatchTimer(EventTimer *ev)
@@ -104,14 +94,9 @@ void UserModule::dispatchSimple(EventSimple *ev)
     UNUSED(ev);
 }
 
-HashMap<uint, SharedPtr<User> > &UserModule::users()
+void UserModule::dispatchGeneric(Event *ev)
 {
-    return m_users;
-}
-
-std::mutex &UserModule::usersMutex()
-{
-    return m_usersMutex;
+    UNUSED(ev);
 }
 
 SharedPtr<User> UserModule::getUser(uint clientid)
@@ -128,8 +113,8 @@ SharedPtr<User> UserModule::getUser(uint clientid)
 
 bool UserModule::initPackets()
 {
-    m_packetDispatcher.append(Packet::Type::RequestServers,
-                              BIND_DISPATCH(this, &UserModule::serversRequest));
+    m_context->dispatcher->append(Packet::Type::RequestServers,
+                                  BIND_DISPATCH(this, &UserModule::serversRequest));
 
     return true;
 }
@@ -169,7 +154,7 @@ bool UserModule::initTcp()
 
 bool UserModule::initTimeout()
 {
-    m_timerTimeout = m_context->sysLoop->addTimer(m_config.timeoutGranularity);
+    m_timerTimeout = m_context->sysLoop->addTimer(m_config.timeout);
 
     if (m_timerTimeout < 0) {
         m_context->log->error("Couldn't create timer for user timeout");
@@ -216,7 +201,7 @@ void UserModule::tcpState(uint clientid, TcpClientState state, int error)
     }
 
     {
-        std::lock_guard<std::mutex> lock(m_usersMutex);
+        MutexLock lock(m_usersMutex);
 
         auto it = m_users.find(clientid);
         if (it != m_users.end())
@@ -231,7 +216,7 @@ void UserModule::tcpState(uint clientid, TcpClientState state, int error)
 bool UserModule::tcpNew(SharedPtr<Client> &client)
 {
     {
-        std::lock_guard<std::mutex> lock(m_usersMutex);
+        MutexLock lock(m_usersMutex);
 
         auto it = m_users.find(client->id());
         if (it == m_users.end())
@@ -272,28 +257,8 @@ bool UserModule::serversRequest(uint clientid, Packet *packet)
     MasterUserPackets::RequestServers *request = static_cast<MasterUserPackets::RequestServers*>(packet);
 
     // zbieramy serwery i je sortujemy
-    Vector<SharedPtr<SlaveServer>> servers;
-    {
-        std::lock_guard<std::mutex> lock(m_context->slave->slavesMutex());
-
-        for (auto &x : m_context->slave->slaves()) {
-            if (!x.second->active())
-                continue;
-
-            ConnectionProtocol proto = x.second->client()->proto();
-
-            if (request->flags() & MasterUserPackets::RequestServers::FlagIpv4Only && proto != CPIpv4)
-                continue;
-            else if (request->flags() & MasterUserPackets::RequestServers::FlagIpv6Only && proto != CPIpv6)
-                continue;
-
-            servers.push_back(x.second);
-        }
-
-        std::sort(servers.begin(), servers.end(), [] (const SharedPtr<SlaveServer> &a, const SharedPtr<SlaveServer> &b) {
-            return a->load() <= b->load();
-        });
-    }
+    auto servers = m_context->slave->getSlaves(!(request->flags() & MasterUserPackets::RequestServers::FlagIpv6Only),
+                                               !(request->flags() & MasterUserPackets::RequestServers::FlagIpv4Only));
 
     // budujemy pakiet
     MasterUserPackets::ServerList response;
