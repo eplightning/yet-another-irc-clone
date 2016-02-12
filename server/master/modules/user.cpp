@@ -268,7 +268,7 @@ bool UserModule::serversRequest(uint clientid, Packet *packet)
         if (response.servers().size() >= request->max())
             break;
 
-        response.servers().emplace_back(x->client()->address(), x->port());
+        response.servers().emplace_back(x->userAddress(), x->userPort());
     }
 
     // wysyłamy

@@ -4,6 +4,7 @@
 
 #include <common/types.h>
 #include <server/dispatcher.h>
+#include <common/packets/master_slave.h>
 
 #include <libconfig.h++>
 
@@ -26,25 +27,37 @@ public:
     SharedPtr<Client> &client();
     u32 id() const;
 
-    // NOTE: not thread-safe, use only while holding m_slaves lock
-    u16 port() const;
+    // thread-safe (because const) if state >= SSAuthed
+    const String &name() const;
     uint capacity() const;
+    u16 userPort() const;
+    u16 slavePort() const;
+    const String &userAddress() const;
+    const String &slaveAddress() const;
+
+    // not thread-safe, use only while holding m_slaves lock
     uint connections() const;
     uint load() const;
     SlaveState state() const;
-    const String &name() const;
-
     long long lastPacketSeconds(const std::chrono::time_point<SteadyClock> &now);
 
-    void authenticate(uint capacity, u16 port, const String &name);
     void setConnections(uint connections);
     void setState(SlaveState state);
     void updateLastPacket();
+    void setUserPort(u16 userPort);
+    void setSlavePort(u16 slavePort);
+    void setUserAddress(const String &userAddress);
+    void setSlaveAddress(const String &slaveAddress);
+    void setCapacity(uint capacity);
+    void setName(const String &name);
 
 protected:
     SharedPtr<Client> m_client;
     u32 m_id;
-    u16 m_port;
+    u16 m_userPort;
+    u16 m_slavePort;
+    String m_userAddress;
+    String m_slaveAddress;
     uint m_load;
     uint m_capacity;
     SlaveState m_state;
@@ -52,14 +65,9 @@ protected:
     std::chrono::time_point<SteadyClock> m_lastPacket;
 };
 
-enum SlaveAuthMode {
-    SAMNone = 0,
-    SAMPlainText = 1
-};
-
 struct SlaveModuleConfig {
     Vector<String> listen;
-    SlaveAuthMode authMode;
+    MasterSlavePackets::Auth::Mode authMode;
     String plainTextPassword;
     uint timeout;
     uint heartbeatInterval;
@@ -95,6 +103,9 @@ protected:
     bool timeoutHandler(int timer);
 
     bool updateLoad(uint clientid, Packet *packet);
+    bool auth(uint clientid, Packet *packet);
+    bool syncStart(uint clientid, Packet *packet);
+    bool newAck(uint clientid, Packet *packet);
 
     Context *m_context;
     SlaveModuleConfig m_config;
@@ -105,6 +116,8 @@ protected:
 
     Mutex m_slavesMutex;
     SlaveServers m_slaves;
+
+    Map<u32, int> m_syncProgress;
 };
 
 END_NAMESPACE

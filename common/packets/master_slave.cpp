@@ -61,6 +61,8 @@ bool Auth::decodePayload(const Vector<char> &payload)
 {
     bool result = read(payload, m_name);
 
+    result &= read(payload, m_capacity);
+
     u32 modeid;
     result &= read(payload, modeid);
     m_mode = static_cast<Auth::Mode>(modeid);
@@ -77,6 +79,7 @@ bool Auth::decodePayload(const Vector<char> &payload)
 void Auth::encodePayload(Vector<char> &payload) const
 {
     write(payload, m_name);
+    write(payload, m_capacity);
     write(payload, static_cast<u32>(m_mode));
     write(payload, m_userAddress);
     write(payload, m_userPort);
@@ -155,6 +158,16 @@ void Auth::setPlaintextPassword(const String &plaintextPassword)
     m_plaintextPassword = plaintextPassword;
 }
 
+u32 Auth::capacity() const
+{
+    return m_capacity;
+}
+
+void Auth::setCapacity(const u32 &capacity)
+{
+    m_capacity = capacity;
+}
+
 NewAck::NewAck() :
     Packet(Packet::Type::SlaveNewAck)
 {
@@ -201,21 +214,6 @@ bool AuthResponse::decodePayload(const Vector<char> &payload)
     if (!read(payload, m_authPassword))
         return false;
 
-    u32 size;
-    if (!readVectorSize(payload, size))
-        return false;
-
-    m_slaves.resize(size);
-
-    for (uint i = 0; i < size; i++) {
-        bool result = read(payload, m_slaves[i].id);
-        result &= read(payload, m_slaves[i].address);
-        result &= read(payload, m_slaves[i].port);
-
-        if (!result)
-            return false;
-    }
-
     return true;
 }
 
@@ -224,14 +222,6 @@ void AuthResponse::encodePayload(Vector<char> &payload) const
     write(payload, static_cast<u32>(m_status));
     write(payload, m_id);
     write(payload, m_authPassword);
-
-    writeVectorSize(payload, m_slaves.size());
-
-    for (auto &x : m_slaves) {
-        write(payload, x.id);
-        write(payload, x.address);
-        write(payload, x.port);
-    }
 }
 
 AuthResponse::Status AuthResponse::status() const
@@ -242,16 +232,6 @@ AuthResponse::Status AuthResponse::status() const
 u32 AuthResponse::id() const
 {
     return m_id;
-}
-
-Vector<AuthResponseServer> &AuthResponse::servers()
-{
-    return m_slaves;
-}
-
-const Vector<AuthResponseServer> &AuthResponse::servers() const
-{
-    return m_slaves;
 }
 
 void AuthResponse::setStatus(AuthResponse::Status status)
@@ -351,17 +331,6 @@ void RemoveSlave::encodePayload(Vector<char> &payload) const
 u32 RemoveSlave::id() const
 {
     return m_id;
-}
-
-AuthResponseServer::AuthResponseServer()
-{
-
-}
-
-AuthResponseServer::AuthResponseServer(u32 id, const String &addr, u16 port) :
-    id(id), address(addr), port(port)
-{
-
 }
 
 SyncEnd::SyncEnd() :

@@ -19,16 +19,6 @@ public:
     void encodePayload(Vector<char> &payload) const;
 };
 
-class AuthResponseServer {
-public:
-    AuthResponseServer();
-    AuthResponseServer(u32 id, const String &addr, u16 port);
-
-    u32 id;
-    String address;
-    u16 port;
-};
-
 class AuthResponse : public Packet {
 public:
     enum class Status : u32 {
@@ -45,8 +35,6 @@ public:
 
     Status status() const;
     u32 id() const;
-    Vector<AuthResponseServer> &servers();
-    const Vector<AuthResponseServer> &servers() const;
 
     void setStatus(Status status);
     void setId(u32 id);
@@ -58,7 +46,6 @@ protected:
     Status m_status;
     u32 m_id;
     u64 m_authPassword;
-    Vector<AuthResponseServer> m_slaves;
 };
 
 class SyncEnd : public Packet {
@@ -156,8 +143,12 @@ public:
     const String &plaintextPassword() const;
     void setPlaintextPassword(const String &plaintextPassword);
 
+    u32 capacity() const;
+    void setCapacity(const u32 &capacity);
+
 protected:
     String m_name;
+    u32 m_capacity;
     Mode m_mode;
     String m_userAddress;
     u16 m_userPort;

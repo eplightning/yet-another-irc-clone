@@ -30,11 +30,6 @@ u32 SlaveServer::id() const
     return m_id;
 }
 
-u16 SlaveServer::port() const
-{
-    return m_port;
-}
-
 uint SlaveServer::capacity() const
 {
     return m_capacity;
@@ -68,13 +63,6 @@ long long SlaveServer::lastPacketSeconds(const std::chrono::time_point<SteadyClo
     return std::chrono::duration_cast<std::chrono::seconds>(now - m_lastPacket).count();
 }
 
-void SlaveServer::authenticate(uint capacity, u16 port, const String &name)
-{
-    m_capacity = capacity;
-    m_port = port;
-    m_name = name;
-}
-
 void SlaveServer::setConnections(uint connections)
 {
     m_load = connections;
@@ -90,10 +78,60 @@ void SlaveServer::updateLastPacket()
     m_lastPacket = SteadyClock::now();
 }
 
+u16 SlaveServer::userPort() const
+{
+    return m_userPort;
+}
+
+void SlaveServer::setUserPort(u16 userPort)
+{
+    m_userPort = userPort;
+}
+
+u16 SlaveServer::slavePort() const
+{
+    return m_slavePort;
+}
+
+void SlaveServer::setSlavePort(u16 slavePort)
+{
+    m_slavePort = slavePort;
+}
+
+const String &SlaveServer::userAddress() const
+{
+    return m_userAddress;
+}
+
+void SlaveServer::setUserAddress(const String &userAddress)
+{
+    m_userAddress = userAddress;
+}
+
+const String& SlaveServer::slaveAddress() const
+{
+    return m_slaveAddress;
+}
+
+void SlaveServer::setSlaveAddress(const String &slaveAddress)
+{
+    m_slaveAddress = slaveAddress;
+}
+
+void SlaveServer::setCapacity(uint capacity)
+{
+    m_capacity = capacity;
+}
+
+void SlaveServer::setName(const String &name)
+{
+    m_name.assign(name);
+}
+
 SlaveModule::SlaveModule(Context *context)
     : m_context(context)
 {
-    m_config.authMode = SAMNone;
+    m_config.authMode = MasterSlavePackets::Auth::Mode::None;
     m_config.plainTextPassword = "";
     m_config.timeout = 10;
     m_config.heartbeatInterval = 1;
@@ -124,9 +162,9 @@ void SlaveModule::loadConfig(const libconfig::Setting &section)
             String mode = sub;
 
             if (mode == "plaintext") {
-                m_config.authMode = SAMPlainText;
+                m_config.authMode = MasterSlavePackets::Auth::Mode::Plaintext;
             } else {
-                m_config.authMode = SAMNone;
+                m_config.authMode = MasterSlavePackets::Auth::Mode::None;
             }
         }
     }
@@ -169,7 +207,7 @@ bool SlaveModule::init()
 
 void SlaveModule::dispatchPacket(EventPacket *ev)
 {
-    // TODO: troche ostro blokująca, może osobna strukturka dla czasów
+    //  troche ostro blokująca, może osobna strukturka dla czasów
     {
         MutexLock lock(m_slavesMutex);
 
@@ -201,6 +239,15 @@ bool SlaveModule::initPackets()
 {
     m_context->dispatcher->append(Packet::Type::SlaveHeartbeat,
                                   BIND_DISPATCH(this, &SlaveModule::updateLoad));
+
+    m_context->dispatcher->append(Packet::Type::SlaveAuth,
+                                  BIND_DISPATCH(this, &SlaveModule::auth));
+
+    m_context->dispatcher->append(Packet::Type::SlaveSyncStart,
+                                  BIND_DISPATCH(this, &SlaveModule::syncStart));
+
+    m_context->dispatcher->append(Packet::Type::SlaveNewAck,
+                                  BIND_DISPATCH(this, &SlaveModule::newAck));
 
     return true;
 }
@@ -318,10 +365,9 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
             }
         }
 
-        // TODO: DO IT
-        Packet *packet = nullptr;
+        MasterSlavePackets::RemoveSlave packet(clientid);
 
-        m_context->tcp->sendTo(clients, packet);
+        m_context->tcp->sendTo(clients, &packet);
     }
 
     m_context->log << Logger::Line::Start
@@ -423,6 +469,141 @@ bool SlaveModule::updateLoad(uint clientid, Packet *packet)
     MasterSlavePackets::SlaveHeartbeat *heartbeat = static_cast<MasterSlavePackets::SlaveHeartbeat*>(packet);
 
     it->second->setConnections(heartbeat->connections());
+
+    return true;
+}
+
+bool SlaveModule::auth(uint clientid, Packet *packet)
+{
+    MutexLock lock(m_slavesMutex);
+
+    auto it = m_slaves.find(clientid);
+
+    if (it == m_slaves.end() || it->second->state() != SSUnauthed)
+        return false;
+
+    SlaveServer *srv = it->second.get();
+
+    MasterSlavePackets::Auth *request = static_cast<MasterSlavePackets::Auth*>(packet);
+
+    // authentication
+    if (m_config.authMode != request->mode()) {
+        MasterSlavePackets::AuthResponse response;
+
+        response.setId(0);
+        response.setAuthPassword(0);
+        response.setStatus(MasterSlavePackets::AuthResponse::Status::InvalidMode);
+
+        m_context->tcp->sendTo(srv->client(), &response);
+
+        return false;
+    } else if (m_config.authMode == MasterSlavePackets::Auth::Mode::Plaintext &&
+        m_config.plainTextPassword != request->plaintextPassword()) {
+
+        MasterSlavePackets::AuthResponse response;
+
+        response.setId(0);
+        response.setAuthPassword(0);
+        response.setStatus(MasterSlavePackets::AuthResponse::Status::InvalidPlaintextPassword);
+
+        m_context->tcp->sendTo(srv->client(), &response);
+
+        return false;
+    }
+
+    // save info
+    srv->setCapacity(request->capacity());
+    srv->setSlaveAddress(request->slaveAddress());
+    srv->setSlavePort(request->slavePort());
+    srv->setUserAddress(request->userAddress());
+    srv->setUserPort(request->userPort());
+    srv->setName(request->name());
+    srv->setState(SSAuthed);
+
+    // response
+    MasterSlavePackets::AuthResponse response;
+    response.setId(srv->id());
+    response.setAuthPassword(0); // TODO: Generate this
+    response.setStatus(MasterSlavePackets::AuthResponse::Status::Ok);
+    m_context->tcp->sendTo(srv->client(), &response);
+
+    m_context->log->message("Auth accepted");
+
+    return true;
+}
+
+bool SlaveModule::syncStart(uint clientid, Packet *packet)
+{
+    UNUSED(packet);
+
+    MutexLock lock(m_slavesMutex);
+
+    auto it = m_slaves.find(clientid);
+
+    if (it == m_slaves.end() || it->second->state() != SSAuthed)
+        return false;
+
+    Vector<SharedPtr<Client>*> clients;
+
+    for (auto it = m_slaves.begin(); it != m_slaves.end(); ++it) {
+        if (it->first != clientid) {
+            if (it->second->state() == SSActive || it->second->state() == SSSyncing)
+                continue;
+
+            clients.push_back(&it->second->client());
+        }
+    }
+
+    // message
+    MasterSlavePackets::NewSlave msg;
+    msg.setAddress(it->second->slaveAddress());
+    msg.setPort(it->second->slavePort());
+    msg.setId(it->first);
+
+    m_context->tcp->sendTo(clients, &msg);
+
+    it->second->setState(SSSyncing);
+
+    // TODO: jakiś lepszy mechanizm, bo ten się wyłoży jak np. jakiś slave się rozłączy zanim to wyśle i nowy slave nigdy nie będzie gotowy
+    // TODO: jakaś lista slave'ów i tyle
+    m_syncProgress[it->first] = static_cast<int>(clients.size());
+
+    m_context->log->message("SyncStart accepted");
+
+    return true;
+}
+
+bool SlaveModule::newAck(uint clientid, Packet *packet)
+{
+    MutexLock lock(m_slavesMutex);
+
+    auto it = m_slaves.find(clientid);
+
+    if (it == m_slaves.end() || it->second->state() == SSAuthed || it->second->state() == SSUnauthed)
+        return false;
+
+    MasterSlavePackets::NewAck *request = static_cast<MasterSlavePackets::NewAck*>(packet);
+
+    // find syncing slave
+    auto it2 = m_slaves.find(request->id());
+    if (it2 == m_slaves.end() || it2->second->state() != SSSyncing)
+        return false;
+
+    // find sync progress
+    auto it3 = m_syncProgress.find(request->id());
+
+    if (it3 == m_syncProgress.end() || it3->second <= 1) {
+        m_syncProgress.erase(request->id());
+
+        MasterSlavePackets::SyncEnd response;
+        m_context->tcp->sendTo(it2->second->client(), &response);
+
+        it2->second->setState(SSActive);
+    } else {
+        it3->second--;
+    }
+
+    m_context->log->message("NewAck accepted");
 
     return true;
 }
