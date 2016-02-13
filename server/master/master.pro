@@ -10,6 +10,10 @@ SOURCES += main.cpp \
 
 # libconfig
 LIBS += -lconfig++
+macx {
+    LIBS += -L/usr/local/lib
+    INCLUDEPATH += /usr/local/include
+}
 
 # our own libraries
 INCLUDEPATH += ../../common/include ../common/include
