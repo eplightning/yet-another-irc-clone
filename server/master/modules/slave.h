@@ -118,6 +118,8 @@ protected:
     SlaveServers m_slaves;
 
     Map<u32, int> m_syncProgress;
+
+    u64 m_authPassword;
 };
 
 END_NAMESPACE

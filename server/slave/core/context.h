@@ -1,6 +1,7 @@
 #pragma once
 
 #include <modules/master.h>
+#include <modules/slave.h>
 
 #include <common/types.h>
 #include <server/event.h>
@@ -22,11 +23,12 @@ struct Context {
     // modules
     //UniquePtr<UserModule> user;
     UniquePtr<MasterModule> master;
-    //UniquePtr<SlaveModule> slave;
+    UniquePtr<SlaveModule> slave;
 
     // configuration
     String configPath;
     String configName;
+    String slaveName;
 };
 
 END_NAMESPACE

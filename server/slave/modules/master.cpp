@@ -14,10 +14,12 @@
 YAIC_NAMESPACE
 
 MasterModule::MasterModule(Context *context) :
-    m_context(context)
+    m_context(context), m_authed(false), m_synced(false)
 {
     m_config.address = "";
     m_config.timeout = 10;
+    m_config.authMode = MasterSlavePackets::Auth::Mode::None;
+    m_config.plainTextPassword = "";
 
     m_lastPacket = SteadyClock::now();
 }
@@ -48,6 +50,27 @@ void MasterModule::loadConfig(const libconfig::Setting &section)
 
         if (sub.isScalar())
             m_config.heartbeatInterval = sub;
+    }
+
+    if (section.exists("auth-mode")) {
+        const libconfig::Setting &sub = section.lookup("auth-mode");
+
+        if (sub.isScalar()) {
+            String mode = sub;
+
+            if (mode == "plaintext") {
+                m_config.authMode = MasterSlavePackets::Auth::Mode::Plaintext;
+            } else {
+                m_config.authMode = MasterSlavePackets::Auth::Mode::None;
+            }
+        }
+    }
+
+    if (section.exists("plaintext-password")) {
+        const libconfig::Setting &sub = section.lookup("plaintext-password");
+
+        if (sub.isScalar())
+            m_config.plainTextPassword = sub.c_str();
     }
 }
 
@@ -87,8 +110,11 @@ void MasterModule::dispatchSimple(EventSimple *ev)
 
 bool MasterModule::initPackets()
 {
-    //m_context->dispatcher->append(Packet::Type::RequestServers,
-    //                          BIND_DISPATCH(this, &MasterModule::serversRequest));
+    m_context->dispatcher->append(Packet::Type::SlaveAuthResponse,
+                              BIND_DISPATCH(this, &MasterModule::authResponse));
+
+    m_context->dispatcher->append(Packet::Type::SlaveSyncEnd,
+                              BIND_DISPATCH(this, &MasterModule::syncEnd));
 
     return true;
 }
@@ -134,28 +160,55 @@ SharedPtr<Client> MasterModule::getMaster()
     return m_master;
 }
 
+bool MasterModule::isAuthed()
+{
+    return m_authed.load();
+}
+
+bool MasterModule::isSynced()
+{
+    return m_synced.load();
+}
+
+u32 MasterModule::getSlaveId() const
+{
+    return m_ourSlaveId;
+}
+
+u64 MasterModule::getAuthPassword() const
+{
+    return m_authPassword;
+}
+
 void MasterModule::tcpState(uint clientid, TcpClientState state, int error)
 {
     MutexLock lock(m_masterMutex);
 
-    switch (state) {
-    case TCSConnected:
+    if (state == TCSConnected) {
         m_master = m_context->tcp->client(clientid);
-        break;
 
-    case TCSDisconnected:
+        MasterSlavePackets::Auth authPacket;
+
+        authPacket.setMode(m_config.authMode);
+        authPacket.setPlaintextPassword(m_config.plainTextPassword);
+
+        authPacket.setCapacity(100); // TODO: Set this
+        authPacket.setName(m_context->slaveName);
+        authPacket.setSlaveAddress(m_context->slave->publicAddress());
+        authPacket.setSlavePort(m_context->slave->publicPort());
+        authPacket.setUserAddress("127.0.0.1"); // TODO: Set this
+        authPacket.setUserPort(1236); // TODO: Set this
+
+        m_context->tcp->sendTo(m_master, &authPacket);
+    } else if (state == TCSDisconnected) {
         m_context->log << Logger::Line::Start
                        << "Master server disconnected! Reason: " << MiscUtils::systemError(error)
                        << Logger::Line::End;
 
         m_master.reset();
+        m_synced.store(false);
+        m_authed.store(false);
         m_context->eventQueue->append(new EventSimple(EventSimple::EventId::MasterDisconnected));
-
-        break;
-
-    case TCSDisconnecting:
-    case TCSWritingClosed:
-        break;
     }
 }
 
@@ -163,7 +216,7 @@ bool MasterModule::tcpNew(SharedPtr<Client> &client)
 {
     UNUSED(client);
 
-    return true;
+    return false;
 }
 
 void MasterModule::tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data)
@@ -222,6 +275,50 @@ bool MasterModule::timeoutHandler(int timer)
         MutexLock lock(m_masterMutex);
         m_context->tcp->disconnect(m_master, true);
     }
+
+    return true;
+}
+
+bool MasterModule::authResponse(uint clientid, Packet *packet)
+{
+    UNUSED(clientid);
+
+    MasterSlavePackets::AuthResponse *response = static_cast<MasterSlavePackets::AuthResponse*>(packet);
+
+    if (response->status() != MasterSlavePackets::AuthResponse::Status::Ok) {
+        m_context->log << Logger::Line::Start
+                       << "Master server refused authentication request: " << static_cast<u32>(response->status())
+                       << Logger::Line::End;
+
+        return true;
+    }
+
+    m_ourSlaveId = response->id();
+    m_authPassword = response->authPassword();
+    m_authed.store(true);
+
+    MasterSlavePackets::SyncStart sync;
+
+    {
+        MutexLock lock(m_masterMutex);
+
+        if (m_master)
+            m_context->tcp->sendTo(m_master, &sync);
+    }
+
+    m_context->log->message("Master server accepted authentication request");
+
+    return true;
+}
+
+bool MasterModule::syncEnd(uint clientid, Packet *packet)
+{
+    UNUSED(clientid);
+    UNUSED(packet);
+
+    m_synced.store(true);
+
+    m_context->log->message("Synchronization finished");
 
     return true;
 }

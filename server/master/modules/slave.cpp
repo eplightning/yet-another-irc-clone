@@ -12,6 +12,8 @@
 
 #include <libconfig.h++>
 
+#include <random>
+
 YAIC_NAMESPACE
 
 SlaveServer::SlaveServer(SharedPtr<Client> &client, u32 id)
@@ -181,6 +183,8 @@ void SlaveModule::loadConfig(const libconfig::Setting &section)
 
         if (sub.isScalar())
             m_config.timeout = sub;
+
+        m_config.timeout = m_config.timeout > 0 ? m_config.timeout : 10;
     }
 
     if (section.exists("heartbeat")) {
@@ -188,6 +192,8 @@ void SlaveModule::loadConfig(const libconfig::Setting &section)
 
         if (sub.isScalar())
             m_config.heartbeatInterval = sub;
+
+        m_config.timeout = m_config.timeout > 0 ? m_config.timeout : 1;
     }
 }
 
@@ -201,6 +207,12 @@ bool SlaveModule::init()
 
     if (!initTimers())
         return false;
+
+    // auth password
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<u64> dist;
+    m_authPassword = dist(rng);
 
     return true;
 }
@@ -291,7 +303,7 @@ bool SlaveModule::initTimers()
     m_heartbeatTimer = m_context->sysLoop->addTimer(m_config.heartbeatInterval);
 
     if (m_timeoutTimer == -1 || m_heartbeatTimer == -1) {
-        m_context->log->error("Unable to initialize timers");
+        m_context->log->error("Unable to initialize slave module's timers");
         return false;
     }
 
@@ -338,15 +350,8 @@ Vector<SharedPtr<SlaveServer>> SlaveModule::getSlaves(bool ipv4, bool ipv6)
 
 void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
 {
-    if (state == TCSDisconnecting) {
-        m_context->log << Logger::Line::Start
-                       << "Slave connection lost: [CID: " << clientid << "]"
-                       << Logger::Line::End;
-
+    if (state != TCSDisconnected)
         return;
-    } else if (state == TCSConnected) {
-        return;
-    }
 
     {
         MutexLock lock(m_slavesMutex);
@@ -371,7 +376,7 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
     }
 
     m_context->log << Logger::Line::Start
-                   << "Slave connection dropped: [CID: " << clientid << "] (" << MiscUtils::systemError(error) << ")"
+                   << "Slave connection dropped: [ID: " << clientid << "] (" << MiscUtils::systemError(error) << ")"
                    << Logger::Line::End;
 }
 
@@ -441,7 +446,6 @@ bool SlaveModule::timeoutHandler(int timer)
     MutexLock lock(m_slavesMutex);
 
     for (auto &x : m_slaves) {
-        // timeout liczony od momentu połączenia jako że klient jedyne co powinien zrobić to zapytać się o serwery...
         auto seconds = x.second->lastPacketSeconds(now);
 
         if (seconds >= m_config.timeout) {
@@ -496,19 +500,27 @@ bool SlaveModule::auth(uint clientid, Packet *packet)
 
         m_context->tcp->sendTo(srv->client(), &response);
 
-        return false;
-    } else if (m_config.authMode == MasterSlavePackets::Auth::Mode::Plaintext &&
-        m_config.plainTextPassword != request->plaintextPassword()) {
-
-        MasterSlavePackets::AuthResponse response;
-
-        response.setId(0);
-        response.setAuthPassword(0);
-        response.setStatus(MasterSlavePackets::AuthResponse::Status::InvalidPlaintextPassword);
-
-        m_context->tcp->sendTo(srv->client(), &response);
+        m_context->log << Logger::Line::Start
+                       << "Slave not authenticated: [ID: " << srv->id() << "] (Invalid auth mode)"
+                       << Logger::Line::End;
 
         return false;
+    } else if (m_config.authMode == MasterSlavePackets::Auth::Mode::Plaintext) {
+        if (m_config.plainTextPassword != request->plaintextPassword()) {
+            MasterSlavePackets::AuthResponse response;
+
+            response.setId(0);
+            response.setAuthPassword(0);
+            response.setStatus(MasterSlavePackets::AuthResponse::Status::InvalidPlaintextPassword);
+
+            m_context->tcp->sendTo(srv->client(), &response);
+
+            m_context->log << Logger::Line::Start
+                           << "Slave not authenticated: [ID: " << srv->id() << "] (Invalid password)"
+                           << Logger::Line::End;
+
+            return false;
+        }
     }
 
     // save info
@@ -523,11 +535,13 @@ bool SlaveModule::auth(uint clientid, Packet *packet)
     // response
     MasterSlavePackets::AuthResponse response;
     response.setId(srv->id());
-    response.setAuthPassword(0); // TODO: Generate this
+    response.setAuthPassword(m_authPassword);
     response.setStatus(MasterSlavePackets::AuthResponse::Status::Ok);
     m_context->tcp->sendTo(srv->client(), &response);
 
-    m_context->log->message("Auth accepted");
+    m_context->log << Logger::Line::Start
+                   << "Slave authenticated: [ID: " << srv->id() << ", Name: " << srv->name() << "]"
+                   << Logger::Line::End;
 
     return true;
 }
@@ -539,36 +553,47 @@ bool SlaveModule::syncStart(uint clientid, Packet *packet)
     MutexLock lock(m_slavesMutex);
 
     auto it = m_slaves.find(clientid);
-
     if (it == m_slaves.end() || it->second->state() != SSAuthed)
         return false;
 
     Vector<SharedPtr<Client>*> clients;
 
-    for (auto it = m_slaves.begin(); it != m_slaves.end(); ++it) {
-        if (it->first != clientid) {
-            if (it->second->state() == SSActive || it->second->state() == SSSyncing)
+    for (auto it2 = m_slaves.begin(); it2 != m_slaves.end(); ++it2) {
+        if (it2->first != clientid) {
+            if (it2->second->state() != SSActive && it2->second->state() != SSSyncing)
                 continue;
 
-            clients.push_back(&it->second->client());
+            clients.push_back(&it2->second->client());
         }
     }
 
-    // message
-    MasterSlavePackets::NewSlave msg;
-    msg.setAddress(it->second->slaveAddress());
-    msg.setPort(it->second->slavePort());
-    msg.setId(it->first);
+    if (clients.empty()) {
+        MasterSlavePackets::SyncEnd response;
+        m_context->tcp->sendTo(it->second->client(), &response);
 
-    m_context->tcp->sendTo(clients, &msg);
+        it->second->setState(SSActive);
 
-    it->second->setState(SSSyncing);
+        m_context->log << Logger::Line::Start
+                       << "Slave synchronized and ready to accept users: [ID: " << it->second->id() << ", Name: " << it->second->name() << "]"
+                       << Logger::Line::End;
+    } else {
+        MasterSlavePackets::NewSlave msg;
+        msg.setAddress(it->second->slaveAddress());
+        msg.setPort(it->second->slavePort());
+        msg.setId(it->first);
 
-    // TODO: jakiś lepszy mechanizm, bo ten się wyłoży jak np. jakiś slave się rozłączy zanim to wyśle i nowy slave nigdy nie będzie gotowy
-    // TODO: jakaś lista slave'ów i tyle
-    m_syncProgress[it->first] = static_cast<int>(clients.size());
+        m_context->tcp->sendTo(clients, &msg);
 
-    m_context->log->message("SyncStart accepted");
+        it->second->setState(SSSyncing);
+
+        // jakiś lepszy mechanizm, bo ten się wyłoży jak np. jakiś slave się rozłączy zanim to wyśle i nowy slave nigdy nie będzie gotowy
+        // jakaś lista slave'ów i tyle
+        m_syncProgress[it->first] = static_cast<int>(clients.size());
+
+        m_context->log << Logger::Line::Start
+                       << "Slave starting synchronization: [ID: " << it->second->id() << ", Name: " << it->second->name() << "]"
+                       << Logger::Line::End;
+    }
 
     return true;
 }
@@ -589,6 +614,10 @@ bool SlaveModule::newAck(uint clientid, Packet *packet)
     if (it2 == m_slaves.end() || it2->second->state() != SSSyncing)
         return false;
 
+    m_context->log << Logger::Line::Start
+                   << "Old slave acknowledged new slave: [Old ID: " << it->second->id() << ", New ID: " << it2->second->id() << "]"
+                   << Logger::Line::End;
+
     // find sync progress
     auto it3 = m_syncProgress.find(request->id());
 
@@ -599,11 +628,13 @@ bool SlaveModule::newAck(uint clientid, Packet *packet)
         m_context->tcp->sendTo(it2->second->client(), &response);
 
         it2->second->setState(SSActive);
+
+        m_context->log << Logger::Line::Start
+                       << "Slave synchronized and ready to accept users: [ID: " << it2->second->id() << ", Name: " << it2->second->name() << "]"
+                       << Logger::Line::End;
     } else {
         it3->second--;
     }
-
-    m_context->log->message("NewAck accepted");
 
     return true;
 }

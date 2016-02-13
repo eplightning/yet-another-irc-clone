@@ -13,18 +13,18 @@ YAIC_NAMESPACE
 
 struct Context;
 
-struct MasterModuleConfig {
-    String address;
+struct SlaveModuleConfig {
+    Vector<String> listen;
+    String publicAddress;
+    u16 publicPort;
     uint timeout;
     uint heartbeatInterval;
-    MasterSlavePackets::Auth::Mode authMode;
-    String plainTextPassword;
 };
 
-class MasterModule {
+class SlaveModule {
 public:
-    MasterModule(Context *context);
-    ~MasterModule();
+    SlaveModule(Context *context);
+    ~SlaveModule();
 
     // called by app
     void loadConfig(const libconfig::Setting &section);
@@ -34,16 +34,12 @@ public:
     void dispatchSimple(EventSimple *ev);
 
     // api
-    SharedPtr<Client> getMaster();
-    bool isAuthed();
-    bool isSynced();
-
-    // thread-safe if authed
-    u32 getSlaveId() const;
-    u64 getAuthPassword() const;
+    const String &publicAddress() const;
+    u16 publicPort() const;
 
 protected:
     bool initPackets();
+    /*
     bool initTcp();
     bool initTimeout();
 
@@ -57,16 +53,19 @@ protected:
     bool authResponse(uint clientid, Packet *packet);
     bool syncEnd(uint clientid, Packet *packet);
 
-    void masterDisconnected();
+    void masterDisconnected();*/
+
+    bool newSlave(uint clientid, Packet *packet);
+    bool removeSlave(uint clientid, Packet *packet);
 
     TimerDispatcher m_timerDispatcher;
-    int m_heartbeatTimer;
-    int m_timeoutTimer;
+    /*int m_heartbeatTimer;
+    int m_timeoutTimer;*/
 
     Context *m_context;
-    MasterModuleConfig m_config;
+    SlaveModuleConfig m_config;
 
-    SharedPtr<Client> m_master;
+    /*SharedPtr<Client> m_master;
     std::mutex m_masterMutex;
 
     std::chrono::time_point<SteadyClock> m_lastPacket;
@@ -75,7 +74,7 @@ protected:
     u32 m_ourSlaveId;
     u64 m_authPassword;
     std::atomic<bool> m_authed;
-    std::atomic<bool> m_synced;
+    std::atomic<bool> m_synced;*/
 };
 
 END_NAMESPACE

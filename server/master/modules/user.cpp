@@ -101,7 +101,7 @@ void UserModule::dispatchGeneric(Event *ev)
 
 SharedPtr<User> UserModule::getUser(uint clientid)
 {
-    std::lock_guard<std::mutex> lock(m_usersMutex);
+    MutexLock lock(m_usersMutex);
 
     auto it = m_users.find(clientid);
 
@@ -172,7 +172,7 @@ bool UserModule::timeoutHandler(int timer)
 
     auto now = SteadyClock::now();
 
-    std::lock_guard<std::mutex> lock(m_usersMutex);
+    MutexLock lock(m_usersMutex);
 
     for (auto &x : m_users) {
         // timeout liczony od momentu połączenia jako że klient jedyne co powinien zrobić to zapytać się o serwery...
@@ -180,7 +180,7 @@ bool UserModule::timeoutHandler(int timer)
 
         if (seconds >= m_config.timeout) {
             m_context->log << Logger::Line::Start
-                           << "Client timeout: " << seconds << "s"
+                           << "User timeout: " << seconds << "s"
                            << Logger::Line::End;
 
             m_context->tcp->disconnect(x.second->client(), true);
@@ -192,13 +192,8 @@ bool UserModule::timeoutHandler(int timer)
 
 void UserModule::tcpState(uint clientid, TcpClientState state, int error)
 {
-    if (state == TCSDisconnecting) {
-        m_context->log << Logger::Line::Start
-                       << "Client connection lost: [ID: " << clientid << "]"
-                       << Logger::Line::End;
-
+    if (state != TCSDisconnected)
         return;
-    }
 
     {
         MutexLock lock(m_usersMutex);
@@ -209,7 +204,7 @@ void UserModule::tcpState(uint clientid, TcpClientState state, int error)
     }
 
     m_context->log << Logger::Line::Start
-                   << "Client connection dropped: [ID: " << clientid << "] (" << error << ")"
+                   << "User connection dropped: [ID: " << clientid << "] (" << MiscUtils::systemError(error) << ")"
                    << Logger::Line::End;
 }
 
@@ -224,7 +219,7 @@ bool UserModule::tcpNew(SharedPtr<Client> &client)
     }
 
     m_context->log << Logger::Line::Start
-                   << "Client connection: [ID: " << client->id() << ", IP: " << client->address() <<"]"
+                   << "User connection: [ID: " << client->id() << ", IP: " << client->address() <<"]"
                    << Logger::Line::End;
 
     return true;
@@ -275,7 +270,7 @@ bool UserModule::serversRequest(uint clientid, Packet *packet)
     m_context->tcp->sendTo(user->client(), &response);
 
     m_context->log << Logger::Line::Start
-                   << "Server request served [ID: " << clientid << "]"
+                   << "Server list request served [ID: " << clientid << "]"
                    << Logger::Line::End;
 
     return true;

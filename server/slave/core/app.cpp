@@ -54,6 +54,7 @@ int SlaveServerApplication::run(const char *configPath, const char *configName)
 
     // kontekst gotowy, moduły możemy utworzyć
     m_context->master.reset(new MasterModule(m_context));
+    m_context->slave.reset(new SlaveModule(m_context));
 
     if (!loadConfig())
         return 1;
@@ -76,12 +77,15 @@ int SlaveServerApplication::run(const char *configPath, const char *configName)
 
             if (evp->source() == SLAVE_APP_SOURCE_MASTER)
                 context->master->dispatchPacket(evp);
+            else if (evp->source() == SLAVE_APP_SOURCE_SLAVE)
+                context->slave->dispatchPacket(evp);
 
             delete evp->packet();
         } else if (ev->type() == Event::Type::Simple) {
             EventSimple *evs = static_cast<EventSimple*>(ev);
 
             context->master->dispatchSimple(evs);
+            context->slave->dispatchSimple(evs);
 
             if (evs->id() == EventSimple::EventId::SignalHangUp || evs->id() == EventSimple::EventId::SignalInterrupt
                     || evs->id() == EventSimple::EventId::SignalQuit || evs->id() == EventSimple::EventId::SignalTerminate
@@ -95,6 +99,7 @@ int SlaveServerApplication::run(const char *configPath, const char *configName)
             EventTimer *evt = static_cast<EventTimer*>(ev);
 
             context->master->dispatchTimer(evt);
+            context->slave->dispatchTimer(evt);
         }
 
         delete ev;
@@ -128,13 +133,6 @@ bool SlaveServerApplication::loadConfig()
         return false;
     }
 
-    if (m_config.exists("master-module")) {
-        const libconfig::Setting &section = m_config.lookup("master-module");
-
-        if (section.isGroup())
-            m_context->master->loadConfig(section);
-    }
-
     if (m_config.exists("worker-threads")) {
         const libconfig::Setting &section = m_config.lookup("worker-threads");
 
@@ -145,6 +143,30 @@ bool SlaveServerApplication::loadConfig()
             m_confWorkers = 0;
     }
 
+    if (m_config.exists("name")) {
+        const libconfig::Setting &section = m_config.lookup("name");
+
+        if (section.isScalar()) {
+            m_context->slaveName = section.c_str();
+        } else {
+            m_context->slaveName = m_context->configName;
+        }
+    }
+
+    if (m_config.exists("master-module")) {
+        const libconfig::Setting &section = m_config.lookup("master-module");
+
+        if (section.isGroup())
+            m_context->master->loadConfig(section);
+    }
+
+    if (m_config.exists("slave-module")) {
+        const libconfig::Setting &section = m_config.lookup("slave-module");
+
+        if (section.isGroup())
+            m_context->master->loadConfig(section);
+    }
+
     return true;
 }
 
@@ -152,6 +174,11 @@ bool SlaveServerApplication::initModules()
 {
     if (!m_context->master->init()) {
         m_context->log->error("Error while initializing master module");
+        return false;
+    }
+
+    if (!m_context->slave->init()) {
+        m_context->log->error("Error while initializing slave module");
         return false;
     }
 
