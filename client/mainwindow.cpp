@@ -5,10 +5,100 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
+        ui->setupUi(this);
+
+        //Initialing a serwerList model
+        channelListModel = new QStandardItemModel();
+        ui->channelList->setModel( channelListModel );
+
+        //Initialing a userList model
+        userListModel = new QStandardItemModel();
+        ui->userList->setModel( userListModel );
+
+        dialog.setModal(true);
+        showDialog();
+
+        //We need to get here names of channels on the serwer
+        std::vector<QString> a;
+        a.push_back("Pierwszy");
+        a.push_back("Drugi");
+
+        //Initializing channel list
+        setChannelList(a);
+
+
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::on_sendingButton_clicked()
+{
+    if(!inChannel.isNull()){
+
+        //Changing textEdit_2 box
+        mainChatText+="<b>"+userName+"</b><br>"+ui->chatEditBox->toPlainText()+"<br>";
+        ui->chatBox->setHtml("<html>"+mainChatText+"</html>");
+        ui->chatEditBox->clear();
+    }
+
+}
+
+void MainWindow::on_serwerChangingButton_clicked()
+{
+    showDialog();
+}
+
+void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
+{
+    inChannel = channelListModel->itemFromIndex(index)->text();
+
+    //Test - after adding connection with the serwer this part will bewe changed
+    userListModel->clear();
+    addItemToUserList(inChannel+"1");
+    addItemToUserList(inChannel+"2");
+
+    mainChatText = "";
+    ui->chatBox->setPlainText("");
+}
+
+void MainWindow::showDialog()
+{
+    if(!dialog.exec()){
+        userName = dialog.getUserName();
+    }
+
+    //Test dialog - here we need to check if there were no errors while connectiong
+    if(userName=="xxx"){
+        QMessageBox messageBox;
+        messageBox.critical(0,"Uwaga","Nazwa już wykorzystywana na tym serwerze");
+        messageBox.setFixedSize(500,200);
+    }
+}
+
+//Set all channels in channelList
+void MainWindow::setChannelList(std::vector<QString> list){
+    channelListModel->clear();
+    for(int i=0; i<list.size(); i++){
+        QStandardItem *item;
+        item = new QStandardItem();
+
+        item->setData( list[i], Qt::DisplayRole );
+        item->setEditable( false );
+
+        channelListModel->appendRow( item );
+    }
+}
+
+//Add user to userList (listo of users on the channel)
+void MainWindow::addItemToUserList(QString str){
+    QStandardItem *item;
+    item = new QStandardItem();
+
+    item->setData( str, Qt::DisplayRole );
+    item->setEditable( false );
+
+    userListModel->appendRow( item );
 }
