@@ -19,18 +19,20 @@ QString Dialog::getUserName()
     return userName;
 }
 
-QString Dialog::getSerwerName()
+QString Dialog::getServerName()
 {
-    return serwerName;
+    return serverName;
 }
 
 void Dialog::on_connectButton_clicked()
 {
-    if((ui->serwerNameEdit->text() != "")&&(ui->userNameEdit->text() != "")){
+    if((!ui->serverNameEdit->text().isEmpty()) && (!ui->userNameEdit->text().isEmpty()))
+    {
         userName = ui->userNameEdit->text();
         close();
     }
-    else{
+    else
+    {
         QMessageBox messageBox;
         messageBox.critical(0,"Uwaga","Żadne z pól nie może być puste!");
         messageBox.setFixedSize(500,200);

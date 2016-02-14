@@ -6,10 +6,10 @@
 #include <QTextBrowser>
 
 #include "dialog.h"
-#include <vector>
 
-namespace Ui {
-class MainWindow;
+namespace Ui
+{
+    class MainWindow;
 }
 
 class MainWindow : public QMainWindow
@@ -23,7 +23,7 @@ public:
 private slots:
     void on_sendingButton_clicked();
 
-    void on_serwerChangingButton_clicked();
+    void on_serverChangingButton_clicked();
 
     void on_channelList_doubleClicked(const QModelIndex &index);
 
@@ -36,8 +36,8 @@ private:
     QString mainChatText;
     QString inChannel;
 
-    void setChannelList(std::vector<QString> str);
-    void addItemToUserList(QString str);
+    void setChannelList(QList<QString>  &str);
+    void addItemToUserList(QString &str);
     void showDialog();
 
 

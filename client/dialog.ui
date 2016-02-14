@@ -32,12 +32,7 @@
         </size>
        </property>
        <property name="styleSheet">
-        <string notr="true">QPushButton{
-background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 white, stop: 1 grey);
-border-style: solid;
-border-width: 5px;
-border-radius: 10px;
-}</string>
+        <string notr="true"/>
        </property>
        <property name="text">
         <string>Połącz</string>
@@ -65,22 +60,16 @@ border-radius: 10px;
       </spacer>
      </item>
      <item row="1" column="1" colspan="2">
-      <widget class="QLineEdit" name="serwerNameEdit">
+      <widget class="QLineEdit" name="serverNameEdit">
        <property name="styleSheet">
-        <string notr="true">QLineEdit{ 
-border: 2px solid gray;
-border-radius: 5px;
-}</string>
+        <string notr="true"/>
        </property>
       </widget>
      </item>
      <item row="0" column="1" colspan="2">
       <widget class="QLineEdit" name="userNameEdit">
        <property name="styleSheet">
-        <string notr="true">QLineEdit{ 
-border: 2px solid gray;
-border-radius: 5px;
-}</string>
+        <string notr="true"/>
        </property>
       </widget>
      </item>
@@ -90,7 +79,7 @@ border-radius: 5px;
  </widget>
  <tabstops>
   <tabstop>userNameEdit</tabstop>
-  <tabstop>serwerNameEdit</tabstop>
+  <tabstop>serverNameEdit</tabstop>
   <tabstop>connectButton</tabstop>
  </tabstops>
  <resources/>

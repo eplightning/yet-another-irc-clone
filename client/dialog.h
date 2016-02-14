@@ -4,8 +4,9 @@
 #include <QDialog>
 #include <QMessageBox>
 
-namespace Ui {
-class Dialog;
+namespace Ui
+{
+    class Dialog;
 }
 
 class Dialog : public QDialog
@@ -16,7 +17,7 @@ public:
     explicit Dialog(QWidget *parent = 0);
     ~Dialog();
     QString getUserName();
-    QString getSerwerName();
+    QString getServerName();
 
 private slots:
     void on_connectButton_clicked();
@@ -24,8 +25,7 @@ private slots:
 private:
     Ui::Dialog *ui;
     QString userName;
-    QString serwerName;
-
+    QString serverName;
 
 };
 
