@@ -3,6 +3,7 @@
 #include <common/types.h>
 #include <common/packets/master_user.h>
 #include <common/packets/master_slave.h>
+#include <common/packets/slave_slave.h>
 
 YAIC_NAMESPACE
 
@@ -67,6 +68,9 @@ Packet *Packet::factory(PacketHeader header, const Vector<char> &data)
     PACKETFACTORY_CASE(Type::SlaveSyncEnd, MasterSlavePackets::SyncEnd)
     PACKETFACTORY_CASE(Type::NewSlave, MasterSlavePackets::NewSlave)
     PACKETFACTORY_CASE(Type::RemoveSlave, MasterSlavePackets::RemoveSlave)
+    PACKETFACTORY_CASE(Type::SlaveHello, SlaveSlavePackets::Hello)
+    PACKETFACTORY_CASE(Type::SlaveHelloResponse, SlaveSlavePackets::HelloResponse)
+    PACKETFACTORY_CASE(Type::SlaveSlaveHeartbeat, SlaveSlavePackets::Heartbeat)
     //case Type::Unknown:
     default:
         return nullptr;

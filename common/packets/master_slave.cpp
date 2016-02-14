@@ -265,6 +265,7 @@ bool NewSlave::decodePayload(const Vector<char> &payload)
     bool result = read(payload, m_id);
     result &= read(payload, m_address);
     result &= read(payload, m_port);
+    result &= read(payload, m_name);
 
     return result;
 }
@@ -274,6 +275,7 @@ void NewSlave::encodePayload(Vector<char> &payload) const
     write(payload, m_id);
     write(payload, m_address);
     write(payload, m_port);
+    write(payload, m_name);
 }
 
 u32 NewSlave::id() const
@@ -291,6 +293,11 @@ u16 NewSlave::port() const
     return m_port;
 }
 
+const String &NewSlave::name() const
+{
+    return m_name;
+}
+
 void NewSlave::setId(u32 id)
 {
     m_id = id;
@@ -304,6 +311,11 @@ void NewSlave::setAddress(const String &address)
 void NewSlave::setPort(u16 port)
 {
     m_port = port;
+}
+
+void NewSlave::setName(const String &name)
+{
+    m_name.assign(name);
 }
 
 RemoveSlave::RemoveSlave() :

@@ -581,6 +581,7 @@ bool SlaveModule::syncStart(uint clientid, Packet *packet)
         msg.setAddress(it->second->slaveAddress());
         msg.setPort(it->second->slavePort());
         msg.setId(it->first);
+        msg.setName(it->second->name());
 
         m_context->tcp->sendTo(clients, &msg);
 

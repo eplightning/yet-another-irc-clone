@@ -50,7 +50,11 @@ public:
         SlaveAuthResponse = 40961,
         SlaveSyncEnd = 40962,
         NewSlave = 40963,
-        RemoveSlave = 40964
+        RemoveSlave = 40964,
+
+        SlaveHello = 49152,
+        SlaveHelloResponse = 49153,
+        SlaveSlaveHeartbeat = 49154
     };
 
     static bool checkDirection(u16 rawType, Direction dir);

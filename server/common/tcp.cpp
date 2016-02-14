@@ -115,6 +115,17 @@ ConnectionProtocol SocketUtils::readAddress(const String &full, u16 &port, Strin
     }
 }
 
+ConnectionProtocol SocketUtils::getProtoFromIp(const String &ip)
+{
+    if (ip.find('.') != String::npos)
+        return CPIpv4;
+
+    if (ip.find(':') != String::npos)
+        return CPIpv6;
+
+    return CPUnknown;
+}
+
 TcpReceiveBuffer::TcpReceiveBuffer()
     : received(0), data(Packet::MaxSize)
 {

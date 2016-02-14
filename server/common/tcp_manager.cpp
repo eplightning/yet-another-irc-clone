@@ -204,16 +204,10 @@ TcpManager::~TcpManager()
     close(m_pipe[1]);
 }
 
-bool TcpManager::connect(const String &address, const String &pool)
+bool TcpManager::connect(ConnectionProtocol proto, const String &ip, u16 port, const String &pool)
 {
     auto it = m_pools.find(pool);
     if (it == m_pools.end())
-        return false;
-
-    u16 port;
-    String ip;
-    ConnectionProtocol proto = SocketUtils::readAddress(address, port, ip);
-    if (proto == CPUnknown)
         return false;
 
     sockaddr_storage saddr;
@@ -244,6 +238,17 @@ bool TcpManager::connect(const String &address, const String &pool)
     write(m_pipe[1], &notify, sizeof(notify));
 
     return true;
+}
+
+bool TcpManager::connect(const String &address, const String &pool)
+{
+    u16 port;
+    String ip;
+    ConnectionProtocol proto = SocketUtils::readAddress(address, port, ip);
+    if (proto == CPUnknown)
+        return false;
+
+    return connect(proto, ip, port, pool);
 }
 
 void TcpManager::createPool(const String &name, TcpPool *pool)
@@ -307,6 +312,21 @@ void TcpManager::sendTo(const Vector<SharedPtr<Client>*> &clients, const Packet 
         buffer->data = encoded;
 
         sendTo(*client, buffer);
+    }
+}
+
+void TcpManager::sendTo(const Vector<SharedPtr<Client>> &clients, const Packet *packet)
+{
+    Vector<char> encoded;
+    packet->encode(encoded);
+
+    for (auto client : clients) {
+        TcpSendBuffer *buffer = new TcpSendBuffer;
+
+        buffer->sent = 0;
+        buffer->data = encoded;
+
+        sendTo(client, buffer);
     }
 }
 

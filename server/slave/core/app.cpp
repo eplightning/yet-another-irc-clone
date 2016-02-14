@@ -164,7 +164,7 @@ bool SlaveServerApplication::loadConfig()
         const libconfig::Setting &section = m_config.lookup("slave-module");
 
         if (section.isGroup())
-            m_context->master->loadConfig(section);
+            m_context->slave->loadConfig(section);
     }
 
     return true;

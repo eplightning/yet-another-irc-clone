@@ -66,15 +66,18 @@ public:
     u32 id() const;
     const String &address() const;
     u16 port() const;
+    const String &name() const;
 
     void setId(u32 id);
     void setAddress(const String &address);
     void setPort(u16 port);
+    void setName(const String &name);
 
 protected:
     u32 m_id;
     String m_address;
     u16 m_port;
+    String m_name;
 };
 
 class RemoveSlave : public Packet {
