@@ -64,19 +64,122 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
 #### Handshake (id: 1)
 
     struct Handshake {
-        String nick;
+        String nick; // Wybrany nick
+    }
+
+#### ListChannels (id: 2)
+
+    struct ListChannels {
+        // Puste
+    }
+
+#### JoinChannel (id: 3)
+
+    struct JoinChannel {
+        u64 channel;   // Id kanału
+    }
+
+#### PartChannel (id: 4)
+
+    struct PartChannel {
+        u64 channel;    // ID kanału
+    }
+
+#### SendChannelMessage (id: 5)
+
+    struct SendChannelMessage {
+        u64 channel;
+        String message;
     }
 
 #### HandshakeAck (id: 8192)
 
     struct HandshakeAck {
-        HandshakeAckStatus status;
-        u64 userid;
+        HandshakeAckStatus status; // Status
+        u64 userid;                // Otrzymany ID
     }
     
     enum class HandshakeAckStatus {
-        0 = Ok,
-        1 = InvalidNick,
-        2 = UnknownError
+        0 = Ok,                     // Wszystko OK
+        1 = InvalidNick,            // Nieprawidłowy nick (np. zajęty)
+        2 = UnknownError            // Każdy inny błąd
     }
 
+#### Channels (id: 8193)
+
+    struct Channels {
+        Vector<Channel> channels;
+    }
+    
+    struct Channel {
+        u64 id;
+        String name;
+    }
+  
+#### ChannelJoined (id: 8194)
+
+    struct ChannelJoined {
+        ChannelJoinedStatus status;       // Status
+        u64 id;                           // ID kanału
+        String name;                      // Nazwa kanału
+        UserFlags flags;                  // Twoje flagi
+        Vector<User> users;               // Użytkownicy w kanale
+    }
+    
+    enum class ChannelJoinedStatus {
+        Ok = 0,                       // Ok
+        UnknownError = 1              // Każdy inny błąd
+    }
+    
+    struct User {
+        u64 id;                       // ID
+        UserFlags flags;              // Flagi
+        String nick;                  // Nick użytkownika
+    }
+    
+    enum class UserFlags {
+        Operator = 1 << 0             // OP
+    }
+
+#### ChannelPart (id: 8195)
+
+    struct ChannelPart {
+        ChannelPartStatus status;   // Status
+        u64 id;                     // Id kanału
+    }
+    
+    enum class ChannelPartStatus {
+        Ok = 0,                     // Ok
+        UnknownError = 1            // Każdy inny błąd
+    }
+
+#### ChannelUserEntered (id: 8196)
+
+    struct ChannelNewUser {
+        u64 channel;                // ID kanału
+        User user;                  // Patrz wyżej
+    }
+
+#### ChannelUserPart (id: 8197)
+
+    struct ChannelUserPart {
+        u64 channel;                // ID kanału
+        u64 user;                   // ID użytkownika
+    }
+
+#### ChannelMessage (id: 8198)
+
+    struct ChannelMessage {
+        u64 channel;                // ID kanału
+        u64 user;                   // ID użytkownika
+        String message;             // Wiadomość
+    }
+    
+
+#### ChannelUserUpdated (id: 8199)
+
+    struct ChannelUserUpdate {
+        u64 channel;                // ID kanału
+        u64 user;                   // ID użytkownika
+        UserFlags flags;            // Flagi
+    }
