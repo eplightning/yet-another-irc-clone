@@ -59,3 +59,24 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
         u16 port;                   // Port
     }
 
+### Serwer slave < - > Klient
+
+#### Handshake (id: 1)
+
+    struct Handshake {
+        String nick;
+    }
+
+#### HandshakeAck (id: 8192)
+
+    struct HandshakeAck {
+        HandshakeAckStatus status;
+        u64 userid;
+    }
+    
+    enum class HandshakeAckStatus {
+        0 = Ok,
+        1 = InvalidNick,
+        2 = UnknownError
+    }
+
