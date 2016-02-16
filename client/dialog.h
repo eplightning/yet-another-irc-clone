@@ -18,6 +18,7 @@ public:
     ~Dialog();
     QString getUserName();
     QString getServerName();
+    int getPortNumber();
 
 private slots:
     void on_connectButton_clicked();
@@ -25,7 +26,8 @@ private slots:
 private:
     Ui::Dialog *ui;
     QString userName;
-    QString serverName;
+    QString serverIP;
+    int port;
 
 };
 

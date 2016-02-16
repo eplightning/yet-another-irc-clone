@@ -46,6 +46,7 @@ void tcpSocket::readyRead()
 
     while (socket->bytesAvailable())
     {
+        qDebug() << socket->bytesAvailable();
         if (!isReadingPayload)
         {
            QByteArray data = socket->read(sizeof(u16) + sizeof(u32) - readHeaderLength);
@@ -64,10 +65,11 @@ void tcpSocket::readyRead()
                const u16 *ptrType = reinterpret_cast<const u16*>(&bufferedHeading[0]);
                const u32 *ptrLength = reinterpret_cast<const u32*>(&bufferedHeading[0] + sizeof(u16));
 
-               u16 packetType = htons(*ptrType);
-               u32 packetLength = htonl(*ptrLength);
+               u16 packetType = ntohs(*ptrType);
+               u32 packetLength = ntohl(*ptrLength);
 
                packetHeader.payloadSize = packetLength;
+               qDebug() << packetLength;
                packetHeader.type = packetType;
 
                bufferedHeading.clear();
@@ -90,34 +92,30 @@ void tcpSocket::readyRead()
                     bufferedData.push_back(dataPacked[i]);
                 }
             }
-
             if (packetHeader.payloadSize == readLength)
             {
+                qDebug() << "Tu jestem2";
                 isReadingPayload = false;
                 readLength = 0;
 
-                if (!Packet::checkDirection(packetHeader.type, Packet::Direction::SlaveToUser))
-                {
-                    bufferedData.clear();
-                    return;
+                if (Packet::checkDirection(packetHeader.type, Packet::Direction::SlaveToUser))
+                {       
+                    Packet *a = Packet::factory(packetHeader, bufferedData);
+                    if (a != nullptr)
+                    {
+                        switch (static_cast<Packet::Type> (packetHeader.type))
+                        {
+                            case Packet::Type::ServerList:
+                                qDebug() << "Tu jestem3";
+                                emit serversRead(static_cast<MasterUserPackets::ServerList*>(a));
+                                break;
+                            default:
+                                //doSth
+                                break;
+                        }
+                    }
                 }
-
-                Packet *a = Packet::factory(packetHeader, bufferedData);
-
-                if (a == nullptr)
-                {
-                    return;
-                }
-
-                switch (static_cast<Packet::Type> (packetHeader.type))
-                {
-                    case Packet::Type::Unknown:
-                        //doSth
-                        break;
-                    default:
-                        //doSth
-                        break;
-                }
+                bufferedData.clear();
             }
         }
     }

@@ -7,6 +7,12 @@
 
 #include "dialog.h"
 #include "channel.h"
+#include "tcpsocket.h"
+#include "common/packet.h"
+#include "common/types.h"
+#include "common/packets/master_user.h"
+
+using namespace YAIC;
 
 namespace Ui
 {
@@ -28,6 +34,8 @@ private slots:
 
     void on_channelList_doubleClicked(const QModelIndex &index);
 
+    void on_serverListRead(MasterUserPackets::ServerList *p);
+
 private:
     Ui::MainWindow *ui;
     QStandardItemModel *channelListModel;
@@ -37,6 +45,10 @@ private:
     QString mainChatText;
     QString inChannel;
     Channel *channelList;
+    Vector<MasterUserPackets::ServerListServer> severs;
+    tcpSocket master;
+    QString masterIP;
+    int masterPort;
 
     void setChannelList(QList<QString>  &str);
     void addItemToUserList(QString &str);

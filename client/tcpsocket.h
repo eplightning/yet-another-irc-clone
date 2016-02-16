@@ -10,10 +10,13 @@
 #include "common/types.h"
 #include <netinet/in.h>
 
+#include <QDebug>
+
 using namespace YAIC;
 
 class tcpSocket: public QObject
 {
+    Q_OBJECT
 public:
     tcpSocket(QObject *parent = 0);
     void getSlavesPort();
@@ -22,9 +25,10 @@ public:
     void disconnect();
 
 signals:
+    void serversRead(MasterUserPackets::ServerList *p);
 
 public slots:
-    void disconnected();
+    //void disconnected();
     void readyRead();
 
 private:

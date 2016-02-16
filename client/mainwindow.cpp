@@ -4,7 +4,7 @@
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
-{
+{   
     ui->setupUi(this);
 
     //Initialing a serverList model
@@ -17,6 +17,21 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->userList->setModel(userListModel);
     dialog.setModal(true);
     showDialog();
+
+    if(!master.connectWith(masterIP, masterPort))
+    {
+        QMessageBox messageBox;
+        messageBox.critical(0,"Uwaga","Nie udało się połączyć z serwerem!");
+        messageBox.setFixedSize(500,200);
+    }
+    else
+    {
+        MasterUserPackets::RequestServers *a = new MasterUserPackets::RequestServers ();
+        a->setMax(1);
+        master.write(a);
+        QObject::connect(&master, SIGNAL(serversRead(MasterUserPackets::ServerList*)),
+                         this, SLOT(on_serverListRead(MasterUserPackets::ServerList*)));
+    }
 
     //We need to get here names of channels on the server
     QList<QString>  a;
@@ -65,11 +80,29 @@ void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
     ui->chatBox->setPlainText("");
 }
 
+void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
+{
+    ui->chatEditBox->setPlainText("asd");
+    severs  = p->servers();
+    if(!severs.empty())
+    {
+        ui->chatBox->setPlainText(QString::fromStdString(severs[0].address));
+    }
+    else
+    {
+        ui->chatBox->setPlainText("Pusto tu");
+    }
+}
+
+
+
 void MainWindow::showDialog()
 {
     if(!dialog.exec())
     {
         userName = dialog.getUserName();
+        masterIP = dialog.getServerName();
+        masterPort = dialog.getPortNumber();
     }
 
     //Test dialog - here we need to check if there were no errors while connectiong

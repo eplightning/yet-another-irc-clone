@@ -21,14 +21,22 @@ QString Dialog::getUserName()
 
 QString Dialog::getServerName()
 {
-    return serverName;
+    return serverIP;
+}
+
+int Dialog::getPortNumber()
+{
+    return port;
 }
 
 void Dialog::on_connectButton_clicked()
 {
-    if((!ui->serverNameEdit->text().isEmpty()) && (!ui->userNameEdit->text().isEmpty()))
+    if ((!ui->serverIPEdit->text().isEmpty()) && (!ui->userNameEdit->text().isEmpty()) && (!ui->serverPortEdit->text().isEmpty()))
     {
         userName = ui->userNameEdit->text();
+        serverIP = ui->serverIPEdit->text();
+        //TODO - Need to check if int
+        port = ui->serverPortEdit->text().toInt();
         close();
     }
     else
