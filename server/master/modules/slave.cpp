@@ -11,6 +11,9 @@
 
 #include <libconfig.h++>
 
+#include <random>
+#include <algorithm>
+
 YAIC_NAMESPACE
 
 SlaveServer::SlaveServer(SharedPtr<Client> &client, u32 id, u16 port, uint capacity)

@@ -30,7 +30,7 @@ void Packet::encode(Vector<char> &packet) const
     encodePayload(packet);
 
     u32 *payloadSize = reinterpret_cast<u32*>(&packet[sizeof(u16)]);
-    *payloadSize = htons(static_cast<u32>(packet.size() - sizeof(PacketHeader)));
+    *payloadSize = htonl(static_cast<u32>(packet.size() - sizeof(PacketHeader)));
 }
 
 Vector<char> Packet::encode() const
