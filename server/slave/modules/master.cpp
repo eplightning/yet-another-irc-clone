@@ -16,8 +16,9 @@ YAIC_NAMESPACE
 MasterModule::MasterModule(Context *context) :
     m_context(context), m_authed(false), m_synced(false)
 {
-    m_config.address = "";
+    m_config.address = "127.0.0.1:31412";
     m_config.timeout = 10;
+    m_config.heartbeatInterval = 1;
     m_config.authMode = MasterSlavePackets::Auth::Mode::None;
     m_config.plainTextPassword = "";
 
@@ -192,12 +193,12 @@ void MasterModule::tcpState(uint clientid, TcpClientState state, int error)
         authPacket.setMode(m_config.authMode);
         authPacket.setPlaintextPassword(m_config.plainTextPassword);
 
-        authPacket.setCapacity(100); // TODO: Set this
+        authPacket.setCapacity(static_cast<u32>(m_context->user->capacity()));
         authPacket.setName(m_context->slaveName);
         authPacket.setSlaveAddress(m_context->slave->publicAddress());
         authPacket.setSlavePort(m_context->slave->publicPort());
-        authPacket.setUserAddress("127.0.0.1"); // TODO: Set this
-        authPacket.setUserPort(1236); // TODO: Set this
+        authPacket.setUserAddress(m_context->user->publicAddress());
+        authPacket.setUserPort(m_context->user->publicPort());
 
         m_context->tcp->sendTo(m_master, &authPacket);
     } else if (state == TCSDisconnected) {

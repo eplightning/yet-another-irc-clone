@@ -55,6 +55,7 @@ int SlaveServerApplication::run(const char *configPath, const char *configName)
     // kontekst gotowy, moduły możemy utworzyć
     m_context->master.reset(new MasterModule(m_context));
     m_context->slave.reset(new SlaveModule(m_context));
+    m_context->user.reset(new UserModule(m_context));
 
     if (!loadConfig())
         return 1;
@@ -79,6 +80,8 @@ int SlaveServerApplication::run(const char *configPath, const char *configName)
                 context->master->dispatchPacket(evp);
             else if (evp->source() == SLAVE_APP_SOURCE_SLAVE)
                 context->slave->dispatchPacket(evp);
+            else if (evp->source() == SLAVE_APP_SOURCE_USER)
+                context->user->dispatchPacket(evp);
 
             delete evp->packet();
         } else if (ev->type() == Event::Type::Simple) {
@@ -86,6 +89,7 @@ int SlaveServerApplication::run(const char *configPath, const char *configName)
 
             context->master->dispatchSimple(evs);
             context->slave->dispatchSimple(evs);
+            context->user->dispatchSimple(evs);
 
             if (evs->id() == EventSimple::EventId::SignalHangUp || evs->id() == EventSimple::EventId::SignalInterrupt
                     || evs->id() == EventSimple::EventId::SignalQuit || evs->id() == EventSimple::EventId::SignalTerminate
@@ -100,6 +104,7 @@ int SlaveServerApplication::run(const char *configPath, const char *configName)
 
             context->master->dispatchTimer(evt);
             context->slave->dispatchTimer(evt);
+            context->user->dispatchTimer(evt);
         }
 
         delete ev;
@@ -130,7 +135,9 @@ bool SlaveServerApplication::loadConfig()
                        << "Error while reading configuration: " << e.what()
                        << Logger::Line::End;
 
-        return false;
+        m_context->slaveName = m_context->configName;
+
+        return true;
     }
 
     if (m_config.exists("worker-threads")) {
@@ -167,6 +174,13 @@ bool SlaveServerApplication::loadConfig()
             m_context->slave->loadConfig(section);
     }
 
+    if (m_config.exists("user-module")) {
+        const libconfig::Setting &section = m_config.lookup("user-module");
+
+        if (section.isGroup())
+            m_context->user->loadConfig(section);
+    }
+
     return true;
 }
 
@@ -178,6 +192,11 @@ bool SlaveServerApplication::initModules()
     }
 
     if (!m_context->slave->init()) {
+        m_context->log->error("Error while initializing slave module");
+        return false;
+    }
+
+    if (!m_context->user->init()) {
         m_context->log->error("Error while initializing slave module");
         return false;
     }

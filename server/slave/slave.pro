@@ -6,7 +6,8 @@ CONFIG += console c++11 thread
 SOURCES += main.cpp \
     core/app.cpp \
     modules/master.cpp \
-    modules/slave.cpp
+    modules/slave.cpp \
+    modules/user.cpp
 
 # libconfig
 LIBS += -lconfig++
@@ -32,4 +33,5 @@ HEADERS += \
     modules/master.h \
     core/global.h \
     core/context.h \
-    modules/slave.h
+    modules/slave.h \
+    modules/user.h

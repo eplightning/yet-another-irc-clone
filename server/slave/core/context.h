@@ -2,6 +2,7 @@
 
 #include <modules/master.h>
 #include <modules/slave.h>
+#include <modules/user.h>
 
 #include <common/types.h>
 #include <server/event.h>
@@ -21,7 +22,7 @@ struct Context {
     UniquePtr<PacketDispatcher> dispatcher;
 
     // modules
-    //UniquePtr<UserModule> user;
+    UniquePtr<UserModule> user;
     UniquePtr<MasterModule> master;
     UniquePtr<SlaveModule> slave;
 

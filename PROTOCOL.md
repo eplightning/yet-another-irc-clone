@@ -61,38 +61,48 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
 
 ### Serwer slave < - > Klient
 
-#### Handshake (id: 1)
+#### UserHeartbeat (id: 1)
+
+    struct UserHeartbeat {
+    }
+
+#### Handshake (id: 2)
 
     struct Handshake {
         String nick; // Wybrany nick
     }
 
-#### ListChannels (id: 2)
+#### ListChannels (id: 3)
 
     struct ListChannels {
         // Puste
     }
 
-#### JoinChannel (id: 3)
+#### JoinChannel (id: 4)
 
     struct JoinChannel {
         u64 channel;   // Id kanału
     }
 
-#### PartChannel (id: 4)
+#### PartChannel (id: 5)
 
     struct PartChannel {
         u64 channel;    // ID kanału
     }
 
-#### SendChannelMessage (id: 5)
+#### SendChannelMessage (id: 6)
 
     struct SendChannelMessage {
         u64 channel;
         String message;
     }
 
-#### HandshakeAck (id: 8192)
+#### SlaveHeartbeat (id: 8192)
+
+    struct SlaveHeartbeat {
+    }
+
+#### HandshakeAck (id: 8193)
 
     struct HandshakeAck {
         HandshakeAckStatus status; // Status
@@ -105,7 +115,7 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
         2 = UnknownError            // Każdy inny błąd
     }
 
-#### Channels (id: 8193)
+#### Channels (id: 8194)
 
     struct Channels {
         Vector<Channel> channels;
@@ -116,7 +126,7 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
         String name;
     }
   
-#### ChannelJoined (id: 8194)
+#### ChannelJoined (id: 8195)
 
     struct ChannelJoined {
         ChannelJoinedStatus status;       // Status
@@ -141,7 +151,7 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
         Operator = 1 << 0             // OP
     }
 
-#### ChannelPart (id: 8195)
+#### ChannelPart (id: 8196)
 
     struct ChannelPart {
         ChannelPartStatus status;   // Status
@@ -153,21 +163,21 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
         UnknownError = 1            // Każdy inny błąd
     }
 
-#### ChannelUserEntered (id: 8196)
+#### ChannelUserEntered (id: 8197)
 
     struct ChannelNewUser {
         u64 channel;                // ID kanału
         User user;                  // Patrz wyżej
     }
 
-#### ChannelUserPart (id: 8197)
+#### ChannelUserPart (id: 8198)
 
     struct ChannelUserPart {
         u64 channel;                // ID kanału
         u64 user;                   // ID użytkownika
     }
 
-#### ChannelMessage (id: 8198)
+#### ChannelMessage (id: 8199)
 
     struct ChannelMessage {
         u64 channel;                // ID kanału
@@ -176,7 +186,7 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
     }
     
 
-#### ChannelUserUpdated (id: 8199)
+#### ChannelUserUpdated (id: 8200)
 
     struct ChannelUserUpdate {
         u64 channel;                // ID kanału

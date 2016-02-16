@@ -37,6 +37,10 @@ public:
     enum class Type : u16 {
         Unknown = 0,
 
+        UserHeartbeat = 1,
+
+        SlaveUserHeartbeat = 8192,
+
         RequestServers = 16384,
 
         ServerList = 24576,

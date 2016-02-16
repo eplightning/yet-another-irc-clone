@@ -133,7 +133,7 @@ bool MasterServerApplication::loadConfig()
                        << "Error while reading configuration: " << e.what()
                        << Logger::Line::End;
 
-        return false;
+        return true;
     }
 
     if (m_config.exists("user-module")) {

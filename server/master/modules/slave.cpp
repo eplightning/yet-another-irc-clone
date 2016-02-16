@@ -137,6 +137,7 @@ SlaveModule::SlaveModule(Context *context)
     m_config.plainTextPassword = "";
     m_config.timeout = 10;
     m_config.heartbeatInterval = 1;
+    m_config.listen.push_back("0.0.0.0:31412");
 }
 
 SlaveModule::~SlaveModule()
@@ -148,6 +149,9 @@ void SlaveModule::loadConfig(const libconfig::Setting &section)
 {
     if (section.exists("listen")) {
         const libconfig::Setting &listenSection = section.lookup("listen");
+
+        // delete default configuration
+        m_config.listen.clear();
 
         if (listenSection.isArray()) {
             for (auto &listener : listenSection)
@@ -193,7 +197,7 @@ void SlaveModule::loadConfig(const libconfig::Setting &section)
         if (sub.isScalar())
             m_config.heartbeatInterval = sub;
 
-        m_config.timeout = m_config.timeout > 0 ? m_config.timeout : 1;
+        m_config.heartbeatInterval = m_config.heartbeatInterval > 0 ? m_config.heartbeatInterval : 1;
     }
 }
 

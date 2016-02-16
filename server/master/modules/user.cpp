@@ -35,6 +35,7 @@ UserModule::UserModule(Context *context) :
     m_context(context)
 {
     m_config.timeout = 10;
+    m_config.listen.push_back("0.0.0.0:31410");
 }
 
 UserModule::~UserModule()
@@ -46,6 +47,9 @@ void UserModule::loadConfig(const libconfig::Setting &section)
 {
     if (section.exists("listen")) {
         const libconfig::Setting &listenSection = section.lookup("listen");
+
+        // delete default configuration
+        m_config.listen.clear();
 
         if (listenSection.isArray()) {
             for (auto &listener : listenSection)

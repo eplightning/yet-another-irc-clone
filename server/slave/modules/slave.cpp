@@ -88,6 +88,7 @@ SlaveModule::SlaveModule(Context *context) :
     m_config.heartbeatInterval = 1;
     m_config.reconnectInterval = 5;
     m_config.timeout = 10;
+    m_config.listen.push_back("0.0.0.0:31413");
 }
 
 SlaveModule::~SlaveModule()
@@ -99,6 +100,9 @@ void SlaveModule::loadConfig(const libconfig::Setting &section)
 {
     if (section.exists("listen")) {
         const libconfig::Setting &listenSection = section.lookup("listen");
+
+        // delete default configuration
+        m_config.listen.clear();
 
         if (listenSection.isArray()) {
             for (auto &listener : listenSection)
@@ -323,6 +327,11 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
             m_lastPackets.erase(clientid);
         }
 
+        {
+            MutexLock lock(m_connectionsMutex);
+            m_connections.erase(clientid);
+        }
+
         SharedPtr<SlaveServer> srv = getSlaveByClientId(clientid);
 
         if (!srv)
@@ -347,6 +356,9 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
 
 bool SlaveModule::tcpNew(SharedPtr<Client> &client)
 {
+    if (!m_context->master->isAuthed())
+        return false;
+
     {
         MutexLock lock(m_connectionsMutex);
 
