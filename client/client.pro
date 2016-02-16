@@ -1,14 +1,18 @@
 include(../global.pri)
 TEMPLATE = app
-QT += core gui widgets
+QT += core gui widgets network
 CONFIG += c++11
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    dialog.cpp
+    dialog.cpp \
+    channel.cpp \
+    tcpsocket.cpp
 
 HEADERS  += mainwindow.h \
-    dialog.h
+    dialog.h \
+    channel.h \
+    tcpsocket.h
 
 FORMS    += mainwindow.ui \
     dialog.ui

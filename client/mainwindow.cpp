@@ -9,12 +9,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //Initialing a serverList model
     channelListModel = new QStandardItemModel();
-    ui->channelList->setModel( channelListModel );
+    ui->channelList->setModel(channelListModel);
 
     //Initialing a userList model
     userListModel = new QStandardItemModel();
 
-    ui->userList->setModel( userListModel );
+    ui->userList->setModel(userListModel);
     dialog.setModal(true);
     showDialog();
 
@@ -38,7 +38,7 @@ void MainWindow::on_sendingButton_clicked()
     {
 
         //Changing textEdit_2 box
-        mainChatText+="<b>"+userName+"</b><br>"+ui->chatEditBox->toPlainText()+"<br>";
+        mainChatText += "<b>" + userName + "</b><br>" + ui->chatEditBox->toPlainText() + "<br>";
         ui->chatBox->setHtml("<html>"+mainChatText+"</html>");
         ui->chatEditBox->clear();
     }
@@ -73,7 +73,7 @@ void MainWindow::showDialog()
     }
 
     //Test dialog - here we need to check if there were no errors while connectiong
-    if(userName=="xxx")
+    if (userName == "xxx")
     {
         QMessageBox messageBox;
         messageBox.critical(0,"Uwaga","Nazwa już wykorzystywana na tym serverze");
@@ -85,7 +85,7 @@ void MainWindow::showDialog()
 void MainWindow::setChannelList(QList<QString> &list)
 {
     channelListModel->clear();
-    for(int i=0; i<list.size(); i++)
+    for (int i = 0; i < list.size(); i++)
     {
         QStandardItem *item;
         item = new QStandardItem();
@@ -93,8 +93,19 @@ void MainWindow::setChannelList(QList<QString> &list)
         item->setData(list[i], Qt::DisplayRole);
         item->setEditable(false);
 
+        //Test pogrubiania danych na liście
+/*        if(list[i]=="Pierwszy")
+        {
+            QFont serifFont("Sans", 10, QFont::Bold);
+            item->setFont(serifFont);
+        }
+*/
         channelListModel->appendRow(item);
     }
+/*
+    QFont boldFont("Sans", 10, QFont::Bold);
+    channelListModel->item(0, 0)->setFont(boldFont);
+*/
 }
 
 //Add user to userList (listo of users on the channel)

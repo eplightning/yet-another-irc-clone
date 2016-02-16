@@ -6,6 +6,7 @@
 #include <QTextBrowser>
 
 #include "dialog.h"
+#include "channel.h"
 
 namespace Ui
 {
@@ -35,6 +36,7 @@ private:
     QString userName;
     QString mainChatText;
     QString inChannel;
+    Channel *channelList;
 
     void setChannelList(QList<QString>  &str);
     void addItemToUserList(QString &str);
