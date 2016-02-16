@@ -8,6 +8,7 @@
 
 #include <libconfig.h++>
 #include <thread>
+#include <atomic>
 
 YAIC_NAMESPACE
 

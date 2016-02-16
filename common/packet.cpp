@@ -4,6 +4,7 @@
 #include <common/packets/master_user.h>
 #include <common/packets/master_slave.h>
 #include <common/packets/slave_slave.h>
+#include <common/packets/slave_user.h>
 
 YAIC_NAMESPACE
 
@@ -32,7 +33,7 @@ void Packet::encode(Vector<char> &packet) const
     encodePayload(packet);
 
     u32 *payloadSize = reinterpret_cast<u32*>(&packet[sizeof(u16)]);
-    *payloadSize = htons(static_cast<u32>(packet.size() - sizeof(PacketHeader)));
+    *payloadSize = htonl(static_cast<u32>(packet.size() - sizeof(PacketHeader)));
 }
 
 Vector<char> Packet::encode() const
@@ -71,6 +72,8 @@ Packet *Packet::factory(PacketHeader header, const Vector<char> &data)
     PACKETFACTORY_CASE(Type::SlaveHello, SlaveSlavePackets::Hello)
     PACKETFACTORY_CASE(Type::SlaveHelloResponse, SlaveSlavePackets::HelloResponse)
     PACKETFACTORY_CASE(Type::SlaveSlaveHeartbeat, SlaveSlavePackets::Heartbeat)
+    PACKETFACTORY_CASE(Type::UserHeartbeat, SlaveUserPackets::UserHeartbeat)
+    PACKETFACTORY_CASE(Type::SlaveUserHeartbeat, SlaveUserPackets::SlaveHeartbeat)
     //case Type::Unknown:
     default:
         return nullptr;

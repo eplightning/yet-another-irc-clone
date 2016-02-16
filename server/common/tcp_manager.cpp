@@ -524,7 +524,7 @@ void TcpManager::readEvent(Client *client, SelectorEvent &event, Selector *selec
             return;
         } else {
             buffer.header.type = ntohs(*(reinterpret_cast<u16*>(data)));
-            buffer.header.payloadSize = ntohs(*(reinterpret_cast<u32*>(data + 2)));
+            buffer.header.payloadSize = ntohl(*(reinterpret_cast<u32*>(data + 2)));
 
             // pusty pakiet?
             if (buffer.header.payloadSize == 0) {

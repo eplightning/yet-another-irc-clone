@@ -13,6 +13,7 @@
 #include <libconfig.h++>
 
 #include <random>
+#include <algorithm>
 
 YAIC_NAMESPACE
 
