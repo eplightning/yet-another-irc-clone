@@ -16,11 +16,11 @@ bool tcpSocket::connectWith(QString address, int port)
     this->address = address;
     socket = new QTcpSocket(this);
 
-    QObject::connect(socket, SIGNAL(readyRead()),this, SLOT(readyRead()));
+    QObject::connect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
 
-    socket->connectToHost(address, port);
+    socket->connectToHost(address, static_cast<quint16>(port));
 
-    if(!socket->waitForConnected(5000))
+    if (!socket->waitForConnected(5 * 1000))
     {
         return false;
     }
@@ -38,31 +38,27 @@ void tcpSocket::write(Packet *p)
     std::vector<char> bytes;
     p->encode(bytes);
 
-    socket->write(&bytes[0], bytes.size());
+    socket->write(&bytes[0], static_cast<qint64>(bytes.size()));
 }
 
 void tcpSocket::readyRead()
 {
-
     while (socket->bytesAvailable())
     {
         if (!isReadingPayload)
         {
-           QByteArray data = socket->read(sizeof(u16) + sizeof(u32) - readHeaderLength);
+           QByteArray data = socket->read(Packet::HeaderSize - readHeaderLength);
            qint64 read = data.size();
 
            const char* dataPacked = reinterpret_cast<const char*>(data.constData());
-
-           for (int i = 0; i < read; i++)
-           {
-               bufferedHeading.push_back(dataPacked[i]);
-           }
+           bufferedData.insert(bufferedData.end(), dataPacked, dataPacked + read);
 
            readHeaderLength += read;
-           if (readHeaderLength == (sizeof(u16) + sizeof(u32)))
+
+           if (readHeaderLength == Packet::HeaderSize)
            {
-               const u16 *ptrType = reinterpret_cast<const u16*>(&bufferedHeading[0]);
-               const u32 *ptrLength = reinterpret_cast<const u32*>(&bufferedHeading[0] + sizeof(u16));
+               const u16 *ptrType = reinterpret_cast<const u16*>(&bufferedData[0]);
+               const u32 *ptrLength = reinterpret_cast<const u32*>(&bufferedData[0] + sizeof(u16));
 
                u16 packetType = ntohs(*ptrType);
                u32 packetLength = ntohl(*ptrLength);
@@ -74,6 +70,7 @@ void tcpSocket::readyRead()
                isReadingPayload = true;
            }
         }
+
         if (isReadingPayload)
         {
             if (packetHeader.payloadSize > 0)
@@ -83,12 +80,9 @@ void tcpSocket::readyRead()
                 readLength += read;
 
                 const char* dataPacked = reinterpret_cast<const char*>(data.constData());
-
-                for (int i = 0; i < read; i++)
-                {
-                    bufferedData.push_back(dataPacked[i]);
-                }
+                bufferedData.insert(bufferedData.end(), dataPacked, dataPacked + read);
             }
+
             if (packetHeader.payloadSize == readLength)
             {
                 isReadingPayload = false;
@@ -96,15 +90,13 @@ void tcpSocket::readyRead()
 
                 if (Packet::checkDirection(packetHeader.type, Packet::Direction::MasterToUser))
                 {
-                    qDebug() << "Tu jestem1";
                     Packet *a = Packet::factory(packetHeader, bufferedData);
+
                     if (a != nullptr)
                     {
-                        qDebug() << "Tu jestem2";
-                        switch (static_cast<Packet::Type> (packetHeader.type))
+                        switch (a->packetType())
                         {
                             case Packet::Type::ServerList:
-                                qDebug() << "Tu jestem3";
                                 emit serversRead(static_cast<MasterUserPackets::ServerList*>(a));
                                 break;
                             default:
@@ -114,8 +106,8 @@ void tcpSocket::readyRead()
                         delete a;
                     }
                 }
+
                 bufferedData.clear();
-                bufferedHeading.clear();
             }
         }
     }

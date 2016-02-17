@@ -4,7 +4,6 @@
 #include <QObject>
 #include <QTcpSocket>
 
-
 #include "common/packet.h"
 #include "common/packets/master_user.h"
 #include "common/types.h"
@@ -39,7 +38,6 @@ private:
     qint64 readLength;
     qint64 readHeaderLength;
     Vector<char> bufferedData;
-    Vector<char> bufferedHeading;
     bool isReadingPayload;
 };
 
