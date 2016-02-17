@@ -18,7 +18,7 @@ MainWindow::MainWindow(QWidget *parent) :
     dialog.setModal(true);
     showDialog();
 
-    if(!master.connectWith(masterIP, masterPort))
+    if(!master.connectWith(masterIP, masterPort, Packet::Direction::MasterToUser))
     {
         QMessageBox messageBox;
         messageBox.critical(0,"Uwaga","Nie udało się połączyć z serwerem!");
@@ -26,11 +26,27 @@ MainWindow::MainWindow(QWidget *parent) :
     }
     else
     {
-        MasterUserPackets::RequestServers *a = new MasterUserPackets::RequestServers ();
+        QObject::connect(&master, SIGNAL(serversRead(MasterUserPackets::ServerList*)),
+                              this, SLOT(on_serverListRead(MasterUserPackets::ServerList*)));
+        MasterUserPackets::RequestServers *a = new MasterUserPackets::RequestServers();
         a->setMax(1);
         master.write(a);
-        QObject::connect(&master, SIGNAL(serversRead(MasterUserPackets::ServerList*)),
-                         this, SLOT(on_serverListRead(MasterUserPackets::ServerList*)));
+/*
+        if(!slave.connectWith(severs[0].address, severs[0].port, Packet::Direction::SlaveToUser))
+        {
+            QMessageBox messageBox;
+            messageBox.critical(0,"Uwaga","Nie udało się połączyć z serwerem!");
+            messageBox.setFixedSize(500,200);
+        }
+        else
+        {
+            SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
+
+            a->;
+            master.write(a);
+
+        }
+    */
     }
 
     //We need to get here names of channels on the server
@@ -86,7 +102,7 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
     severs  = p->servers();
     if(!severs.empty())
     {
-        ui->chatBox->setPlainText(QString::fromStdString(severs[0].address));
+        ui->chatBox->setPlainText(QString::number(severs[0].port));
     }
     else
     {
@@ -94,7 +110,25 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
     }
 }
 
-
+void MainWindow::on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p)
+{
+    /*
+    switch(p->state())
+    {
+        case Packet::HandshakeAckStatus::Ok:
+            break;
+        default:
+        //doSth
+    }
+    /*
+        enum class HandshakeAckStatus {
+            Ok = 0,
+            UnknownError = 1,
+            InvalidNick = 2,
+            Full = 3
+        };
+    */
+}
 
 void MainWindow::showDialog()
 {

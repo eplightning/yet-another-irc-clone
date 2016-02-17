@@ -10,8 +10,9 @@ tcpSocket::tcpSocket(QObject *parent) :
     readLength = 0;
 }
 
-bool tcpSocket::connectWith(QString address, int port)
+bool tcpSocket::connectWith(QString address, int port, Packet::Direction direction)
 {
+    this->dir = direction;
     this->port = port;
     this->address = address;
     socket = new QTcpSocket(this);
@@ -25,15 +26,25 @@ bool tcpSocket::connectWith(QString address, int port)
         return false;
     }
 
-    timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(timeExpired()));
-    timer->start(1000);
+    timerUserHeartbeat = new QTimer(this);
+    connect(timerUserHeartbeat, SIGNAL(timeout()), this, SLOT(sendHeartbeat()));
+    timerUserHeartbeat->start(1000);
+
+    timerSlaveHeartbeat = new QTimer(this);
+    connect(timerSlaveHeartbeat, SIGNAL(timeout()), this, SLOT(heartbeatTimeExpired()));
+    timerSlaveHeartbeat->start(10000);
+
     return true;
 }
 
 void tcpSocket::disconnect()
 {
     socket->close();
+    timerUserHeartbeat->stop();
+    timerSlaveHeartbeat->stop();
+    delete socket;
+    delete timerUserHeartbeat;
+    delete timerSlaveHeartbeat;
 }
 
 void tcpSocket::write(Packet *p)
@@ -91,7 +102,7 @@ void tcpSocket::readyRead()
                 isReadingPayload = false;
                 readLength = 0;
 
-                if (Packet::checkDirection(packetHeader.type, Packet::Direction::MasterToUser))
+                if (Packet::checkDirection(packetHeader.type, dir))
                 {
                     Packet *a = Packet::factory(packetHeader, bufferedData);
 
@@ -101,6 +112,12 @@ void tcpSocket::readyRead()
                         {
                             case Packet::Type::ServerList:
                                 emit serversRead(static_cast<MasterUserPackets::ServerList*>(a));
+                                break;
+                            case Packet::Type::SlaveHeartbeat:
+                                renewTimerSlaveHeartbeat();
+                                break;
+                            case Packet::Type::HandshakeAck:
+                                emit handshakeAck(static_cast<SlaveUserPackets::HandshakeAck*>(a));
                                 break;
                             default:
                                 //doSth
@@ -116,7 +133,21 @@ void tcpSocket::readyRead()
     }
 }
 
-void tcpSocket::timeExpired()
+void tcpSocket::sendHeartbeat()
 {
+    SlaveUserPackets::UserHeartbeat *a = new SlaveUserPackets::UserHeartbeat();
+    write(a);
+}
 
+void tcpSocket::heartbeatTimeExpired()
+{
+    disconnect();
+    qDebug() << "Rozłączyło mnie";
+}
+
+void tcpSocket::renewTimerSlaveHeartbeat()
+{
+    timerSlaveHeartbeat->stop();
+    timerSlaveHeartbeat->start(10000);
+    qDebug() << "ROdebrałem pakiet - przedłużam działanie";
 }

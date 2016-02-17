@@ -6,10 +6,12 @@
 
 #include "common/packet.h"
 #include "common/packets/master_user.h"
+#include "common/packets/slave_user.h"
 #include "common/types.h"
 #include <netinet/in.h>
 
 #include <QtCore>
+#include <QDebug>
 
 using namespace YAIC;
 
@@ -19,17 +21,18 @@ class tcpSocket: public QObject
 public:
     tcpSocket(QObject *parent = 0);
     void getSlavesPort();
-    bool connectWith(QString address, int port);
+    bool connectWith(QString address, int port, Packet::Direction direction);
     void write(Packet *p);
     void disconnect();
 
 signals:
     void serversRead(MasterUserPackets::ServerList *p);
+    void handshakeAck(SlaveUserPackets::HandshakeAck *p);
 
 public slots:
-    //void disconnected();
     void readyRead();
-    void timeExpired();
+    void sendHeartbeat();
+    void heartbeatTimeExpired();
 
 private:
     int port;
@@ -40,7 +43,11 @@ private:
     qint64 readHeaderLength;
     Vector<char> bufferedData;
     bool isReadingPayload;
-    QTimer *timer;
+    QTimer *timerUserHeartbeat;
+    QTimer *timerSlaveHeartbeat;
+    Packet::Direction dir;
+
+    void renewTimerSlaveHeartbeat();
 };
 
 #endif // TCPSOCKET_H
