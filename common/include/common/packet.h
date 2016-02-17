@@ -38,8 +38,10 @@ public:
         Unknown = 0,
 
         UserHeartbeat = 1,
+        Handshake = 2,
 
         SlaveUserHeartbeat = 8192,
+        HandshakeAck = 8193,
 
         RequestServers = 16384,
 

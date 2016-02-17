@@ -110,10 +110,11 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
     }
     
     enum class HandshakeAckStatus {
-        0 = Ok,                     // Wszystko OK
-        1 = InvalidNick,            // Nieprawidłowy nick (np. zajęty)
-        2 = UnknownError            // Każdy inny błąd
-    }
+        Ok = 0,
+        UnknownError = 1,
+        InvalidNick = 2,
+        Full = 3
+    };
 
 #### Channels (id: 8194)
 

@@ -73,7 +73,9 @@ Packet *Packet::factory(PacketHeader header, const Vector<char> &data)
     PACKETFACTORY_CASE(Type::SlaveHelloResponse, SlaveSlavePackets::HelloResponse)
     PACKETFACTORY_CASE(Type::SlaveSlaveHeartbeat, SlaveSlavePackets::Heartbeat)
     PACKETFACTORY_CASE(Type::UserHeartbeat, SlaveUserPackets::UserHeartbeat)
+    PACKETFACTORY_CASE(Type::Handshake, SlaveUserPackets::Handshake)
     PACKETFACTORY_CASE(Type::SlaveUserHeartbeat, SlaveUserPackets::SlaveHeartbeat)
+    PACKETFACTORY_CASE(Type::HandshakeAck, SlaveUserPackets::HandshakeAck)
     //case Type::Unknown:
     default:
         return nullptr;

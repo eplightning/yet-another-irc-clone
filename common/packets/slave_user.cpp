@@ -41,5 +41,44 @@ void SlaveHeartbeat::encodePayload(Vector<char> &payload) const
     UNUSED(payload);
 }
 
+Handshake::Handshake() :
+    Packet(Packet::Type::Handshake)
+{
+
+}
+
+bool Handshake::decodePayload(const Vector<char> &payload)
+{
+    return read(payload, m_nick);
+}
+
+void Handshake::encodePayload(Vector<char> &payload) const
+{
+    write(payload, m_nick);
+}
+
+HandshakeAck::HandshakeAck() :
+    Packet(Packet::Type::HandshakeAck)
+{
+
+}
+
+bool HandshakeAck::decodePayload(const Vector<char> &payload)
+{
+    u32 status;
+    bool result = read(payload, status);
+    m_status = static_cast<HandshakeAck::Status>(status);
+
+    result &= read(payload, m_userid);
+
+    return result;
+}
+
+void HandshakeAck::encodePayload(Vector<char> &payload) const
+{
+    write(payload, static_cast<u32>(m_status));
+    write(payload, m_userid);
+}
+
 
 END_NAMESPACE END_NAMESPACE
