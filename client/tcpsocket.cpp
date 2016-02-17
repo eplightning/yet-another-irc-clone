@@ -25,6 +25,9 @@ bool tcpSocket::connectWith(QString address, int port)
         return false;
     }
 
+    timer = new QTimer(this);
+    connect(timer, SIGNAL(timeout()), this, SLOT(timeExpired()));
+    timer->start(1000);
     return true;
 }
 
@@ -111,5 +114,9 @@ void tcpSocket::readyRead()
             }
         }
     }
+}
+
+void tcpSocket::timeExpired()
+{
 
 }

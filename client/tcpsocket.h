@@ -9,7 +9,7 @@
 #include "common/types.h"
 #include <netinet/in.h>
 
-#include <QDebug>
+#include <QtCore>
 
 using namespace YAIC;
 
@@ -29,6 +29,7 @@ signals:
 public slots:
     //void disconnected();
     void readyRead();
+    void timeExpired();
 
 private:
     int port;
@@ -39,6 +40,7 @@ private:
     qint64 readHeaderLength;
     Vector<char> bufferedData;
     bool isReadingPayload;
+    QTimer *timer;
 };
 
 #endif // TCPSOCKET_H
