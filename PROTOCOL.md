@@ -81,7 +81,7 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
 #### JoinChannel (id: 4)
 
     struct JoinChannel {
-        u64 channel;   // Id kanału
+        String channel;   // Nazwa kanału
     }
 
 #### PartChannel (id: 5)

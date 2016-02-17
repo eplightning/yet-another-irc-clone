@@ -85,8 +85,8 @@ int EventPacket::source() const
     return m_source;
 }
 
-EventSimple::EventSimple(EventSimple::EventId type) :
-    m_id(type)
+EventSimple::EventSimple(EventSimple::EventId type, EventSimple::SimpleType param) :
+    m_id(type), m_param(param)
 {
 
 }
@@ -99,6 +99,11 @@ Event::Type EventSimple::type() const
 EventSimple::EventId EventSimple::id() const
 {
     return m_id;
+}
+
+EventSimple::SimpleType EventSimple::param() const
+{
+    return m_param;
 }
 
 EventTimer::EventTimer(int timer) :
@@ -157,6 +162,26 @@ void EventLoop::waitForThreads()
     }
 
     m_threads.clear();
+}
+
+EventSimple::SimpleType::SimpleType(u64 id)
+{
+    this->id = id;
+}
+
+EventSimple::SimpleType::SimpleType(u32 clientid)
+{
+    this->clientid = clientid;
+}
+
+EventSimple::SimpleType::SimpleType(void *data)
+{
+    this->data = data;
+}
+
+EventSimple::SimpleType::SimpleType(int num)
+{
+    this->num = num;
 }
 
 END_NAMESPACE

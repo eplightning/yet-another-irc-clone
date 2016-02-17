@@ -5,6 +5,7 @@
 #include <common/types.h>
 #include <server/dispatcher.h>
 #include <common/packets/slave_user.h>
+#include <components/users.h>
 
 #include <libconfig.h++>
 #include <thread>
@@ -39,6 +40,8 @@ public:
     const String &publicAddress() const;
     u16 publicPort() const;
     uint capacity() const;
+    void slaveIdReceived(u32 id);
+    SharedPtr<Client> getConnection(u32 clientid);
 
 protected:
     bool initPackets();
@@ -52,6 +55,8 @@ protected:
     bool heartbeatHandler(int timer);
     bool timeoutHandler(int timer);
 
+    bool handshake(uint clientid, Packet *packet);
+
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;
     int m_timeoutTimer;
@@ -64,6 +69,8 @@ protected:
 
     std::map<u32, std::chrono::time_point<SteadyClock>> m_lastPackets;
     std::mutex m_lastPacketMutex;
+
+    Users m_users;
 };
 
 END_NAMESPACE

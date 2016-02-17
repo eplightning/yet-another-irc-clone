@@ -30,6 +30,10 @@ public:
     bool decodePayload(const Vector<char> &payload);
     void encodePayload(Vector<char> &payload) const;
 
+    const String &nick() const;
+
+    void setNick(const String &nick);
+
 protected:
     String m_nick;
 };
@@ -47,6 +51,12 @@ public:
 
     bool decodePayload(const Vector<char> &payload);
     void encodePayload(Vector<char> &payload) const;
+
+    u64 userId() const;
+    Status status() const;
+
+    void setUserId(u64 userid);
+    void setStatus(Status status);
 
 protected:
     Status m_status;

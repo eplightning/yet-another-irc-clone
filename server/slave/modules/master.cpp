@@ -296,6 +296,9 @@ bool MasterModule::authResponse(uint clientid, Packet *packet)
 
     m_ourSlaveId = response->id();
     m_authPassword = response->authPassword();
+
+    m_context->user->slaveIdReceived(m_ourSlaveId);
+
     m_authed.store(true);
 
     MasterSlavePackets::SyncStart sync;

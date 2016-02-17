@@ -85,7 +85,6 @@ public:
     void dispatchPacket(EventPacket *ev);
     void dispatchTimer(EventTimer *ev);
     void dispatchSimple(EventSimple *ev);
-    void dispatchGeneric(Event *ev);
 
     SharedPtr<SlaveServer> getSlave(uint clientid);
     Vector<SharedPtr<SlaveServer>> getSlaves(bool ipv4 = true, bool ipv6 = true);

@@ -98,11 +98,6 @@ void UserModule::dispatchSimple(EventSimple *ev)
     UNUSED(ev);
 }
 
-void UserModule::dispatchGeneric(Event *ev)
-{
-    UNUSED(ev);
-}
-
 SharedPtr<User> UserModule::getUser(uint clientid)
 {
     MutexLock lock(m_usersMutex);

@@ -100,9 +100,6 @@ int MasterServerApplication::run(const char *configPath)
 
             context->user->dispatchTimer(evt);
             context->slave->dispatchTimer(evt);
-        } else {
-            context->user->dispatchGeneric(ev);
-            context->slave->dispatchGeneric(ev);
         }
 
         delete ev;

@@ -247,11 +247,6 @@ void SlaveModule::dispatchSimple(EventSimple *ev)
     UNUSED(ev);
 }
 
-void SlaveModule::dispatchGeneric(Event *ev)
-{
-    UNUSED(ev);
-}
-
 bool SlaveModule::initPackets()
 {
     m_context->dispatcher->append(Packet::Type::SlaveHeartbeat,
