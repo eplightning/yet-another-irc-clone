@@ -56,6 +56,7 @@ Packet *Packet::factory(PacketHeader header, const Vector<char> &data)
 
     switch (static_cast<Type>(header.type)) {
     PACKETFACTORY_CASE(Type::RequestServers, MasterUserPackets::RequestServers)
+    PACKETFACTORY_CASE(Type::ServerList, MasterUserPackets::ServerList)
     default: return nullptr;
     }
 

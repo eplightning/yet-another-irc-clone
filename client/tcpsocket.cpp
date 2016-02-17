@@ -46,7 +46,6 @@ void tcpSocket::readyRead()
 
     while (socket->bytesAvailable())
     {
-        qDebug() << socket->bytesAvailable();
         if (!isReadingPayload)
         {
            QByteArray data = socket->read(sizeof(u16) + sizeof(u32) - readHeaderLength);
@@ -69,10 +68,8 @@ void tcpSocket::readyRead()
                u32 packetLength = ntohl(*ptrLength);
 
                packetHeader.payloadSize = packetLength;
-               qDebug() << packetLength;
                packetHeader.type = packetType;
 
-               bufferedHeading.clear();
                readHeaderLength = 0;
                isReadingPayload = true;
            }
@@ -94,15 +91,16 @@ void tcpSocket::readyRead()
             }
             if (packetHeader.payloadSize == readLength)
             {
-                qDebug() << "Tu jestem2";
                 isReadingPayload = false;
                 readLength = 0;
 
-                if (Packet::checkDirection(packetHeader.type, Packet::Direction::SlaveToUser))
-                {       
+                if (Packet::checkDirection(packetHeader.type, Packet::Direction::MasterToUser))
+                {
+                    qDebug() << "Tu jestem1";
                     Packet *a = Packet::factory(packetHeader, bufferedData);
                     if (a != nullptr)
                     {
+                        qDebug() << "Tu jestem2";
                         switch (static_cast<Packet::Type> (packetHeader.type))
                         {
                             case Packet::Type::ServerList:
@@ -113,9 +111,11 @@ void tcpSocket::readyRead()
                                 //doSth
                                 break;
                         }
+                        delete a;
                     }
                 }
                 bufferedData.clear();
+                bufferedHeading.clear();
             }
         }
     }
