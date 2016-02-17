@@ -120,6 +120,7 @@ public:
     explicit TcpManager(int rounds = 4);
     ~TcpManager();
 
+    bool connect(ConnectionProtocol proto, const String &ip, u16 port, const String &pool);
     bool connect(const String &address, const String &pool);
     // note: poole powinny być utworzone zanim odpalimy runLoop
     void createPool(const String &name, TcpPool *pool);
@@ -128,6 +129,7 @@ public:
     void sendTo(SharedPtr<Client> &client, TcpSendBuffer *buffer);
     void sendTo(SharedPtr<Client> &client, const Packet *packet);
     void sendTo(const Vector<SharedPtr<Client>*> &clients, const Packet *packet);
+    void sendTo(const Vector<SharedPtr<Client>> &clients, const Packet *packet);
 
     void runLoop();
     void stopLoop();

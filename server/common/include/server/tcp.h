@@ -41,6 +41,7 @@ public:
     static bool fillSockaddr(sockaddr_storage *sockaddr, const String &address, u16 port, ConnectionProtocol proto);
     static bool makeNonBlocking(int sock);
     static ConnectionProtocol readAddress(const String &full, u16 &port, String &address);
+    static ConnectionProtocol getProtoFromIp(const String &ip);
 };
 
 END_NAMESPACE

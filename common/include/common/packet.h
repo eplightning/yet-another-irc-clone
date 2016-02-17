@@ -33,10 +33,34 @@ public:
         Unknown = 7
     };
 
+    // TODO: Trzeba pamiętać o dodaniu tego do factory
     enum class Type : u16 {
         Unknown = 0,
+
+        UserHeartbeat = 1,
+        Handshake = 2,
+
+        SlaveUserHeartbeat = 8192,
+        HandshakeAck = 8193,
+
         RequestServers = 16384,
-        ServerList = 24576
+
+        ServerList = 24576,
+
+        SlaveHeartbeat = 32768,
+        SlaveAuth = 32769,
+        SlaveSyncStart = 32770,
+        SlaveNewAck = 32771,
+
+        MasterHeartbeat = 40960,
+        SlaveAuthResponse = 40961,
+        SlaveSyncEnd = 40962,
+        NewSlave = 40963,
+        RemoveSlave = 40964,
+
+        SlaveHello = 49152,
+        SlaveHelloResponse = 49153,
+        SlaveSlaveHeartbeat = 49154
     };
 
     static bool checkDirection(u16 rawType, Direction dir);
@@ -60,6 +84,8 @@ protected:
     void write(Vector<char> &payload, s16 data) const;
     void write(Vector<char> &payload, u32 data) const;
     void write(Vector<char> &payload, s32 data) const;
+    void write(Vector<char> &payload, u64 data) const;
+    void write(Vector<char> &payload, s64 data) const;
     void write(Vector<char> &payload, const String &data) const;
     void writeVectorSize(Vector<char> &payload, size_t data) const;
 
@@ -69,6 +95,8 @@ protected:
     bool read(const Vector<char> &payload, u16 &data);
     bool read(const Vector<char> &payload, s32 &data);
     bool read(const Vector<char> &payload, u32 &data);
+    bool read(const Vector<char> &payload, s64 &data);
+    bool read(const Vector<char> &payload, u64 &data);
     bool read(const Vector<char> &payload, String &data);
     bool readVectorSize(const Vector<char> &payload, u32 &data);
 
@@ -113,6 +141,20 @@ inline void Packet::write(Vector<char> &payload, s32 data) const
     data = htonl(data);
     char *raw = reinterpret_cast<char*>(&data);
     payload.insert(payload.end(), raw, raw + 4);
+}
+
+inline void Packet::write(Vector<char> &payload, u64 data) const
+{
+    // TODO: Byte swap
+    char *raw = reinterpret_cast<char*>(&data);
+    payload.insert(payload.end(), raw, raw + 8);
+}
+
+inline void Packet::write(Vector<char> &payload, s64 data) const
+{
+    // TODO: Byte swap
+    char *raw = reinterpret_cast<char*>(&data);
+    payload.insert(payload.end(), raw, raw + 8);
 }
 
 inline void Packet::write(Vector<char> &payload, const String &data) const
@@ -183,6 +225,28 @@ inline bool Packet::read(const Vector<char> &payload, u32 &data)
 
     data = ntohl(*(reinterpret_cast<const u32*>(&payload[m_packetReaderPos])));
     m_packetReaderPos += 4;
+    return true;
+}
+
+inline bool Packet::read(const Vector<char> &payload, s64 &data)
+{
+    if (payload.size() < 8 + m_packetReaderPos)
+        return false;
+
+    // TODO: Byte swap
+    data = *(reinterpret_cast<const s64*>(&payload[m_packetReaderPos]));
+    m_packetReaderPos += 8;
+    return true;
+}
+
+inline bool Packet::read(const Vector<char> &payload, u64 &data)
+{
+    if (payload.size() < 8 + m_packetReaderPos)
+        return false;
+
+    // TODO: Byte swap
+    data = *(reinterpret_cast<const u64*>(&payload[m_packetReaderPos]));
+    m_packetReaderPos += 8;
     return true;
 }
 

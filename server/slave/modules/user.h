@@ -4,7 +4,7 @@
 
 #include <common/types.h>
 #include <server/dispatcher.h>
-#include <common/packets/master_slave.h>
+#include <common/packets/slave_user.h>
 
 #include <libconfig.h++>
 #include <thread>
@@ -14,18 +14,19 @@ YAIC_NAMESPACE
 
 struct Context;
 
-struct MasterModuleConfig {
-    String address;
+struct UserModuleConfig {
+    Vector<String> listen;
+    String publicAddress;
+    u16 publicPort;
     uint timeout;
     uint heartbeatInterval;
-    MasterSlavePackets::Auth::Mode authMode;
-    String plainTextPassword;
+    uint capacity;
 };
 
-class MasterModule {
+class UserModule {
 public:
-    MasterModule(Context *context);
-    ~MasterModule();
+    UserModule(Context *context);
+    ~UserModule();
 
     // called by app
     void loadConfig(const libconfig::Setting &section);
@@ -35,13 +36,9 @@ public:
     void dispatchSimple(EventSimple *ev);
 
     // api
-    SharedPtr<Client> getMaster();
-    bool isAuthed();
-    bool isSynced();
-
-    // thread-safe if authed
-    u32 getSlaveId() const;
-    u64 getAuthPassword() const;
+    const String &publicAddress() const;
+    u16 publicPort() const;
+    uint capacity() const;
 
 protected:
     bool initPackets();
@@ -55,28 +52,18 @@ protected:
     bool heartbeatHandler(int timer);
     bool timeoutHandler(int timer);
 
-    bool authResponse(uint clientid, Packet *packet);
-    bool syncEnd(uint clientid, Packet *packet);
-
-    void masterDisconnected();
-
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;
     int m_timeoutTimer;
 
     Context *m_context;
-    MasterModuleConfig m_config;
+    UserModuleConfig m_config;
 
-    SharedPtr<Client> m_master;
-    std::mutex m_masterMutex;
+    HashMap<u32, SharedPtr<Client>> m_connections;
+    std::mutex m_connectionsMutex;
 
-    std::chrono::time_point<SteadyClock> m_lastPacket;
+    std::map<u32, std::chrono::time_point<SteadyClock>> m_lastPackets;
     std::mutex m_lastPacketMutex;
-
-    u32 m_ourSlaveId;
-    u64 m_authPassword;
-    std::atomic<bool> m_authed;
-    std::atomic<bool> m_synced;
 };
 
 END_NAMESPACE

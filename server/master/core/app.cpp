@@ -9,6 +9,7 @@
 #include <server/logger/stdout.h>
 #include <server/misc_utils.h>
 #include <server/syseventloop.h>
+#include <server/dispatcher.h>
 
 #include <libconfig.h++>
 #include <thread>
@@ -46,6 +47,7 @@ int MasterServerApplication::run(const char *configPath)
     m_context->log.reset(new LoggerStdout);
     m_context->sysLoop.reset(SysEventLoop::factory(*m_context->eventQueue));
     m_context->tcp.reset(new TcpManager);
+    m_context->dispatcher.reset(new PacketDispatcher);
 
     m_context->log << Logger::Line::Start
                    << "Starting master server using the following configuration path: " << configPath
@@ -98,6 +100,9 @@ int MasterServerApplication::run(const char *configPath)
 
             context->user->dispatchTimer(evt);
             context->slave->dispatchTimer(evt);
+        } else {
+            context->user->dispatchGeneric(ev);
+            context->slave->dispatchGeneric(ev);
         }
 
         delete ev;
@@ -128,7 +133,7 @@ bool MasterServerApplication::loadConfig()
                        << "Error while reading configuration: " << e.what()
                        << Logger::Line::End;
 
-        return false;
+        return true;
     }
 
     if (m_config.exists("user-module")) {

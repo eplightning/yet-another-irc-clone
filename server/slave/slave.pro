@@ -5,10 +5,16 @@ CONFIG += console c++11 thread
 
 SOURCES += main.cpp \
     core/app.cpp \
-    modules/master.cpp
+    modules/master.cpp \
+    modules/slave.cpp \
+    modules/user.cpp
 
 # libconfig
 LIBS += -lconfig++
+macx {
+    LIBS += -L/usr/local/lib
+    INCLUDEPATH += /usr/local/include
+}
 
 # our own libraries
 INCLUDEPATH += ../../common/include ../common/include
@@ -26,4 +32,6 @@ HEADERS += \
     core/app.h \
     modules/master.h \
     core/global.h \
-    core/context.h
+    core/context.h \
+    modules/slave.h \
+    modules/user.h

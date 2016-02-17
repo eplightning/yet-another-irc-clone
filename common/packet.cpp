@@ -2,6 +2,9 @@
 
 #include <common/types.h>
 #include <common/packets/master_user.h>
+#include <common/packets/master_slave.h>
+#include <common/packets/slave_slave.h>
+#include <common/packets/slave_user.h>
 
 YAIC_NAMESPACE
 
@@ -57,7 +60,25 @@ Packet *Packet::factory(PacketHeader header, const Vector<char> &data)
     switch (static_cast<Type>(header.type)) {
     PACKETFACTORY_CASE(Type::RequestServers, MasterUserPackets::RequestServers)
     PACKETFACTORY_CASE(Type::ServerList, MasterUserPackets::ServerList)
-    default: return nullptr;
+    PACKETFACTORY_CASE(Type::SlaveHeartbeat, MasterSlavePackets::SlaveHeartbeat)
+    PACKETFACTORY_CASE(Type::SlaveAuth, MasterSlavePackets::Auth)
+    PACKETFACTORY_CASE(Type::SlaveSyncStart, MasterSlavePackets::SyncStart)
+    PACKETFACTORY_CASE(Type::SlaveNewAck, MasterSlavePackets::NewAck)
+    PACKETFACTORY_CASE(Type::MasterHeartbeat, MasterSlavePackets::MasterHeartbeat)
+    PACKETFACTORY_CASE(Type::SlaveAuthResponse, MasterSlavePackets::AuthResponse)
+    PACKETFACTORY_CASE(Type::SlaveSyncEnd, MasterSlavePackets::SyncEnd)
+    PACKETFACTORY_CASE(Type::NewSlave, MasterSlavePackets::NewSlave)
+    PACKETFACTORY_CASE(Type::RemoveSlave, MasterSlavePackets::RemoveSlave)
+    PACKETFACTORY_CASE(Type::SlaveHello, SlaveSlavePackets::Hello)
+    PACKETFACTORY_CASE(Type::SlaveHelloResponse, SlaveSlavePackets::HelloResponse)
+    PACKETFACTORY_CASE(Type::SlaveSlaveHeartbeat, SlaveSlavePackets::Heartbeat)
+    PACKETFACTORY_CASE(Type::UserHeartbeat, SlaveUserPackets::UserHeartbeat)
+    PACKETFACTORY_CASE(Type::Handshake, SlaveUserPackets::Handshake)
+    PACKETFACTORY_CASE(Type::SlaveUserHeartbeat, SlaveUserPackets::SlaveHeartbeat)
+    PACKETFACTORY_CASE(Type::HandshakeAck, SlaveUserPackets::HandshakeAck)
+    //case Type::Unknown:
+    default:
+        return nullptr;
     }
 
     // pomijamy nagłówek
