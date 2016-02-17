@@ -57,6 +57,16 @@ void Handshake::encodePayload(Vector<char> &payload) const
     write(payload, m_nick);
 }
 
+const String &Handshake::nick() const
+{
+    return m_nick;
+}
+
+void Handshake::setNick(const String &nick)
+{
+    m_nick.assign(nick);
+}
+
 HandshakeAck::HandshakeAck() :
     Packet(Packet::Type::HandshakeAck)
 {
@@ -78,6 +88,26 @@ void HandshakeAck::encodePayload(Vector<char> &payload) const
 {
     write(payload, static_cast<u32>(m_status));
     write(payload, m_userid);
+}
+
+u64 HandshakeAck::userId() const
+{
+    return m_userid;
+}
+
+HandshakeAck::Status HandshakeAck::status() const
+{
+    return m_status;
+}
+
+void HandshakeAck::setUserId(u64 userid)
+{
+    m_userid = userid;
+}
+
+void HandshakeAck::setStatus(HandshakeAck::Status status)
+{
+    m_status = status;
 }
 
 

@@ -499,6 +499,9 @@ bool SlaveModule::newSlave(uint clientid, Packet *packet)
 {
     UNUSED(clientid);
 
+    if (!m_context->master->isAuthed())
+        return false;
+
     SharedPtr<Client> master = m_context->master->getMaster();
     if (!master)
         return false;
@@ -521,6 +524,9 @@ bool SlaveModule::newSlave(uint clientid, Packet *packet)
 bool SlaveModule::removeSlave(uint clientid, Packet *packet)
 {
     UNUSED(clientid);
+
+    if (!m_context->master->isAuthed())
+        return false;
 
     MasterSlavePackets::RemoveSlave *request = static_cast<MasterSlavePackets::RemoveSlave*>(packet);
 

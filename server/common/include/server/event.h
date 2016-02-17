@@ -83,16 +83,32 @@ public:
         SignalHangUp,
         TcpLoopDied,
         SysLoopDied,
-        MasterDisconnected
+        MasterDisconnected,
+        UserDisconnected,
+        UserForeignDisconnected
     };
 
-    EventSimple(EventId type);
+    union SimpleType {
+        u64 id;
+        u32 clientid;
+        void *data;
+        int num;
+
+        SimpleType(u64 id);
+        SimpleType(u32 clientid);
+        SimpleType(void *data);
+        SimpleType(int num);
+    };
+
+    EventSimple(EventId type, SimpleType param = 0);
 
     Type type() const;
     EventId id() const;
+    SimpleType param() const;
 
 protected:
     EventId m_id;
+    SimpleType m_param;
 };
 
 class EventTimer : public Event {

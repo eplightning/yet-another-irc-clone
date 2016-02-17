@@ -8,6 +8,7 @@
 #include <server/syseventloop.h>
 #include <server/misc_utils.h>
 #include <common/packets/slave_user.h>
+#include <components/users.h>
 
 #include <libconfig.h++>
 
@@ -78,6 +79,8 @@ void UserModule::loadConfig(const libconfig::Setting &section)
 
         if (sub.isScalar())
             m_config.capacity = sub;
+
+        m_users.setCapacity(sub);
     }
 }
 
@@ -112,7 +115,31 @@ void UserModule::dispatchTimer(EventTimer *ev)
 
 void UserModule::dispatchSimple(EventSimple *ev)
 {
-    UNUSED(ev);
+    if (ev->id() == EventSimple::EventId::UserDisconnected || ev->id() == EventSimple::EventId::UserForeignDisconnected) {
+        u64 id;
+
+        if (ev->id() == EventSimple::EventId::UserDisconnected)
+            id = m_users.getFullId(ev->param().clientid);
+        else
+            id = ev->param().id;
+
+        SharedPtr<User> user = m_users.findById(id);
+
+        if (!user)
+            return;
+
+        m_context->log << Logger::Line::Start
+                       << "Removing user: [Nick: " << user->nick() << "]"
+                       << Logger::Line::End;
+
+        m_users.removeUser(id);
+
+        // TODO: Usuń z kanałów etc
+
+        if (ev->id() == EventSimple::EventId::UserDisconnected) {
+            // TODO: Powiadom slave'y
+        }
+    }
 }
 
 const String &UserModule::publicAddress() const
@@ -130,8 +157,28 @@ uint UserModule::capacity() const
     return m_config.capacity;
 }
 
+void UserModule::slaveIdReceived(u32 id)
+{
+    m_users.setSlaveId(id);
+}
+
+SharedPtr<Client> UserModule::getConnection(u32 clientid)
+{
+    MutexLock lock(m_connectionsMutex);
+
+    auto it = m_connections.find(clientid);
+
+    if (it == m_connections.end())
+        return nullptr;
+
+    return it->second;
+}
+
 bool UserModule::initPackets()
 {
+    m_context->dispatcher->append(Packet::Type::Handshake,
+                              BIND_DISPATCH(this, &UserModule::handshake));
+
     return true;
 }
 
@@ -214,10 +261,11 @@ void UserModule::tcpState(uint clientid, TcpClientState state, int error)
         m_connections.erase(clientid);
     }
 
-    // TODO: Handle user disconnection (jako osobny event rzucić bo dużo tego będzie)
     m_context->log << Logger::Line::Start
-                   << "User disconnect: [ID: " << clientid << "]: " << MiscUtils::systemError(error)
+                   << "User disconnect: [CID: " << clientid << "]: " << MiscUtils::systemError(error)
                    << Logger::Line::End;
+
+    m_context->eventQueue->append(new EventSimple(EventSimple::EventId::UserDisconnected, clientid));
 }
 
 void UserModule::tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data)
@@ -284,6 +332,37 @@ bool UserModule::timeoutHandler(int timer)
             }
         }
     }
+
+    return true;
+}
+
+bool UserModule::handshake(uint clientid, Packet *packet)
+{
+    SharedPtr<Client> client = getConnection(clientid);
+
+    if (!client)
+        return false;
+
+    SlaveUserPackets::Handshake *request = static_cast<SlaveUserPackets::Handshake*>(packet);
+
+    SharedPtr<User> user;
+
+    if (request->nick().empty() || !(user = m_users.addUser(client->id(), request->nick(), client))) {
+        SlaveUserPackets::HandshakeAck ack;
+        ack.setStatus(SlaveUserPackets::HandshakeAck::Status::InvalidNick);
+        ack.setUserId(0);
+
+        m_context->tcp->sendTo(client, &ack);
+        return true;
+    }
+
+    SlaveUserPackets::HandshakeAck ack;
+    ack.setStatus(SlaveUserPackets::HandshakeAck::Status::Ok);
+    ack.setUserId(user->id());
+
+    m_context->tcp->sendTo(client, &ack);
+
+    // TODO: Wyślij info do slave'ów
 
     return true;
 }

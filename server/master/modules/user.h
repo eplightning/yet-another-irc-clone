@@ -41,7 +41,6 @@ public:
     void dispatchPacket(EventPacket *ev);
     void dispatchTimer(EventTimer *ev);
     void dispatchSimple(EventSimple *ev);
-    void dispatchGeneric(Event *ev);
 
 protected:
     bool initPackets();

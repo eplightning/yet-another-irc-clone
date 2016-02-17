@@ -7,7 +7,8 @@ SOURCES += main.cpp \
     core/app.cpp \
     modules/master.cpp \
     modules/slave.cpp \
-    modules/user.cpp
+    modules/user.cpp \
+    components/users.cpp
 
 # libconfig
 LIBS += -lconfig++
@@ -34,4 +35,5 @@ HEADERS += \
     core/global.h \
     core/context.h \
     modules/slave.h \
-    modules/user.h
+    modules/user.h \
+    components/users.h
