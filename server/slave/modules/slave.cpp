@@ -166,7 +166,11 @@ void SlaveModule::dispatchPacket(EventPacket *ev)
 {
     {
         MutexLock lock(m_lastPacketMutex);
-        m_lastPackets[ev->clientid()] = SteadyClock::now();
+
+        auto it = m_lastPackets.find(ev->clientid());
+
+        if (it != m_lastPackets.end())
+            it->second = SteadyClock::now();
     }
 
     m_context->dispatcher->dispatch(ev->clientid(), ev->packet());
@@ -308,6 +312,11 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
             m_connections[client->id()] = client;
         }
 
+        {
+            MutexLock lock(m_lastPacketMutex);
+            m_lastPackets[client->id()] = SteadyClock::now();
+        }
+
         // jeśli łączyliśmy się z jakimkolwiek slave'm to połączenie z masterem już było
         SlaveSlavePackets::Hello packet;
         packet.setAuthPassword(m_context->master->getAuthPassword());
@@ -365,6 +374,11 @@ bool SlaveModule::tcpNew(SharedPtr<Client> &client)
         auto it = m_connections.find(client->id());
         if (it == m_connections.end())
             m_connections[client->id()] = client;
+    }
+
+    {
+        MutexLock lock(m_lastPacketMutex);
+        m_lastPackets[client->id()] = SteadyClock::now();
     }
 
     m_context->log << Logger::Line::Start

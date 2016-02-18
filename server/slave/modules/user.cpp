@@ -102,7 +102,11 @@ void UserModule::dispatchPacket(EventPacket *ev)
 {
     {
         MutexLock lock(m_lastPacketMutex);
-        m_lastPackets[ev->clientid()] = SteadyClock::now();
+
+        auto it = m_lastPackets.find(ev->clientid());
+
+        if (it != m_lastPackets.end())
+            it->second = SteadyClock::now();
     }
 
     m_context->dispatcher->dispatch(ev->clientid(), ev->packet());
@@ -244,6 +248,11 @@ bool UserModule::tcpNew(SharedPtr<Client> &client)
             m_connections[client->id()] = client;
     }
 
+    {
+        MutexLock lock(m_lastPacketMutex);
+        m_lastPackets[client->id()] = SteadyClock::now();
+    }
+
     m_context->log << Logger::Line::Start
                    << "User connection: [ID: " << client->id() << ", IP: " << client->address() <<"]"
                    << Logger::Line::End;
@@ -259,6 +268,11 @@ void UserModule::tcpState(uint clientid, TcpClientState state, int error)
     {
         MutexLock lock(m_connectionsMutex);
         m_connections.erase(clientid);
+    }
+
+    {
+        MutexLock lock(m_lastPacketMutex);
+        m_lastPackets.erase(clientid);
     }
 
     m_context->log << Logger::Line::Start
