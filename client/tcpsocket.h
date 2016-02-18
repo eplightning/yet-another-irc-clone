@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QTcpSocket>
+#include <QDateTime>
 
 #include "common/packet.h"
 #include "common/packets/master_user.h"
@@ -46,8 +47,7 @@ private:
     QTimer *timerUserHeartbeat;
     QTimer *timerSlaveHeartbeat;
     Packet::Direction dir;
-
-    void renewTimerSlaveHeartbeat();
+    QDateTime lastReceivedPacketTime;
 };
 
 #endif // TCPSOCKET_H

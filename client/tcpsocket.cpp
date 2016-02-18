@@ -26,14 +26,17 @@ bool tcpSocket::connectWith(QString address, int port, Packet::Direction directi
         return false;
     }
 
-    timerUserHeartbeat = new QTimer(this);
-    connect(timerUserHeartbeat, SIGNAL(timeout()), this, SLOT(sendHeartbeat()));
-    timerUserHeartbeat->start(1000);
+    if (direction==Packet::Direction::SlaveToUser){
+        timerUserHeartbeat = new QTimer(this);
+        connect(timerUserHeartbeat, SIGNAL(timeout()), this, SLOT(sendHeartbeat()));
+        timerUserHeartbeat->start(1000);
 
-    timerSlaveHeartbeat = new QTimer(this);
-    connect(timerSlaveHeartbeat, SIGNAL(timeout()), this, SLOT(heartbeatTimeExpired()));
-    timerSlaveHeartbeat->start(10 * 1000);
+        timerSlaveHeartbeat = new QTimer(this);
+        connect(timerSlaveHeartbeat, SIGNAL(timeout()), this, SLOT(heartbeatTimeExpired()));
+        timerSlaveHeartbeat->start(10 * 1000);
 
+        lastReceivedPacketTime = QDateTime::currentDateTime();
+    }
     return true;
 }
 
@@ -108,14 +111,14 @@ void tcpSocket::readyRead()
 
                     if (a != nullptr)
                     {
+                        lastReceivedPacketTime = QDateTime::currentDateTime();
                         switch (a->packetType())
                         {
                             case Packet::Type::ServerList:
                                 emit serversRead(static_cast<MasterUserPackets::ServerList*>(a));
                                 break;
-                            case Packet::Type::SlaveHeartbeat:
+                            case Packet::Type::SlaveUserHeartbeat:
                                 qDebug() << "Serwer bije!";
-                                renewTimerSlaveHeartbeat();
                                 break;
                             case Packet::Type::HandshakeAck:
                                 emit handshakeAck(static_cast<SlaveUserPackets::HandshakeAck*>(a));
@@ -143,13 +146,13 @@ void tcpSocket::sendHeartbeat()
 
 void tcpSocket::heartbeatTimeExpired()
 {
-    disconnect();
-    qDebug() << "Rozłączyło mnie";
-}
-
-void tcpSocket::renewTimerSlaveHeartbeat()
-{
-    timerSlaveHeartbeat->stop();
-    timerSlaveHeartbeat->start(10 * 1000);
-    qDebug() << "Odebrałem pakiet - przedłużam działanie";
+    if ((lastReceivedPacketTime.toTime_t() - QDateTime::currentDateTime().toTime_t()) > (10 * 1000))
+    {
+        disconnect();
+        qDebug() << "Rozłączyło mnie";
+    }
+    else
+    {
+        qDebug() << "Odebrałem pakiet - przedłużam działanie";
+    }
 }
