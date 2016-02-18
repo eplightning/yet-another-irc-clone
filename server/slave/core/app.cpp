@@ -112,12 +112,12 @@ int SlaveServerApplication::run(const char *configPath, const char *configName)
         return looping;
     });
 
-    m_context->log->message("Starting worker threads ...");
-    loop->startThreads();
+    /*m_context->log->message("Starting worker threads ...");
+    loop->startThreads();*/
     m_context->log->message("Starting event loop inside main thread ...");
     loop->run();
-    m_context->log->message("Waiting for worker threads to finish ...");
-    loop->waitForThreads();
+    /*m_context->log->message("Waiting for worker threads to finish ...");
+    loop->waitForThreads();*/
     m_context->log->message("Force closing sockets ...");
     m_context->tcp->disconnectAll(true);
 
