@@ -32,7 +32,7 @@ bool tcpSocket::connectWith(QString address, int port, Packet::Direction directi
 
     timerSlaveHeartbeat = new QTimer(this);
     connect(timerSlaveHeartbeat, SIGNAL(timeout()), this, SLOT(heartbeatTimeExpired()));
-    timerSlaveHeartbeat->start(10000);
+    timerSlaveHeartbeat->start(10 * 1000);
 
     return true;
 }
@@ -114,6 +114,7 @@ void tcpSocket::readyRead()
                                 emit serversRead(static_cast<MasterUserPackets::ServerList*>(a));
                                 break;
                             case Packet::Type::SlaveHeartbeat:
+                                qDebug() << "Serwer bije!";
                                 renewTimerSlaveHeartbeat();
                                 break;
                             case Packet::Type::HandshakeAck:
@@ -137,6 +138,7 @@ void tcpSocket::sendHeartbeat()
 {
     SlaveUserPackets::UserHeartbeat *a = new SlaveUserPackets::UserHeartbeat();
     write(a);
+    //qDebug() << "Wysłałem bicie serca";
 }
 
 void tcpSocket::heartbeatTimeExpired()
@@ -148,6 +150,6 @@ void tcpSocket::heartbeatTimeExpired()
 void tcpSocket::renewTimerSlaveHeartbeat()
 {
     timerSlaveHeartbeat->stop();
-    timerSlaveHeartbeat->start(10000);
-    qDebug() << "ROdebrałem pakiet - przedłużam działanie";
+    timerSlaveHeartbeat->start(10 * 1000);
+    qDebug() << "Odebrałem pakiet - przedłużam działanie";
 }

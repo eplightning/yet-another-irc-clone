@@ -18,7 +18,8 @@ MainWindow::MainWindow(QWidget *parent) :
     dialog.setModal(true);
     showDialog();
 
-    if(!master.connectWith(masterIP, masterPort, Packet::Direction::MasterToUser))
+    master = new tcpSocket();
+    if (!master->connectWith(masterIP, masterPort, Packet::Direction::MasterToUser))
     {
         QMessageBox messageBox;
         messageBox.critical(0,"Uwaga","Nie udało się połączyć z serwerem!");
@@ -26,27 +27,11 @@ MainWindow::MainWindow(QWidget *parent) :
     }
     else
     {
-        QObject::connect(&master, SIGNAL(serversRead(MasterUserPackets::ServerList*)),
+        QObject::connect(master, SIGNAL(serversRead(MasterUserPackets::ServerList*)),
                               this, SLOT(on_serverListRead(MasterUserPackets::ServerList*)));
         MasterUserPackets::RequestServers *a = new MasterUserPackets::RequestServers();
         a->setMax(1);
-        master.write(a);
-/*
-        if(!slave.connectWith(severs[0].address, severs[0].port, Packet::Direction::SlaveToUser))
-        {
-            QMessageBox messageBox;
-            messageBox.critical(0,"Uwaga","Nie udało się połączyć z serwerem!");
-            messageBox.setFixedSize(500,200);
-        }
-        else
-        {
-            SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
-
-            a->;
-            master.write(a);
-
-        }
-    */
+        master->write(a);
     }
 
     //We need to get here names of channels on the server
@@ -100,51 +85,62 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
 {
     ui->chatEditBox->setPlainText("asd");
     severs  = p->servers();
-    if(!severs.empty())
+    if (!severs.empty())
     {
-        ui->chatBox->setPlainText(QString::number(severs[0].port));
+        slave = new tcpSocket();
+        if (!slave->connectWith(QString::fromStdString(severs[0].address), severs[0].port, Packet::Direction::SlaveToUser))
+        {
+            QMessageBox messageBox;
+            messageBox.critical(0,"Uwaga","Nie udało się połączyć z serwerem!");
+            messageBox.setFixedSize(500,200);
+        }
+        else
+        {
+            QObject::connect(slave, SIGNAL(handshakeAck(SlaveUserPackets::HandshakeAck*)),
+                                  this, SLOT(on_handshakeAckCome(SlaveUserPackets::HandshakeAck*)));
+            SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
+            a->setNick(userName.toStdString());
+            slave->write(a);
+        }
     }
     else
     {
-        ui->chatBox->setPlainText("Pusto tu");
+        QMessageBox messageBox;
+        messageBox.critical(0,"Uwaga","Brak serwerów.");
+        messageBox.setFixedSize(500,200);
     }
 }
 
 void MainWindow::on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p)
 {
-    /*
-    switch(p->state())
+
+    switch (p->status())
     {
-        case Packet::HandshakeAckStatus::Ok:
+        case SlaveUserPackets::HandshakeAck::Status::Ok:
+            qDebug() << "Ok";
+            break;
+        case SlaveUserPackets::HandshakeAck::Status::UnknownError:
+            qDebug() << "Unnown";
+            break;
+        case SlaveUserPackets::HandshakeAck::Status::InvalidNick:
+            qDebug() << "Invalid nick";
+            break;
+        case SlaveUserPackets::HandshakeAck::Status::Full:
+            qDebug() << "Full";
             break;
         default:
-        //doSth
+            //doSth
+            break;
     }
-    /*
-        enum class HandshakeAckStatus {
-            Ok = 0,
-            UnknownError = 1,
-            InvalidNick = 2,
-            Full = 3
-        };
-    */
 }
 
 void MainWindow::showDialog()
 {
-    if(!dialog.exec())
+    if (!dialog.exec())
     {
         userName = dialog.getUserName();
         masterIP = dialog.getServerName();
         masterPort = dialog.getPortNumber();
-    }
-
-    //Test dialog - here we need to check if there were no errors while connectiong
-    if (userName == "xxx")
-    {
-        QMessageBox messageBox;
-        messageBox.critical(0,"Uwaga","Nazwa już wykorzystywana na tym serverze");
-        messageBox.setFixedSize(500,200);
     }
 }
 

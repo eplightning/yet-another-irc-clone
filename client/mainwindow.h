@@ -45,8 +45,8 @@ private:
     QString inChannel;
     Channel *channelList;
     Vector<MasterUserPackets::ServerListServer> severs;
-    tcpSocket master;
-    tcpSocket slave;
+    tcpSocket *master;
+    tcpSocket *slave;
     QString masterIP;
     int masterPort;
 
