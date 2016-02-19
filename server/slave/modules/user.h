@@ -6,6 +6,7 @@
 #include <server/dispatcher.h>
 #include <common/packets/slave_user.h>
 #include <components/users.h>
+#include <components/channels.h>
 
 #include <libconfig.h++>
 #include <thread>
@@ -42,6 +43,8 @@ public:
     uint capacity() const;
     void slaveIdReceived(u32 id);
     SharedPtr<Client> getConnection(u32 clientid);
+    void cleanupSlave(u32 slave);
+    void syncSlave(SharedPtr<Client> &client);
 
 protected:
     bool initPackets();
@@ -71,6 +74,7 @@ protected:
     std::mutex m_lastPacketMutex;
 
     Users m_users;
+    Channels m_channels;
 };
 
 END_NAMESPACE

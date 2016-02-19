@@ -50,8 +50,7 @@ void User::setNick(const String &nick)
     m_nick.assign(nick);
 }
 
-Users::Users(uint capacity) :
-    m_capacity(capacity)
+Users::Users()
 {
 
 }
@@ -67,9 +66,6 @@ SharedPtr<User> Users::addUser(u32 id, const String &nick, SharedPtr<Client> &cl
 
     MutexLock lock(m_mutex);
 
-    if (m_list.size() >= m_capacity)
-        return nullptr;
-
     if (findByNickLocked(nick))
         return nullptr;
 
@@ -82,15 +78,19 @@ SharedPtr<User> Users::addUser(u64 id, const String &nick)
 {
     MutexLock lock(m_mutex);
 
-    if (m_list.size() >= m_capacity)
-        return nullptr;
-
     if (findByNickLocked(nick))
         return nullptr;
 
     m_list[id] = std::make_shared<User>(id, nick);
 
     return m_list[id];
+}
+
+uint Users::count()
+{
+    MutexLock lock(m_mutex);
+
+    return static_cast<uint>(m_list.size());
 }
 
 SharedPtr<User> Users::findById(u64 id)
@@ -128,13 +128,7 @@ void Users::removeUser(u64 id)
 
 void Users::setSlaveId(u32 id)
 {
-    m_slaveid = id;
-}
-
-void Users::setCapacity(uint capacity)
-{
-    MutexLock lock(m_mutex);
-    m_capacity = capacity;
+    m_slaveId = id;
 }
 
 SharedPtr<User> Users::findByNickLocked(const String &nick)
@@ -149,11 +143,16 @@ SharedPtr<User> Users::findByNickLocked(const String &nick)
 
 u64 Users::getFullId(u32 id) const
 {
-    u64 fullid = m_slaveid;
+    u64 fullid = m_slaveId;
     fullid <<= 32;
     fullid |= id;
 
     return fullid;
+}
+
+std::mutex &Users::mutex()
+{
+    return m_mutex;
 }
 
 END_NAMESPACE

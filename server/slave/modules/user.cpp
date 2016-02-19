@@ -9,6 +9,7 @@
 #include <server/misc_utils.h>
 #include <common/packets/slave_user.h>
 #include <components/users.h>
+#include <components/channels.h>
 
 #include <libconfig.h++>
 
@@ -79,8 +80,6 @@ void UserModule::loadConfig(const libconfig::Setting &section)
 
         if (sub.isScalar())
             m_config.capacity = sub;
-
-        m_users.setCapacity(sub);
     }
 }
 
@@ -138,7 +137,14 @@ void UserModule::dispatchSimple(EventSimple *ev)
 
         m_users.removeUser(id);
 
-        // TODO: Usuń z kanałów etc
+        {
+            MutexLock lock(m_channels.mutex());
+
+            for (auto &x : m_channels.list())
+                x.second->removeUser(user);
+        }
+
+        // TODO: Powiadom userów o disconnect
 
         if (ev->id() == EventSimple::EventId::UserDisconnected) {
             // TODO: Powiadom slave'y
@@ -176,6 +182,16 @@ SharedPtr<Client> UserModule::getConnection(u32 clientid)
         return nullptr;
 
     return it->second;
+}
+
+void UserModule::cleanupSlave(u32 slave)
+{
+    // TODO: Do it
+}
+
+void UserModule::syncSlave(SharedPtr<Client> &client)
+{
+    // TODO: Do it
 }
 
 bool UserModule::initPackets()
@@ -358,6 +374,15 @@ bool UserModule::handshake(uint clientid, Packet *packet)
         return false;
 
     SlaveUserPackets::Handshake *request = static_cast<SlaveUserPackets::Handshake*>(packet);
+
+    if (m_users.count() >= m_config.capacity) {
+        SlaveUserPackets::HandshakeAck ack;
+        ack.setStatus(SlaveUserPackets::HandshakeAck::Status::Full);
+        ack.setUserId(0);
+
+        m_context->tcp->sendTo(client, &ack);
+        return true;
+    }
 
     SharedPtr<User> user;
 

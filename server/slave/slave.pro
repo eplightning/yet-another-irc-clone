@@ -8,7 +8,8 @@ SOURCES += main.cpp \
     modules/master.cpp \
     modules/slave.cpp \
     modules/user.cpp \
-    components/users.cpp
+    components/users.cpp \
+    components/channels.cpp
 
 # libconfig
 LIBS += -lconfig++
@@ -36,4 +37,5 @@ HEADERS += \
     core/context.h \
     modules/slave.h \
     modules/user.h \
-    components/users.h
+    components/users.h \
+    components/channels.h

@@ -426,7 +426,7 @@ void SlaveModule::establishConnection(SharedPtr<SlaveServer> &slave)
 
 void SlaveModule::synchronize(SharedPtr<Client> &client)
 {
-    // TODO:
+    m_context->user->syncSlave(client);
 }
 
 bool SlaveModule::heartbeatHandler(int timer)
@@ -558,7 +558,7 @@ bool SlaveModule::removeSlave(uint clientid, Packet *packet)
         m_slaves.erase(it);
     }
 
-    // TODO: Handle removal
+    m_context->user->cleanupSlave(request->id());
 
     SharedPtr<Client> client = srv->client();
     if (client)
