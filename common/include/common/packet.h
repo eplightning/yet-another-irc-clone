@@ -39,9 +39,24 @@ public:
 
         UserHeartbeat = 1,
         Handshake = 2,
+        ListChannels = 3,
+        JoinChannel = 4,
+        PartChannel = 5,
+        SendChannelMessage = 6,
+        SendPrivateMessage = 7,
 
         SlaveUserHeartbeat = 8192,
         HandshakeAck = 8193,
+        Channels = 8194,
+        ChannelJoined = 8195,
+        ChannelParted = 8196,
+        ChannelMessage = 8197,
+        ChannelUserJoined = 8198,
+        ChannelUserParted = 8199,
+        ChannelUserUpdated = 8200,
+        UserDisconnected = 8201,
+        UserUpdated = 8202,
+        PrivateMessageReceived = 8203,
 
         RequestServers = 16384,
 

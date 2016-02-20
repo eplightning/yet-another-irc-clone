@@ -97,6 +97,13 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
         String message;
     }
 
+#### SendPrivateMessage (id: 7)
+
+    struct SendPrivateMessage {
+        u64 user;
+        String message;
+    }
+
 #### SlaveHeartbeat (id: 8192)
 
     struct SlaveHeartbeat {
@@ -119,22 +126,17 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
 #### Channels (id: 8194)
 
     struct Channels {
-        Vector<Channel> channels;
-    }
-    
-    struct Channel {
-        u64 id;
-        String name;
+        Vector<String> channels;
     }
   
 #### ChannelJoined (id: 8195)
 
     struct ChannelJoined {
-        ChannelJoinedStatus status;       // Status
         u64 id;                           // ID kanału
+        ChannelJoinedStatus status;       // Status
         String name;                      // Nazwa kanału
         UserFlags flags;                  // Twoje flagi
-        Vector<User> users;               // Użytkownicy w kanale
+        Vector<ChanUser> users;           // Użytkownicy w kanale
     }
     
     enum class ChannelJoinedStatus {
@@ -142,7 +144,7 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
         UnknownError = 1              // Każdy inny błąd
     }
     
-    struct User {
+    struct ChanUser {
         u64 id;                       // ID
         UserFlags flags;              // Flagi
         String nick;                  // Nick użytkownika
@@ -152,33 +154,26 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
         Operator = 1 << 0             // OP
     }
 
-#### ChannelPart (id: 8196)
+#### ChannelParted (id: 8196)
 
-    struct ChannelPart {
-        ChannelPartStatus status;   // Status
-        u64 id;                     // Id kanału
+    struct ChannelParted {
+        u64 id;                       // Id kanału
+        ChannelPartedStatus status;   // Status
+        ChannelPartedReason reason;   // Powód
     }
     
-    enum class ChannelPartStatus {
+    enum class ChannelPartedStatus {
         Ok = 0,                     // Ok
         UnknownError = 1            // Każdy inny błąd
     }
-
-#### ChannelUserEntered (id: 8197)
-
-    struct ChannelNewUser {
-        u64 channel;                // ID kanału
-        User user;                  // Patrz wyżej
+    
+    enum class ChannelPartedReason {
+        Requested = 0,              // Ty chciałeś
+        Unknown = 1,                // Każdy inny
+        Kicked = 2                  // Wyrzucony
     }
 
-#### ChannelUserPart (id: 8198)
-
-    struct ChannelUserPart {
-        u64 channel;                // ID kanału
-        u64 user;                   // ID użytkownika
-    }
-
-#### ChannelMessage (id: 8199)
+#### ChannelMessage (id: 8197)
 
     struct ChannelMessage {
         u64 channel;                // ID kanału
@@ -187,10 +182,45 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
     }
     
 
+#### ChannelUserJoined (id: 8198)
+
+    struct ChannelNewUser {
+        u64 channel;                // ID kanału
+        ChanUser user;              // Patrz wyżej
+    }
+
+#### ChannelUserParted (id: 8199)
+
+    struct ChannelUserPart {
+        u64 channel;                // ID kanału
+        u64 user;                   // ID użytkownika
+    }
+
 #### ChannelUserUpdated (id: 8200)
 
     struct ChannelUserUpdate {
         u64 channel;                // ID kanału
         u64 user;                   // ID użytkownika
         UserFlags flags;            // Flagi
+    }
+    
+
+#### UserDisconnected (id: 8201)
+
+    struct UserDisconnected {
+        u64 userid;                 // ID użytkownika
+    }
+
+#### UserUpdated (id: 8202)
+
+    struct UserUpdated {
+        u64 userid;
+        String nick;
+    }
+
+#### PrivateMessageReceived (id: 8203)
+
+    struct PrivateMessageReceived {
+        u64 userid;
+        String message;
     }
