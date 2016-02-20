@@ -35,7 +35,8 @@ public:
 
     HashMap<u64, SharedPtr<ChannelUser>> &users();
 
-    void addUser(SharedPtr<User> &user, u32 flags = 0);
+    void addUser(SharedPtr<User> &user, s32 flags = 0);
+    SharedPtr<ChannelUser> user(u64 id);
     void removeUser(SharedPtr<User> &user);
 
 protected:

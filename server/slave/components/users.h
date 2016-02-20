@@ -38,11 +38,13 @@ public:
 
     uint count();
 
+    SharedPtr<User> findById(u32 clientid);
     SharedPtr<User> findById(u64 id);
     SharedPtr<User> findByNick(const String &nick);
 
     u64 getFullId(u32 id) const;
 
+    HashMap<u64, SharedPtr<User>> &list();
     std::mutex &mutex();
 
     void removeUser(u32 id);

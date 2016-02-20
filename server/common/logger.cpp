@@ -8,6 +8,12 @@
 
 YAIC_NAMESPACE
 
+UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, const char *str)
+{
+    log->print(str);
+    return log;
+}
+
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, const String &str)
 {
     log->print(str);
@@ -59,6 +65,12 @@ UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, uint integer)
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, double floating)
 {
     log->print(floating);
+    return log;
+}
+
+UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, bool flag)
+{
+    log->print(flag);
     return log;
 }
 

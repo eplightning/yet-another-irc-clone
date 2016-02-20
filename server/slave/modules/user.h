@@ -59,6 +59,11 @@ protected:
     bool timeoutHandler(int timer);
 
     bool handshake(uint clientid, Packet *packet);
+    bool channelList(uint clientid, Packet *packet);
+    bool joinChannel(uint clientid, Packet *packet);
+    bool partChannel(uint clientid, Packet *packet);
+    bool messageChannel(uint clientid, Packet *packet);
+    bool privateMessage(uint clientid, Packet *packet);
 
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;

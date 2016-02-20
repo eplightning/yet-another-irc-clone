@@ -93,6 +93,11 @@ uint Users::count()
     return static_cast<uint>(m_list.size());
 }
 
+SharedPtr<User> Users::findById(u32 clientid)
+{
+    return findById(getFullId(clientid));
+}
+
 SharedPtr<User> Users::findById(u64 id)
 {
     MutexLock lock(m_mutex);
@@ -148,6 +153,11 @@ u64 Users::getFullId(u32 id) const
     fullid |= id;
 
     return fullid;
+}
+
+HashMap<u64, SharedPtr<User> > &Users::list()
+{
+    return m_list;
 }
 
 std::mutex &Users::mutex()

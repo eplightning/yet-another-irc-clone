@@ -4,6 +4,7 @@
 #include <core/global.h>
 
 #include <common/types.h>
+#include <common/packets/slave_user.h>
 
 YAIC_NAMESPACE
 
@@ -59,11 +60,23 @@ HashMap<u64, SharedPtr<ChannelUser> > &Channel::users()
     return m_users;
 }
 
-void Channel::addUser(SharedPtr<User> &user, u32 flags)
+void Channel::addUser(SharedPtr<User> &user, s32 flags)
 {
     MutexLock lock(m_mutex);
 
     m_users[user->id()] = std::make_shared<ChannelUser>(user, flags);
+}
+
+SharedPtr<ChannelUser> Channel::user(u64 id)
+{
+    MutexLock lock(m_mutex);
+
+    auto it = m_users.find(id);
+
+    if (it == m_users.end())
+        return nullptr;
+
+    return it->second;
 }
 
 void Channel::removeUser(SharedPtr<User> &user)
@@ -121,8 +134,7 @@ SharedPtr<Channel> Channels::create(const String &name, SharedPtr<User> &user)
 
     SharedPtr<Channel> chan = std::make_shared<Channel>(id, name, true);
 
-    // TODO: Operator
-    chan->addUser(user, 0);
+    chan->addUser(user, SlaveUserPackets::ChanUser::FlagOperator);
 
     m_list[id] = chan;
     m_nextId++;

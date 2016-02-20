@@ -66,4 +66,12 @@ void LoggerStdout::print(double floating)
     std::cout << floating;
 }
 
+void LoggerStdout::print(bool flag)
+{
+    if (flag)
+        std::cout << "Yes";
+    else
+        std::cout << "No";
+}
+
 END_NAMESPACE
