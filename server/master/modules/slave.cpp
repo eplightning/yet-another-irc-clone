@@ -313,7 +313,7 @@ bool SlaveModule::initTimers()
     return true;
 }
 
-SharedPtr<SlaveServer> SlaveModule::getSlave(uint clientid)
+SharedPtr<SlaveServer> SlaveModule::get(u32 clientid)
 {
     MutexLock lock(m_slavesMutex);
 
@@ -404,7 +404,7 @@ void SlaveModule::tcpReceive(uint clientid, PacketHeader header, const Vector<ch
     // jeśli błąd to instant disconnect
     if (!Packet::checkDirection(header.type, Packet::Direction::SlaveToMaster) ||
             (packet = Packet::factory(header, data)) == nullptr) {
-        SharedPtr<SlaveServer> slave = getSlave(clientid);
+        SharedPtr<SlaveServer> slave = get(clientid);
 
         if (slave)
             m_context->tcp->disconnect(slave->client(), true);
