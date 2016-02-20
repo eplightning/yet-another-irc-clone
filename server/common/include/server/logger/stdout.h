@@ -17,7 +17,7 @@ public:
     void print(long long integer);
     void print(unsigned long long integer);
     void print(double floating);
-    void print(bool flag);
+    void printBool(bool flag);
 
 protected:
     std::mutex m_lock;

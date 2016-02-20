@@ -19,7 +19,7 @@ public:
     virtual void print(long long integer) = 0;
     virtual void print(unsigned long long integer) = 0;
     virtual void print(double floating) = 0;
-    virtual void print(bool flag) = 0;
+    virtual void printBool(bool flag) = 0;
 
     void error(const String &str);
     void message(const String &str);

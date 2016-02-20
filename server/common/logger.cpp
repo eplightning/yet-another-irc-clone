@@ -70,7 +70,7 @@ UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, double floating)
 
 UniquePtr<Logger> &operator<<(UniquePtr<Logger> &log, bool flag)
 {
-    log->print(flag);
+    log->printBool(flag);
     return log;
 }
 
