@@ -73,7 +73,7 @@ struct SlaveModuleConfig {
     uint heartbeatInterval;
 };
 
-typedef HashMap<uint, SharedPtr<SlaveServer>> SlaveServers;
+typedef HashMap<u32, SharedPtr<SlaveServer>> SlaveServers;
 
 class SlaveModule {
 public:
@@ -86,7 +86,7 @@ public:
     void dispatchTimer(EventTimer *ev);
     void dispatchSimple(EventSimple *ev);
 
-    SharedPtr<SlaveServer> get(uint clientid);
+    SharedPtr<SlaveServer> get(u32 clientid);
     Vector<SharedPtr<SlaveServer>> getSlaves(bool ipv4 = true, bool ipv6 = true);
 
 protected:
@@ -95,16 +95,16 @@ protected:
     bool initTimers();
 
     bool tcpNew(SharedPtr<Client> &client);
-    void tcpState(uint clientid, TcpClientState state, int error);
-    void tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data);
+    void tcpState(u32 clientid, TcpClientState state, int error);
+    void tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data);
 
     bool heartbeatHandler(int timer);
     bool timeoutHandler(int timer);
 
-    bool updateLoad(uint clientid, Packet *packet);
-    bool auth(uint clientid, Packet *packet);
-    bool syncStart(uint clientid, Packet *packet);
-    bool newAck(uint clientid, Packet *packet);
+    bool updateLoad(u32 clientid, Packet *packet);
+    bool auth(u32 clientid, Packet *packet);
+    bool syncStart(u32 clientid, Packet *packet);
+    bool newAck(u32 clientid, Packet *packet);
 
     Context *m_context;
     SlaveModuleConfig m_config;

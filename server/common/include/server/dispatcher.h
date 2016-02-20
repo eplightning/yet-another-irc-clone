@@ -12,11 +12,11 @@ YAIC_NAMESPACE
 
 class PacketDispatcher {
 public:
-    typedef std::function<bool(uint clientid, Packet *packet)> DispatchFunction;
+    typedef std::function<bool(u32 clientid, Packet *packet)> DispatchFunction;
 
     PacketDispatcher();
 
-    void dispatch(uint clientid, Packet *packet) const;
+    void dispatch(u32 clientid, Packet *packet) const;
     void append(Packet::Type packet, const DispatchFunction &func);
     void append(u16 packet, const DispatchFunction &func);
 

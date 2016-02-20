@@ -178,7 +178,7 @@ u64 MasterModule::authPassword() const
     return m_authPassword;
 }
 
-void MasterModule::tcpState(uint clientid, TcpClientState state, int error)
+void MasterModule::tcpState(u32 clientid, TcpClientState state, int error)
 {
     MutexLock lock(m_masterMutex);
 
@@ -217,7 +217,7 @@ bool MasterModule::tcpNew(SharedPtr<Client> &client)
     return false;
 }
 
-void MasterModule::tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data)
+void MasterModule::tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data)
 {
     Packet *packet;
 
@@ -268,7 +268,7 @@ bool MasterModule::timeoutHandler(int timer)
     return true;
 }
 
-bool MasterModule::authResponse(uint clientid, Packet *packet)
+bool MasterModule::authResponse(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
 
@@ -303,7 +303,7 @@ bool MasterModule::authResponse(uint clientid, Packet *packet)
     return true;
 }
 
-bool MasterModule::syncEnd(uint clientid, Packet *packet)
+bool MasterModule::syncEnd(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
     UNUSED(packet);

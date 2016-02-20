@@ -48,14 +48,14 @@ protected:
     bool initTimeout();
 
     bool tcpNew(SharedPtr<Client> &client);
-    void tcpState(uint clientid, TcpClientState state, int error);
-    void tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data);
+    void tcpState(u32 clientid, TcpClientState state, int error);
+    void tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data);
 
     bool timeoutHandler(int timer);
 
-    bool serversRequest(uint clientid, Packet *packet);
+    bool serversRequest(u32 clientid, Packet *packet);
 
-    SharedPtr<User> getUser(uint clientid);
+    SharedPtr<User> getUser(u32 clientid);
 
 protected:
     Context *m_context;
@@ -64,7 +64,7 @@ protected:
 
     int m_timerTimeout;
 
-    HashMap<uint, SharedPtr<User>> m_users;
+    HashMap<u32, SharedPtr<User>> m_users;
     std::mutex m_usersMutex;
 };
 

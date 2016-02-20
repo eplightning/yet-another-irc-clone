@@ -348,7 +348,7 @@ Vector<SharedPtr<SlaveServer>> SlaveModule::getSlaves(bool ipv4, bool ipv6)
     return servers;
 }
 
-void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
+void SlaveModule::tcpState(u32 clientid, TcpClientState state, int error)
 {
     if (state != TCSDisconnected)
         return;
@@ -397,7 +397,7 @@ bool SlaveModule::tcpNew(SharedPtr<Client> &client)
     return true;
 }
 
-void SlaveModule::tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data)
+void SlaveModule::tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data)
 {
     Packet *packet;
 
@@ -461,7 +461,7 @@ bool SlaveModule::timeoutHandler(int timer)
     return true;
 }
 
-bool SlaveModule::updateLoad(uint clientid, Packet *packet)
+bool SlaveModule::updateLoad(u32 clientid, Packet *packet)
 {
     MutexLock lock(m_slavesMutex);
 
@@ -477,7 +477,7 @@ bool SlaveModule::updateLoad(uint clientid, Packet *packet)
     return true;
 }
 
-bool SlaveModule::auth(uint clientid, Packet *packet)
+bool SlaveModule::auth(u32 clientid, Packet *packet)
 {
     MutexLock lock(m_slavesMutex);
 
@@ -546,7 +546,7 @@ bool SlaveModule::auth(uint clientid, Packet *packet)
     return true;
 }
 
-bool SlaveModule::syncStart(uint clientid, Packet *packet)
+bool SlaveModule::syncStart(u32 clientid, Packet *packet)
 {
     UNUSED(packet);
 
@@ -599,7 +599,7 @@ bool SlaveModule::syncStart(uint clientid, Packet *packet)
     return true;
 }
 
-bool SlaveModule::newAck(uint clientid, Packet *packet)
+bool SlaveModule::newAck(u32 clientid, Packet *packet)
 {
     MutexLock lock(m_slavesMutex);
 

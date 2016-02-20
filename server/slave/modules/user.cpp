@@ -303,7 +303,7 @@ bool UserModule::tcpNew(SharedPtr<Client> &client)
     return true;
 }
 
-void UserModule::tcpState(uint clientid, TcpClientState state, int error)
+void UserModule::tcpState(u32 clientid, TcpClientState state, int error)
 {
     if (state != TCSDisconnected)
         return;
@@ -325,7 +325,7 @@ void UserModule::tcpState(uint clientid, TcpClientState state, int error)
     m_context->eventQueue->append(new EventSimple(EventSimple::EventId::UserDisconnected, clientid));
 }
 
-void UserModule::tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data)
+void UserModule::tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data)
 {
     Packet *packet;
 
@@ -393,7 +393,7 @@ bool UserModule::timeoutHandler(int timer)
     return true;
 }
 
-bool UserModule::handshake(uint clientid, Packet *packet)
+bool UserModule::handshake(u32 clientid, Packet *packet)
 {
     SharedPtr<Client> client = connection(clientid);
 
@@ -433,7 +433,7 @@ bool UserModule::handshake(uint clientid, Packet *packet)
     return true;
 }
 
-bool UserModule::channelList(uint clientid, Packet *packet)
+bool UserModule::channelList(u32 clientid, Packet *packet)
 {
     UNUSED(packet);
 
@@ -461,7 +461,7 @@ bool UserModule::channelList(uint clientid, Packet *packet)
     return true;
 }
 
-bool UserModule::joinChannel(uint clientid, Packet *packet)
+bool UserModule::joinChannel(u32 clientid, Packet *packet)
 {
     SharedPtr<Client> client = connection(clientid);
 
@@ -536,7 +536,7 @@ bool UserModule::joinChannel(uint clientid, Packet *packet)
     return true;
 }
 
-bool UserModule::partChannel(uint clientid, Packet *packet)
+bool UserModule::partChannel(u32 clientid, Packet *packet)
 {
     SharedPtr<Client> client = connection(clientid);
 
@@ -590,7 +590,7 @@ bool UserModule::partChannel(uint clientid, Packet *packet)
     return true;
 }
 
-bool UserModule::messageChannel(uint clientid, Packet *packet)
+bool UserModule::messageChannel(u32 clientid, Packet *packet)
 {
     SharedPtr<Client> client = connection(clientid);
 
@@ -633,7 +633,7 @@ bool UserModule::messageChannel(uint clientid, Packet *packet)
     return true;
 }
 
-bool UserModule::privateMessage(uint clientid, Packet *packet)
+bool UserModule::privateMessage(u32 clientid, Packet *packet)
 {
     SharedPtr<Client> client = connection(clientid);
 

@@ -77,8 +77,8 @@ protected:
     bool initTimeout();
 
     bool tcpNew(SharedPtr<Client> &client);
-    void tcpState(uint clientid, TcpClientState state, int error);
-    void tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data);
+    void tcpState(u32 clientid, TcpClientState state, int error);
+    void tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data);
 
     void establishConnection(SharedPtr<SlaveServer> &slave);
     void synchronize(SharedPtr<Client> &client);
@@ -87,10 +87,10 @@ protected:
     bool timeoutHandler(int timer);
     bool reconnectHandler(int timer);
 
-    bool newSlave(uint clientid, Packet *packet);
-    bool removeSlave(uint clientid, Packet *packet);
-    bool hello(uint clientid, Packet *packet);
-    bool helloResponse(uint clientid, Packet *packet);
+    bool newSlave(u32 clientid, Packet *packet);
+    bool removeSlave(u32 clientid, Packet *packet);
+    bool hello(u32 clientid, Packet *packet);
+    bool helloResponse(u32 clientid, Packet *packet);
 
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;

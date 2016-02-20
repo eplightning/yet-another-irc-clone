@@ -32,14 +32,14 @@ struct TcpManagerConnectInfo {
 
 struct TcpManagerMessage {
     TcpManagerMessageType type;
-    uint clientid;
+    u32 clientid;
     union {
         bool flag;
         void *ptr;
     } options;
 };
 
-Client::Client(uint id, int fd, const sockaddr *addr, TcpPool *pool) :
+Client::Client(u32 id, int fd, const sockaddr *addr, TcpPool *pool) :
     m_id(id), m_socket(fd), m_pool(pool), m_state(TCSConnected), m_writeError(0), m_readError(0),
     m_connectError(0), m_dead(false), m_sendBuffer(nullptr),
     m_sendBufferQueue(), m_sendBufferMutex(), m_receiveBuffer()
@@ -92,14 +92,14 @@ TcpSendBuffer *Client::sendBuffer()
         m_sendBuffer = nullptr;
     }
 
-    m_sendBufferMutex.lock();
+    {
+        MutexLock lock(m_sendBufferMutex);
 
-    if (!m_sendBufferQueue.empty()) {
-        m_sendBuffer = m_sendBufferQueue.front();
-        m_sendBufferQueue.pop();
+        if (!m_sendBufferQueue.empty()) {
+            m_sendBuffer = m_sendBufferQueue.front();
+            m_sendBufferQueue.pop();
+        }
     }
-
-    m_sendBufferMutex.unlock();
 
     return m_sendBuffer;
 }
@@ -128,9 +128,8 @@ bool Client::operator==(sockaddr_storage &saddr) const
 
 void Client::attachSendBuffer(TcpSendBuffer *buffer)
 {
-    m_sendBufferMutex.lock();
+    MutexLock lock(m_sendBufferMutex);
     m_sendBufferQueue.push(buffer);
-    m_sendBufferMutex.unlock();
 }
 
 TcpPool::TcpPool(ClientStateDelegate clientState, NewConnectionDelegate newConnection, ReceiveDataDelegate receive)
@@ -144,7 +143,7 @@ TcpPool::~TcpPool()
 
 }
 
-void TcpPool::callClientState(uint clientid, TcpClientState state, int error) const
+void TcpPool::callClientState(u32 clientid, TcpClientState state, int error) const
 {
     m_clientState(clientid, state, error);
 }
@@ -154,7 +153,7 @@ bool TcpPool::callNewConnection(SharedPtr<Client> &client) const
     return m_newConnection(client);
 }
 
-void TcpPool::callReceive(uint clientid, PacketHeader header, const Vector<char> &data) const
+void TcpPool::callReceive(u32 clientid, PacketHeader header, const Vector<char> &data) const
 {
     m_receive(clientid, header, data);
 }
@@ -401,7 +400,7 @@ void TcpManager::stopLoop()
     write(m_pipe[1], &notify, sizeof(notify));
 }
 
-SharedPtr<Client> TcpManager::client(uint clientid) const
+SharedPtr<Client> TcpManager::client(u32 clientid) const
 {
     auto it = m_clients.find(clientid);
 

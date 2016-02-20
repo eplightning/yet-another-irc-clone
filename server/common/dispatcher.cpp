@@ -10,7 +10,7 @@ PacketDispatcher::PacketDispatcher()
 
 }
 
-void PacketDispatcher::dispatch(uint clientid, Packet *packet) const
+void PacketDispatcher::dispatch(u32 clientid, Packet *packet) const
 {
     auto it = m_routing.find(static_cast<u16>(packet->packetType()));
 

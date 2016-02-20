@@ -302,7 +302,7 @@ bool SlaveModule::initTimeout()
     return true;
 }
 
-void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
+void SlaveModule::tcpState(u32 clientid, TcpClientState state, int error)
 {
     if (state == TCSConnected) {
         SharedPtr<Client> client = m_context->tcp->client(clientid);
@@ -388,7 +388,7 @@ bool SlaveModule::tcpNew(SharedPtr<Client> &client)
     return true;
 }
 
-void SlaveModule::tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data)
+void SlaveModule::tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data)
 {
     Packet *packet;
 
@@ -509,7 +509,7 @@ bool SlaveModule::reconnectHandler(int timer)
     return true;
 }
 
-bool SlaveModule::newSlave(uint clientid, Packet *packet)
+bool SlaveModule::newSlave(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
 
@@ -535,7 +535,7 @@ bool SlaveModule::newSlave(uint clientid, Packet *packet)
     return true;
 }
 
-bool SlaveModule::removeSlave(uint clientid, Packet *packet)
+bool SlaveModule::removeSlave(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
 
@@ -572,7 +572,7 @@ bool SlaveModule::removeSlave(uint clientid, Packet *packet)
     return true;
 }
 
-bool SlaveModule::hello(uint clientid, Packet *packet)
+bool SlaveModule::hello(u32 clientid, Packet *packet)
 {
     SharedPtr<Client> master = m_context->master->get();
     if (!master)
@@ -632,7 +632,7 @@ bool SlaveModule::hello(uint clientid, Packet *packet)
     return true;
 }
 
-bool SlaveModule::helloResponse(uint clientid, Packet *packet)
+bool SlaveModule::helloResponse(u32 clientid, Packet *packet)
 {
     UNUSED(packet);
 

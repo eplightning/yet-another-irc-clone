@@ -59,7 +59,7 @@ void EventQueue::stop()
     m_cond.notify_all();
 }
 
-EventPacket::EventPacket(Packet *packet, uint clientid, int source) :
+EventPacket::EventPacket(Packet *packet, u32 clientid, int source) :
     m_packet(packet), m_clientid(clientid), m_source(source)
 {
 
@@ -75,7 +75,7 @@ Packet *EventPacket::packet() const
     return m_packet;
 }
 
-uint EventPacket::clientid() const
+u32 EventPacket::clientid() const
 {
     return m_clientid;
 }

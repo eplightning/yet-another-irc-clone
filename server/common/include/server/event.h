@@ -60,17 +60,17 @@ protected:
 
 class EventPacket : public Event {
 public:
-    EventPacket(Packet *packet, uint clientid, int source = 0);
+    EventPacket(Packet *packet, u32 clientid, int source = 0);
 
     Type type() const;
 
     Packet *packet() const;
-    uint clientid() const;
+    u32 clientid() const;
     int source() const;
 
 protected:
     Packet *m_packet;
-    uint m_clientid;
+    u32 m_clientid;
     int m_source;
 };
 

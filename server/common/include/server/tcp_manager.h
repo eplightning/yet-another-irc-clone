@@ -21,10 +21,10 @@ class Client {
 public:
     friend class TcpManager;
 
-    Client(uint id, int fd, const sockaddr *addr, TcpPool *pool);
+    Client(u32 id, int fd, const sockaddr *addr, TcpPool *pool);
     ~Client();
 
-    uint id() const { return m_id; }
+    u32 id() const { return m_id; }
     int socket() const { return m_socket; }
     ConnectionProtocol proto() const { return m_proto; }
     u16 port() const { return m_port; }
@@ -47,7 +47,7 @@ protected:
     bool isDead() const { return m_dead; }
     void setDead(bool dead) { m_dead = dead; }
 
-    uint m_id;
+    u32 m_id;
     int m_socket;
     ConnectionProtocol m_proto;
     u16 m_port;
@@ -77,22 +77,22 @@ struct ListenTcpPoolSocket {
 #define BIND_TCP_RECV(O, F) std::bind(F, O, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)
 
 // zmiana stanu
-typedef std::function<void(uint clientid, TcpClientState state, int error)> ClientStateDelegate;
+typedef std::function<void(u32 clientid, TcpClientState state, int error)> ClientStateDelegate;
 
 // nowe połączenie (można odrzucić)
 typedef std::function<bool(SharedPtr<Client> &client)> NewConnectionDelegate;
 
 // nowy pakiet
-typedef std::function<void(uint clientid, PacketHeader header, const Vector<char> &data)> ReceiveDataDelegate;
+typedef std::function<void(u32 clientid, PacketHeader header, const Vector<char> &data)> ReceiveDataDelegate;
 
 class TcpPool {
 public:
     TcpPool(ClientStateDelegate clientState, NewConnectionDelegate newConnection, ReceiveDataDelegate receive);
     virtual ~TcpPool();
 
-    void callClientState(uint clientid, TcpClientState state, int error) const;
+    void callClientState(u32 clientid, TcpClientState state, int error) const;
     bool callNewConnection(SharedPtr<Client> &client) const;
-    void callReceive(uint clientid, PacketHeader header, const Vector<char> &data) const;
+    void callReceive(u32 clientid, PacketHeader header, const Vector<char> &data) const;
 
     virtual Vector<ListenTcpPoolSocket> *listenSockets();
 
@@ -135,7 +135,7 @@ public:
     void stopLoop();
 
     // ONLY CALL INSIDE CALLBACK!
-    SharedPtr<Client> client(uint clientid) const;
+    SharedPtr<Client> client(u32 clientid) const;
 
 protected:
     void newConnection(ListenTcpPoolSocket *listen, Selector *select);
@@ -149,8 +149,8 @@ protected:
 
     int m_pipe[2];
     Map<String, TcpPool*> m_pools;
-    HashMap<uint, SharedPtr<Client>> m_clients;
-    uint m_nextClientId;
+    HashMap<u32, SharedPtr<Client>> m_clients;
+    u32 m_nextClientId;
     int m_rrRounds;
 };
 

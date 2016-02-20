@@ -49,14 +49,14 @@ protected:
     bool initTimeout();
 
     bool tcpNew(SharedPtr<Client> &client);
-    void tcpState(uint clientid, TcpClientState state, int error);
-    void tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data);
+    void tcpState(u32 clientid, TcpClientState state, int error);
+    void tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data);
 
     bool heartbeatHandler(int timer);
     bool timeoutHandler(int timer);
 
-    bool authResponse(uint clientid, Packet *packet);
-    bool syncEnd(uint clientid, Packet *packet);
+    bool authResponse(u32 clientid, Packet *packet);
+    bool syncEnd(u32 clientid, Packet *packet);
 
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;
