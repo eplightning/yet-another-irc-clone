@@ -12,16 +12,16 @@ YAIC_NAMESPACE
 
 class ChannelUser {
 public:
-    ChannelUser(SharedPtr<User> &user, u32 flags = 0);
+    ChannelUser(SharedPtr<User> &user, s32 flags = 0);
 
-    u32 flags() const;
+    s32 flags() const;
     SharedPtr<User> &user();
 
-    void setFlags(u32 flag);
+    void setFlags(s32 flag);
 
 protected:
     SharedPtr<User> m_user;
-    std::atomic<u32> m_flags;
+    std::atomic<s32> m_flags;
 };
 
 class Channel {

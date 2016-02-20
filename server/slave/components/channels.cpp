@@ -7,15 +7,15 @@
 
 YAIC_NAMESPACE
 
-ChannelUser::ChannelUser(SharedPtr<User> &user, u32 flags) :
+ChannelUser::ChannelUser(SharedPtr<User> &user, s32 flags) :
     m_user(user), m_flags(flags)
 {
 
 }
 
-u32 ChannelUser::flags() const
+s32 ChannelUser::flags() const
 {
-    return m_flags;
+    return m_flags.load();
 }
 
 SharedPtr<User> &ChannelUser::user()
@@ -23,9 +23,9 @@ SharedPtr<User> &ChannelUser::user()
     return m_user;
 }
 
-void ChannelUser::setFlags(u32 flag)
+void ChannelUser::setFlags(s32 flag)
 {
-    m_flags = flag;
+    m_flags.store(flag);
 }
 
 Channel::Channel(u64 id, String name, bool local) :
