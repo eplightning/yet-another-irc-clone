@@ -17,22 +17,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->userList->setModel(userListModel);
     dialog.setModal(true);
     showDialog();
-
-    master = new tcpSocket();
-    if (!master->connectWith(masterIP, masterPort, Packet::Direction::MasterToUser))
-    {
-        QMessageBox messageBox;
-        messageBox.critical(0,"Uwaga","Nie udało się połączyć z serwerem!");
-        messageBox.setFixedSize(500,200);
-    }
-    else
-    {
-        QObject::connect(master, SIGNAL(serversRead(MasterUserPackets::ServerList*)),
-                              this, SLOT(on_serverListRead(MasterUserPackets::ServerList*)));
-        MasterUserPackets::RequestServers *a = new MasterUserPackets::RequestServers();
-        a->setMax(1);
-        master->write(a);
-    }
+    connectWithServer();
 
     //We need to get here names of channels on the server
     QList<QString>  a;
@@ -82,7 +67,7 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
     severs  = p->servers();
     if (!severs.empty())
     {
-        slave = new tcpSocket();
+        //slave = new tcpSocket();
         if (!slave->connectWith(QString::fromStdString(severs[0].address), severs[0].port, Packet::Direction::SlaveToUser))
         {
             QMessageBox messageBox;
@@ -112,7 +97,10 @@ void MainWindow::on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p)
     switch (p->status())
     {
         case SlaveUserPackets::HandshakeAck::Status::Ok:
-            qDebug() << "Ok";
+            ui->chatEditBox->setEnabled(true);
+            ui->channelJoiningButton->setEnabled(true);
+            ui->channelLeavingButton->setEnabled(true);
+            ui->sendingButton->setEnabled(true);    //TODO - only when in channel
             break;
         case SlaveUserPackets::HandshakeAck::Status::UnknownError:
             qDebug() << "Unnown";
@@ -129,14 +117,29 @@ void MainWindow::on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p)
     }
 }
 
-void MainWindow::showDialog()
+void MainWindow::on_channelJoiningButton_clicked()
 {
-    if (!dialog.exec())
+    //TODO - here only sending a channel list request
+    QList<QString> a;
+    a.append("a");
+    a.append("b");
+
+    ChannelJoiningDialog channelJoin;
+    channelJoin.setItems(a);
+    channelJoin.setModal(true);
+    channelJoin.exec();
+}
+
+void MainWindow::on_serverChanged()
+{
+    showDialog();
+    delete master;
+    if (slave->isConnected())
     {
-        userName = dialog.getUserName();
-        masterIP = dialog.getServerName();
-        masterPort = dialog.getPortNumber();
+        slave->disconnect();
     }
+    delete slave;
+    connectWithServer();
 }
 
 //Set all channels in channelList
@@ -178,15 +181,40 @@ void MainWindow::addItemToUserList(QString &str)
     userListModel->appendRow(item);
 }
 
-void MainWindow::on_pushButton_clicked()
+void MainWindow::showDialog()
 {
-    //TODO - here only sending a channel list request
-    QList<QString> a;
-    a.append("a");
-    a.append("b");
-
-    ChannelJoiningDialog channelJoin;
-    channelJoin.setItems(a);
-    channelJoin.setModal(true);
-    channelJoin.exec();
+    userName = nullptr;
+    if (!dialog.exec())
+    {
+        userName = dialog.getUserName();
+        masterIP = dialog.getServerName();
+        masterPort = dialog.getPortNumber();
+    }
 }
+
+void MainWindow::connectWithServer()
+{
+    //TODO - clear everything
+    ui->chatEditBox->setEnabled(false);
+    ui->channelJoiningButton->setEnabled(false);
+    ui->channelLeavingButton->setEnabled(false);
+    ui->sendingButton->setEnabled(false);
+
+    master = new tcpSocket(this);
+    slave = new tcpSocket(this);
+    if (!master->connectWith(masterIP, masterPort, Packet::Direction::MasterToUser))
+    {
+        QMessageBox messageBox;
+        messageBox.critical(0,"Uwaga","Nie udało się połączyć z serwerem!");
+        messageBox.setFixedSize(500,200);
+    }
+    else if (userName != nullptr)
+    {
+        QObject::connect(master, SIGNAL(serversRead(MasterUserPackets::ServerList*)),
+                              this, SLOT(on_serverListRead(MasterUserPackets::ServerList*)));
+        MasterUserPackets::RequestServers *a = new MasterUserPackets::RequestServers();
+        a->setMax(1);
+        master->write(a);
+    }
+}
+

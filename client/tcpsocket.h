@@ -25,6 +25,7 @@ public:
     bool connectWith(QString address, int port, Packet::Direction direction);
     void write(Packet *p);
     void disconnect();
+    bool isConnected();
 
 signals:
     void serversRead(MasterUserPackets::ServerList *p);
@@ -48,6 +49,7 @@ private:
     QTimer *timerSlaveHeartbeat;
     Packet::Direction dir;
     QDateTime lastReceivedPacketTime;
+    bool connected;
 };
 
 #endif // TCPSOCKET_H

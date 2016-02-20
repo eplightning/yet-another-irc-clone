@@ -35,8 +35,16 @@ void Dialog::on_connectButton_clicked()
     {
         userName = ui->userNameEdit->text();
         serverIP = ui->serverIPEdit->text();
-        //TODO - Need to check if int
-        port = ui->serverPortEdit->text().toInt();
+
+        bool isPortInt;
+        port = ui->serverPortEdit->text().toInt(&isPortInt, 10);
+        if (!isPortInt)
+        {
+            QMessageBox messageBox;
+            messageBox.critical(0,"Uwaga","Port musi być wartością typu int.");
+            messageBox.setFixedSize(500,200);
+            return;
+        }
         close();
     }
     else

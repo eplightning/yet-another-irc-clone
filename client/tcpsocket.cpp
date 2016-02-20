@@ -8,6 +8,7 @@ tcpSocket::tcpSocket(QObject *parent) :
     isReadingPayload = false;
     readHeaderLength = 0;
     readLength = 0;
+    connected = false;
 }
 
 bool tcpSocket::connectWith(QString address, int port, Packet::Direction direction)
@@ -26,6 +27,7 @@ bool tcpSocket::connectWith(QString address, int port, Packet::Direction directi
         return false;
     }
 
+    connected = true;
     if (direction==Packet::Direction::SlaveToUser){
         timerUserHeartbeat = new QTimer(this);
         connect(timerUserHeartbeat, SIGNAL(timeout()), this, SLOT(sendHeartbeat()));
@@ -118,7 +120,6 @@ void tcpSocket::readyRead()
                                 emit serversRead(static_cast<MasterUserPackets::ServerList*>(a));
                                 break;
                             case Packet::Type::SlaveUserHeartbeat:
-                                qDebug() << "Serwer bije!";
                                 break;
                             case Packet::Type::HandshakeAck:
                                 emit handshakeAck(static_cast<SlaveUserPackets::HandshakeAck*>(a));
@@ -141,7 +142,6 @@ void tcpSocket::sendHeartbeat()
 {
     SlaveUserPackets::UserHeartbeat *a = new SlaveUserPackets::UserHeartbeat();
     write(a);
-    //qDebug() << "Wysłałem bicie serca";
 }
 
 void tcpSocket::heartbeatTimeExpired()
@@ -151,8 +151,9 @@ void tcpSocket::heartbeatTimeExpired()
         disconnect();
         qDebug() << "Rozłączyło mnie";
     }
-    else
-    {
-        qDebug() << "Odebrałem pakiet - przedłużam działanie";
-    }
+}
+
+bool tcpSocket::isConnected()
+{
+    return connected;
 }

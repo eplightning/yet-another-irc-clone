@@ -31,10 +31,11 @@ public:
 
 private slots:
     void on_sendingButton_clicked();
-    void on_pushButton_clicked();
+    void on_channelJoiningButton_clicked();
     void on_channelList_doubleClicked(const QModelIndex &index);
     void on_serverListRead(MasterUserPackets::ServerList *p);
     void on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p);
+    void on_serverChanged();
 
 private:
     Ui::MainWindow *ui;
@@ -54,6 +55,7 @@ private:
     void setChannelList(QList<QString>  &str);
     void addItemToUserList(QString &str);
     void showDialog();
+    void connectWithServer();
 };
 
 #endif // MAINWINDOW_H
