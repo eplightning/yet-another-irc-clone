@@ -6,6 +6,7 @@
 #include <QTextBrowser>
 
 #include "dialog.h"
+#include "channeljoiningdialog.h"
 #include "channel.h"
 #include "tcpsocket.h"
 #include "common/packet.h"
@@ -30,7 +31,7 @@ public:
 
 private slots:
     void on_sendingButton_clicked();
-    void on_serverChangingButton_clicked();
+    void on_pushButton_clicked();
     void on_channelList_doubleClicked(const QModelIndex &index);
     void on_serverListRead(MasterUserPackets::ServerList *p);
     void on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p);

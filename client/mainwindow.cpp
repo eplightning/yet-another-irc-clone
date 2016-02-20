@@ -61,11 +61,6 @@ void MainWindow::on_sendingButton_clicked()
 
 }
 
-void MainWindow::on_serverChangingButton_clicked()
-{
-    showDialog();
-}
-
 void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
 {
     inChannel = channelListModel->itemFromIndex(index)->text();
@@ -181,4 +176,17 @@ void MainWindow::addItemToUserList(QString &str)
     item->setEditable(false);
 
     userListModel->appendRow(item);
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+    //TODO - here only sending a channel list request
+    QList<QString> a;
+    a.append("a");
+    a.append("b");
+
+    ChannelJoiningDialog channelJoin;
+    channelJoin.setItems(a);
+    channelJoin.setModal(true);
+    channelJoin.exec();
 }
