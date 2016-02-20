@@ -55,7 +55,7 @@ bool Packet::checkDirection(u16 rawType, Packet::Direction dir)
 
 Packet *Packet::factory(PacketHeader header, const Vector<char> &data)
 {
-    Packet *out;
+    Packet *out = nullptr;
 
     switch (static_cast<Type>(header.type)) {
     PACKETFACTORY_CASE(Type::RequestServers, MasterUserPackets::RequestServers)
@@ -74,12 +74,29 @@ Packet *Packet::factory(PacketHeader header, const Vector<char> &data)
     PACKETFACTORY_CASE(Type::SlaveSlaveHeartbeat, SlaveSlavePackets::Heartbeat)
     PACKETFACTORY_CASE(Type::UserHeartbeat, SlaveUserPackets::UserHeartbeat)
     PACKETFACTORY_CASE(Type::Handshake, SlaveUserPackets::Handshake)
+    PACKETFACTORY_CASE(Type::ListChannels, SlaveUserPackets::ListChannels)
+    PACKETFACTORY_CASE(Type::JoinChannel, SlaveUserPackets::JoinChannel)
+    PACKETFACTORY_CASE(Type::PartChannel, SlaveUserPackets::PartChannel)
+    PACKETFACTORY_CASE(Type::SendChannelMessage, SlaveUserPackets::SendChannelMessage)
+    PACKETFACTORY_CASE(Type::SendPrivateMessage, SlaveUserPackets::SendPrivateMessage)
     PACKETFACTORY_CASE(Type::SlaveUserHeartbeat, SlaveUserPackets::SlaveHeartbeat)
     PACKETFACTORY_CASE(Type::HandshakeAck, SlaveUserPackets::HandshakeAck)
-    //case Type::Unknown:
-    default:
+    PACKETFACTORY_CASE(Type::Channels, SlaveUserPackets::Channels)
+    PACKETFACTORY_CASE(Type::ChannelJoined, SlaveUserPackets::ChannelJoined)
+    PACKETFACTORY_CASE(Type::ChannelParted, SlaveUserPackets::ChannelParted)
+    PACKETFACTORY_CASE(Type::ChannelMessage, SlaveUserPackets::ChannelMessage)
+    PACKETFACTORY_CASE(Type::ChannelUserJoined, SlaveUserPackets::ChannelUserJoined)
+    PACKETFACTORY_CASE(Type::ChannelUserParted, SlaveUserPackets::ChannelUserParted)
+    PACKETFACTORY_CASE(Type::ChannelUserUpdated, SlaveUserPackets::ChannelUserUpdated)
+    PACKETFACTORY_CASE(Type::UserDisconnected, SlaveUserPackets::UserDisconnected)
+    PACKETFACTORY_CASE(Type::UserUpdated, SlaveUserPackets::UserUpdated)
+    PACKETFACTORY_CASE(Type::PrivateMessageReceived, SlaveUserPackets::PrivateMessageReceived)
+    case Type::Unknown:
         return nullptr;
     }
+
+    if (out == nullptr)
+        return nullptr;
 
     // pomijamy nagłówek
     out->m_packetReaderPos = sizeof(PacketHeader);

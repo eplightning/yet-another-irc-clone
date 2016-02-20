@@ -166,7 +166,11 @@ void SlaveModule::dispatchPacket(EventPacket *ev)
 {
     {
         MutexLock lock(m_lastPacketMutex);
-        m_lastPackets[ev->clientid()] = SteadyClock::now();
+
+        auto it = m_lastPackets.find(ev->clientid());
+
+        if (it != m_lastPackets.end())
+            it->second = SteadyClock::now();
     }
 
     m_context->dispatcher->dispatch(ev->clientid(), ev->packet());
@@ -308,6 +312,11 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
             m_connections[client->id()] = client;
         }
 
+        {
+            MutexLock lock(m_lastPacketMutex);
+            m_lastPackets[client->id()] = SteadyClock::now();
+        }
+
         // jeśli łączyliśmy się z jakimkolwiek slave'm to połączenie z masterem już było
         SlaveSlavePackets::Hello packet;
         packet.setAuthPassword(m_context->master->getAuthPassword());
@@ -367,6 +376,11 @@ bool SlaveModule::tcpNew(SharedPtr<Client> &client)
             m_connections[client->id()] = client;
     }
 
+    {
+        MutexLock lock(m_lastPacketMutex);
+        m_lastPackets[client->id()] = SteadyClock::now();
+    }
+
     m_context->log << Logger::Line::Start
                    << "Slave connection: [ID: " << client->id() << ", IP: " << client->address() <<"]"
                    << Logger::Line::End;
@@ -412,7 +426,7 @@ void SlaveModule::establishConnection(SharedPtr<SlaveServer> &slave)
 
 void SlaveModule::synchronize(SharedPtr<Client> &client)
 {
-    // TODO:
+    m_context->user->syncSlave(client);
 }
 
 bool SlaveModule::heartbeatHandler(int timer)
@@ -544,7 +558,7 @@ bool SlaveModule::removeSlave(uint clientid, Packet *packet)
         m_slaves.erase(it);
     }
 
-    // TODO: Handle removal
+    m_context->user->cleanupSlave(request->id());
 
     SharedPtr<Client> client = srv->client();
     if (client)

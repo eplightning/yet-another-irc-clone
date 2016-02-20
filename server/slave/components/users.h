@@ -30,30 +30,32 @@ protected:
 
 class Users {
 public:
-    Users(uint capacity = 100);
+    Users();
     ~Users();
 
     SharedPtr<User> addUser(u32 id, const String &nick, SharedPtr<Client> &client);
     SharedPtr<User> addUser(u64 id, const String &nick);
+
+    uint count();
 
     SharedPtr<User> findById(u64 id);
     SharedPtr<User> findByNick(const String &nick);
 
     u64 getFullId(u32 id) const;
 
+    std::mutex &mutex();
+
     void removeUser(u32 id);
     void removeUser(u64 id);
 
     void setSlaveId(u32 id);
-    void setCapacity(uint capacity);
 
 protected:
     SharedPtr<User> findByNickLocked(const String &nick);
 
     HashMap<u64, SharedPtr<User>> m_list;
-    u32 m_slaveid;
+    u32 m_slaveId;
     std::mutex m_mutex;
-    uint m_capacity;
 };
 
 END_NAMESPACE

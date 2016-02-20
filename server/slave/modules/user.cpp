@@ -9,6 +9,7 @@
 #include <server/misc_utils.h>
 #include <common/packets/slave_user.h>
 #include <components/users.h>
+#include <components/channels.h>
 
 #include <libconfig.h++>
 
@@ -79,8 +80,6 @@ void UserModule::loadConfig(const libconfig::Setting &section)
 
         if (sub.isScalar())
             m_config.capacity = sub;
-
-        m_users.setCapacity(sub);
     }
 }
 
@@ -102,7 +101,11 @@ void UserModule::dispatchPacket(EventPacket *ev)
 {
     {
         MutexLock lock(m_lastPacketMutex);
-        m_lastPackets[ev->clientid()] = SteadyClock::now();
+
+        auto it = m_lastPackets.find(ev->clientid());
+
+        if (it != m_lastPackets.end())
+            it->second = SteadyClock::now();
     }
 
     m_context->dispatcher->dispatch(ev->clientid(), ev->packet());
@@ -134,7 +137,14 @@ void UserModule::dispatchSimple(EventSimple *ev)
 
         m_users.removeUser(id);
 
-        // TODO: Usuń z kanałów etc
+        {
+            MutexLock lock(m_channels.mutex());
+
+            for (auto &x : m_channels.list())
+                x.second->removeUser(user);
+        }
+
+        // TODO: Powiadom userów o disconnect
 
         if (ev->id() == EventSimple::EventId::UserDisconnected) {
             // TODO: Powiadom slave'y
@@ -172,6 +182,16 @@ SharedPtr<Client> UserModule::getConnection(u32 clientid)
         return nullptr;
 
     return it->second;
+}
+
+void UserModule::cleanupSlave(u32 slave)
+{
+    // TODO: Do it
+}
+
+void UserModule::syncSlave(SharedPtr<Client> &client)
+{
+    // TODO: Do it
 }
 
 bool UserModule::initPackets()
@@ -244,6 +264,11 @@ bool UserModule::tcpNew(SharedPtr<Client> &client)
             m_connections[client->id()] = client;
     }
 
+    {
+        MutexLock lock(m_lastPacketMutex);
+        m_lastPackets[client->id()] = SteadyClock::now();
+    }
+
     m_context->log << Logger::Line::Start
                    << "User connection: [ID: " << client->id() << ", IP: " << client->address() <<"]"
                    << Logger::Line::End;
@@ -259,6 +284,11 @@ void UserModule::tcpState(uint clientid, TcpClientState state, int error)
     {
         MutexLock lock(m_connectionsMutex);
         m_connections.erase(clientid);
+    }
+
+    {
+        MutexLock lock(m_lastPacketMutex);
+        m_lastPackets.erase(clientid);
     }
 
     m_context->log << Logger::Line::Start
@@ -344,6 +374,15 @@ bool UserModule::handshake(uint clientid, Packet *packet)
         return false;
 
     SlaveUserPackets::Handshake *request = static_cast<SlaveUserPackets::Handshake*>(packet);
+
+    if (m_users.count() >= m_config.capacity) {
+        SlaveUserPackets::HandshakeAck ack;
+        ack.setStatus(SlaveUserPackets::HandshakeAck::Status::Full);
+        ack.setUserId(0);
+
+        m_context->tcp->sendTo(client, &ack);
+        return true;
+    }
 
     SharedPtr<User> user;
 
