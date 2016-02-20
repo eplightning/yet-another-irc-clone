@@ -5,6 +5,8 @@
 
 YAIC_NAMESPACE SUPACKETS_NAMESPACE
 
+const int ChanUser::FlagOperator = 1 << 0;
+
 UserHeartbeat::UserHeartbeat() :
     Packet(Packet::Type::UserHeartbeat)
 {
