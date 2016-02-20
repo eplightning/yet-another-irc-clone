@@ -35,13 +35,13 @@ public:
     void dispatchSimple(EventSimple *ev);
 
     // api
-    SharedPtr<Client> getMaster();
+    SharedPtr<Client> get();
     bool isAuthed();
     bool isSynced();
 
-    // thread-safe if authed
-    u32 getSlaveId() const;
-    u64 getAuthPassword() const;
+    // correct if authed
+    u32 slaveId() const;
+    u64 authPassword() const;
 
 protected:
     bool initPackets();
@@ -58,8 +58,6 @@ protected:
     bool authResponse(uint clientid, Packet *packet);
     bool syncEnd(uint clientid, Packet *packet);
 
-    void masterDisconnected();
-
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;
     int m_timeoutTimer;
@@ -71,7 +69,6 @@ protected:
     std::mutex m_masterMutex;
 
     std::chrono::time_point<SteadyClock> m_lastPacket;
-    std::mutex m_lastPacketMutex;
 
     u32 m_ourSlaveId;
     u64 m_authPassword;

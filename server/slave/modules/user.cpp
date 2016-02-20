@@ -137,26 +137,20 @@ void UserModule::dispatchSimple(EventSimple *ev)
 
         // Remove user from list and channels
         m_users.removeUser(id);
-        {
-            MutexLock lock(m_channels.mutex());
 
-            for (auto &x : m_channels.list())
-                x.second->removeUser(user);
-        }
+        for (auto &x : m_channels.list())
+            x.second->removeUser(user);
 
         // Tell users about disconnect
         SlaveUserPackets::UserDisconnected dc(id);
-        {
-            MutexLock lock(m_users.mutex());
+        Vector<SharedPtr<Client>*> clients;
 
-            Vector<SharedPtr<Client>*> clients;
-            for (auto &x : m_users.list()) {
-                if (x.second->isLocal())
-                    clients.push_back(&x.second->client());
-            }
-
-            m_context->tcp->sendTo(clients, &dc);
+        for (auto &x : m_users.list()) {
+            if (x.second->isLocal())
+                clients.push_back(&x.second->client());
         }
+
+        m_context->tcp->sendTo(clients, &dc);
 
         if (ev->id() == EventSimple::EventId::UserDisconnected) {
             // TODO: Powiadom slave'y
@@ -179,12 +173,18 @@ uint UserModule::capacity() const
     return m_config.capacity;
 }
 
+uint UserModule::load() const
+{
+    return m_users.count();
+}
+
 void UserModule::slaveIdReceived(u32 id)
 {
     m_users.setSlaveId(id);
+    m_channels.setSlaveId(id);
 }
 
-SharedPtr<Client> UserModule::getConnection(u32 clientid)
+SharedPtr<Client> UserModule::connection(u32 clientid)
 {
     MutexLock lock(m_connectionsMutex);
 
@@ -209,15 +209,20 @@ void UserModule::syncSlave(SharedPtr<Client> &client)
 bool UserModule::initPackets()
 {
     m_context->dispatcher->append(Packet::Type::Handshake,
-                              BIND_DISPATCH(this, &UserModule::handshake));
+                                  BIND_DISPATCH(this, &UserModule::handshake));
+
     m_context->dispatcher->append(Packet::Type::ListChannels,
                                   BIND_DISPATCH(this, &UserModule::channelList));
+
     m_context->dispatcher->append(Packet::Type::JoinChannel,
                                   BIND_DISPATCH(this, &UserModule::joinChannel));
+
     m_context->dispatcher->append(Packet::Type::PartChannel,
                                   BIND_DISPATCH(this, &UserModule::partChannel));
+
     m_context->dispatcher->append(Packet::Type::SendChannelMessage,
                                   BIND_DISPATCH(this, &UserModule::messageChannel));
+
     m_context->dispatcher->append(Packet::Type::SendPrivateMessage,
                                   BIND_DISPATCH(this, &UserModule::privateMessage));
 
@@ -248,7 +253,7 @@ bool UserModule::initTcp()
 
     if (pool->listenSockets()->empty()) {
         delete pool;
-        m_context->log->error("Couldn't create any listen socket");
+        m_context->log->error("Couldn't create any listen socket for user module");
         return false;
     }
 
@@ -390,34 +395,30 @@ bool UserModule::timeoutHandler(int timer)
 
 bool UserModule::handshake(uint clientid, Packet *packet)
 {
-    SharedPtr<Client> client = getConnection(clientid);
+    SharedPtr<Client> client = connection(clientid);
 
     if (!client)
         return false;
 
     SlaveUserPackets::Handshake *request = static_cast<SlaveUserPackets::Handshake*>(packet);
 
-    if (m_users.count() >= m_config.capacity) {
-        SlaveUserPackets::HandshakeAck ack;
-        ack.setStatus(SlaveUserPackets::HandshakeAck::Status::Full);
-        ack.setUserId(0);
-
-        m_context->tcp->sendTo(client, &ack);
-        return true;
-    }
-
-    SharedPtr<User> user;
-
-    if (request->nick().empty() || !(user = m_users.addUser(client->id(), request->nick(), client))) {
-        SlaveUserPackets::HandshakeAck ack;
-        ack.setStatus(SlaveUserPackets::HandshakeAck::Status::InvalidNick);
-        ack.setUserId(0);
-
-        m_context->tcp->sendTo(client, &ack);
-        return true;
-    }
-
     SlaveUserPackets::HandshakeAck ack;
+    ack.setUserId(0);
+
+    if (m_users.count() >= m_config.capacity) {
+        ack.setStatus(SlaveUserPackets::HandshakeAck::Status::Full);
+        m_context->tcp->sendTo(client, &ack);
+        return true;
+    }
+
+    if (request->nick().empty() || m_users.findByNick(request->nick())) {
+        ack.setStatus(SlaveUserPackets::HandshakeAck::Status::InvalidNick);
+        m_context->tcp->sendTo(client, &ack);
+        return true;
+    }
+
+    SharedPtr<User> user = m_users.addUser(client->id(), request->nick(), client);
+
     ack.setStatus(SlaveUserPackets::HandshakeAck::Status::Ok);
     ack.setUserId(user->id());
 
@@ -436,7 +437,7 @@ bool UserModule::channelList(uint clientid, Packet *packet)
 {
     UNUSED(packet);
 
-    SharedPtr<Client> client = getConnection(clientid);
+    SharedPtr<Client> client = connection(clientid);
 
     if (!client)
         return false;
@@ -448,12 +449,8 @@ bool UserModule::channelList(uint clientid, Packet *packet)
 
     SlaveUserPackets::Channels response;
 
-    {
-        MutexLock lock(m_channels.mutex());
-
-        for (auto &x : m_channels.list())
-            response.addChannel(x.second->name());
-    }
+    for (auto &x : m_channels.list())
+        response.addChannel(x.second->name());
 
     m_context->tcp->sendTo(client, &response);
 
@@ -466,7 +463,7 @@ bool UserModule::channelList(uint clientid, Packet *packet)
 
 bool UserModule::joinChannel(uint clientid, Packet *packet)
 {
-    SharedPtr<Client> client = getConnection(clientid);
+    SharedPtr<Client> client = connection(clientid);
 
     if (!client)
         return false;
@@ -477,6 +474,9 @@ bool UserModule::joinChannel(uint clientid, Packet *packet)
         return false;
 
     SlaveUserPackets::JoinChannel *request = static_cast<SlaveUserPackets::JoinChannel*>(packet);
+
+    if (request->name().empty())
+        return false;
 
     SharedPtr<Channel> chan = m_channels.findByName(request->name());
 
@@ -495,23 +495,19 @@ bool UserModule::joinChannel(uint clientid, Packet *packet)
             notification.user().id = user->id();
             notification.user().nick = user->nick();
 
-            {
-                MutexLock lock(chan->mutex());
+            Vector<SharedPtr<Client>*> clients;
 
-                Vector<SharedPtr<Client>*> clients;
+            for (auto &x : chan->users()) {
+                ChannelUser *chanuser = x.second.get();
+                User *chanuser2 = chanuser->user().get();
 
-                for (auto &x : chan->users()) {
-                    ChannelUser *chanuser = x.second.get();
-                    User *chanuser2 = chanuser->user().get();
+                response.addUser(chanuser2->id(), chanuser->flags(), chanuser2->nick());
 
-                    response.addUser(chanuser2->id(), chanuser->flags(), chanuser2->nick());
-
-                    if (chanuser2->isLocal())
-                        clients.push_back(&chanuser2->client());
-                }
-
-                m_context->tcp->sendTo(clients, &notification);
+                if (chanuser2->isLocal())
+                    clients.push_back(&chanuser2->client());
             }
+
+            m_context->tcp->sendTo(clients, &notification);
 
             chan->addUser(user);
         } else {
@@ -542,7 +538,7 @@ bool UserModule::joinChannel(uint clientid, Packet *packet)
 
 bool UserModule::partChannel(uint clientid, Packet *packet)
 {
-    SharedPtr<Client> client = getConnection(clientid);
+    SharedPtr<Client> client = connection(clientid);
 
     if (!client)
         return false;
@@ -559,16 +555,9 @@ bool UserModule::partChannel(uint clientid, Packet *packet)
     response.setReason(SlaveUserPackets::ChannelParted::Reason::Requested);
     response.setStatus(SlaveUserPackets::ChannelParted::Status::Ok);
 
-    SharedPtr<Channel> chan = m_channels.findByid(request->id());
+    SharedPtr<Channel> chan = m_channels.findById(request->id());
 
-    if (!chan) {
-        response.setStatus(SlaveUserPackets::ChannelParted::Status::UnknownError);
-        m_context->tcp->sendTo(client, &response);
-
-        return false;
-    }
-
-    if (!chan->user(user->id())) {
+    if (!chan || !chan->user(user->id())) {
         response.setStatus(SlaveUserPackets::ChannelParted::Status::UnknownError);
         m_context->tcp->sendTo(client, &response);
 
@@ -581,19 +570,14 @@ bool UserModule::partChannel(uint clientid, Packet *packet)
     notification.setChannel(chan->id());
     notification.setUser(user->id());
 
-    {
-        MutexLock lock(chan->mutex());
+    Vector<SharedPtr<Client>*> clients;
 
-        Vector<SharedPtr<Client>*> clients;
-
-        for (auto &x : chan->users()) {
-            if (x.second->user()->isLocal())
-                clients.push_back(&x.second->user()->client());
-        }
-
-        m_context->tcp->sendTo(clients, &notification);
+    for (auto &x : chan->users()) {
+        if (x.second->user()->isLocal())
+            clients.push_back(&x.second->user()->client());
     }
 
+    m_context->tcp->sendTo(clients, &notification);
     m_context->tcp->sendTo(client, &response);
 
     m_context->log << Logger::Line::Start
@@ -608,7 +592,7 @@ bool UserModule::partChannel(uint clientid, Packet *packet)
 
 bool UserModule::messageChannel(uint clientid, Packet *packet)
 {
-    SharedPtr<Client> client = getConnection(clientid);
+    SharedPtr<Client> client = connection(clientid);
 
     if (!client)
         return false;
@@ -620,12 +604,9 @@ bool UserModule::messageChannel(uint clientid, Packet *packet)
 
     SlaveUserPackets::SendChannelMessage *request = static_cast<SlaveUserPackets::SendChannelMessage*>(packet);
 
-    SharedPtr<Channel> chan = m_channels.findByid(request->id());
+    SharedPtr<Channel> chan = m_channels.findById(request->id());
 
-    if (!chan)
-        return false;
-
-    if (!chan->user(user->id()))
+    if (!chan || !chan->user(user->id()))
         return false;
 
     SlaveUserPackets::ChannelMessage notification;
@@ -633,18 +614,14 @@ bool UserModule::messageChannel(uint clientid, Packet *packet)
     notification.setChannel(chan->id());
     notification.setUser(user->id());
 
-    {
-        MutexLock lock(chan->mutex());
+    Vector<SharedPtr<Client>*> clients;
 
-        Vector<SharedPtr<Client>*> clients;
-
-        for (auto &x : chan->users()) {
-            if (x.first != user->id() && x.second->user()->isLocal())
-                clients.push_back(&x.second->user()->client());
-        }
-
-        m_context->tcp->sendTo(clients, &notification);
+    for (auto &x : chan->users()) {
+        if (x.first != user->id() && x.second->user()->isLocal())
+            clients.push_back(&x.second->user()->client());
     }
+
+    m_context->tcp->sendTo(clients, &notification);
 
     // TODO: Slave
 
@@ -658,7 +635,7 @@ bool UserModule::messageChannel(uint clientid, Packet *packet)
 
 bool UserModule::privateMessage(uint clientid, Packet *packet)
 {
-    SharedPtr<Client> client = getConnection(clientid);
+    SharedPtr<Client> client = connection(clientid);
 
     if (!client)
         return false;
@@ -684,7 +661,7 @@ bool UserModule::privateMessage(uint clientid, Packet *packet)
 
         m_context->tcp->sendTo(recipient->client(), &notification);
     } else {
-        SharedPtr<SlaveServer> slave = m_context->slave->getSlave(recipient->slaveId());
+        SharedPtr<SlaveServer> slave = m_context->slave->get(recipient->slaveId());
 
         if (!slave) {
             m_context->log->error("Private message recipient's slave not found");

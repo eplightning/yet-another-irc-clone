@@ -25,7 +25,6 @@ protected:
     u64 m_id;
     SharedPtr<Client> m_client;
     String m_nick;
-    std::mutex m_mutex;
 };
 
 class Users {
@@ -36,7 +35,7 @@ public:
     SharedPtr<User> addUser(u32 id, const String &nick, SharedPtr<Client> &client);
     SharedPtr<User> addUser(u64 id, const String &nick);
 
-    uint count();
+    uint count() const;
 
     SharedPtr<User> findById(u32 clientid);
     SharedPtr<User> findById(u64 id);
@@ -44,8 +43,8 @@ public:
 
     u64 getFullId(u32 id) const;
 
+    const HashMap<u64, SharedPtr<User>> &list() const;
     HashMap<u64, SharedPtr<User>> &list();
-    std::mutex &mutex();
 
     void removeUser(u32 id);
     void removeUser(u64 id);
@@ -53,11 +52,8 @@ public:
     void setSlaveId(u32 id);
 
 protected:
-    SharedPtr<User> findByNickLocked(const String &nick);
-
     HashMap<u64, SharedPtr<User>> m_list;
     u32 m_slaveId;
-    std::mutex m_mutex;
 };
 
 END_NAMESPACE

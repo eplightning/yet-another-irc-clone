@@ -66,11 +66,12 @@ public:
     // api
     const String &publicAddress() const;
     u16 publicPort() const;
-    SharedPtr<SlaveServer> getSlaveByClientId(u32 clientid);
-    SharedPtr<SlaveServer> getSlave(u32 id);
-    SharedPtr<Client> getConnection(u32 clientid);
+    SharedPtr<SlaveServer> getByClientId(u32 clientid);
+    SharedPtr<SlaveServer> get(u32 id);
 
 protected:
+    SharedPtr<Client> connection(u32 clientid);
+
     bool initPackets();
     bool initTcp();
     bool initTimeout();
@@ -81,16 +82,6 @@ protected:
 
     void establishConnection(SharedPtr<SlaveServer> &slave);
     void synchronize(SharedPtr<Client> &client);
-    /*
-
-    bool heartbeatHandler(int timer);
-    bool timeoutHandler(int timer);
-
-    bool authResponse(uint clientid, Packet *packet);
-    bool syncEnd(uint clientid, Packet *packet);
-
-    void masterDisconnected();*/
-
 
     bool heartbeatHandler(int timer);
     bool timeoutHandler(int timer);

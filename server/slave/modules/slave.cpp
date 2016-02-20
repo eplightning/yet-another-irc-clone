@@ -196,7 +196,7 @@ u16 SlaveModule::publicPort() const
     return m_config.publicPort;
 }
 
-SharedPtr<SlaveServer> SlaveModule::getSlaveByClientId(u32 clientid)
+SharedPtr<SlaveServer> SlaveModule::getByClientId(u32 clientid)
 {
     MutexLock lock(m_slavesMutex);
 
@@ -208,7 +208,7 @@ SharedPtr<SlaveServer> SlaveModule::getSlaveByClientId(u32 clientid)
     return nullptr;
 }
 
-SharedPtr<SlaveServer> SlaveModule::getSlave(u32 id)
+SharedPtr<SlaveServer> SlaveModule::get(u32 id)
 {
     MutexLock lock(m_slavesMutex);
 
@@ -220,7 +220,7 @@ SharedPtr<SlaveServer> SlaveModule::getSlave(u32 id)
     return it->second;
 }
 
-SharedPtr<Client> SlaveModule::getConnection(u32 clientid)
+SharedPtr<Client> SlaveModule::connection(u32 clientid)
 {
     MutexLock lock(m_connectionsMutex);
 
@@ -275,7 +275,7 @@ bool SlaveModule::initTcp()
 
     if (pool->listenSockets()->empty()) {
         delete pool;
-        m_context->log->error("Couldn't create any listen socket");
+        m_context->log->error("Couldn't create any listen socket for slave module");
         return false;
     }
 
@@ -319,8 +319,8 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
 
         // jeśli łączyliśmy się z jakimkolwiek slave'm to połączenie z masterem już było
         SlaveSlavePackets::Hello packet;
-        packet.setAuthPassword(m_context->master->getAuthPassword());
-        packet.setId(m_context->master->getSlaveId());
+        packet.setAuthPassword(m_context->master->authPassword());
+        packet.setId(m_context->master->slaveId());
         packet.setName(m_context->slaveName);
 
         m_context->tcp->sendTo(client, &packet);
@@ -341,7 +341,7 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
             m_connections.erase(clientid);
         }
 
-        SharedPtr<SlaveServer> srv = getSlaveByClientId(clientid);
+        SharedPtr<SlaveServer> srv = getByClientId(clientid);
 
         if (!srv)
             return;
@@ -349,8 +349,8 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
         srv->replaceClient();
 
         m_context->log << Logger::Line::Start
-                       << "Slave connection dropped / reconnection failed: [ID: " << srv->id() << ", Name: " << srv->name() <<
-                       "]: (" << MiscUtils::systemError(error) << ")"
+                       << "Slave connection dropped / reconnection failed: [ID: " << srv->id() << ", Name: " << srv->name()
+                       << "]: (" << MiscUtils::systemError(error) << ")"
                        << Logger::Line::End;
 
         if (srv->isElder())
@@ -498,7 +498,7 @@ bool SlaveModule::reconnectHandler(int timer)
         u32 slaveid = queueCopy.front();
         queueCopy.pop();
 
-        SharedPtr<SlaveServer> srv = getSlave(slaveid);
+        SharedPtr<SlaveServer> srv = get(slaveid);
 
         if (!srv)
             continue;
@@ -516,7 +516,7 @@ bool SlaveModule::newSlave(uint clientid, Packet *packet)
     if (!m_context->master->isAuthed())
         return false;
 
-    SharedPtr<Client> master = m_context->master->getMaster();
+    SharedPtr<Client> master = m_context->master->get();
     if (!master)
         return false;
 
@@ -574,20 +574,20 @@ bool SlaveModule::removeSlave(uint clientid, Packet *packet)
 
 bool SlaveModule::hello(uint clientid, Packet *packet)
 {
-    SharedPtr<Client> master = m_context->master->getMaster();
+    SharedPtr<Client> master = m_context->master->get();
     if (!master)
         return false;
 
     if (!m_context->master->isAuthed())
         return false;
 
-    SharedPtr<Client> client = getConnection(clientid);
+    SharedPtr<Client> client = connection(clientid);
     if (!client)
         return false;
 
     SlaveSlavePackets::Hello *request = static_cast<SlaveSlavePackets::Hello*>(packet);
 
-    if (request->authPassword() != m_context->master->getAuthPassword()) {
+    if (request->authPassword() != m_context->master->authPassword()) {
         m_context->log << Logger::Line::Start
                        << "Slave hello refused: [ID: " << request->id() << "]: Invalid auth password"
                        << Logger::Line::End;
@@ -622,8 +622,8 @@ bool SlaveModule::hello(uint clientid, Packet *packet)
         }
     }
 
-    SlaveSlavePackets::HelloResponse response(m_context->master->getSlaveId());
-    response.setAuthPassword(m_context->master->getAuthPassword());
+    SlaveSlavePackets::HelloResponse response(m_context->master->slaveId());
+    response.setAuthPassword(m_context->master->authPassword());
     m_context->tcp->sendTo(client, &response);
 
     if (synchronizeNeeded)
@@ -636,23 +636,23 @@ bool SlaveModule::helloResponse(uint clientid, Packet *packet)
 {
     UNUSED(packet);
 
-    SharedPtr<Client> master = m_context->master->getMaster();
+    SharedPtr<Client> master = m_context->master->get();
     if (!master)
         return false;
 
     if (!m_context->master->isAuthed())
         return false;
 
-    SharedPtr<Client> client = getConnection(clientid);
+    SharedPtr<Client> client = connection(clientid);
     if (!client)
         return false;
 
     SlaveSlavePackets::HelloResponse *request = static_cast<SlaveSlavePackets::HelloResponse*>(packet);
 
-    if (request->authPassword() != m_context->master->getAuthPassword())
+    if (request->authPassword() != m_context->master->authPassword())
         return false;
 
-    SharedPtr<SlaveServer> slave = getSlave(request->id());
+    SharedPtr<SlaveServer> slave = get(request->id());
     if (!slave)
         return false;
 

@@ -5,7 +5,6 @@
 
 #include <common/types.h>
 
-#include <atomic>
 #include <mutex>
 
 YAIC_NAMESPACE
@@ -15,13 +14,13 @@ public:
     ChannelUser(SharedPtr<User> &user, s32 flags = 0);
 
     s32 flags() const;
-    SharedPtr<User> &user();
+    const SharedPtr<User> &user() const;
 
     void setFlags(s32 flag);
 
 protected:
     SharedPtr<User> m_user;
-    std::atomic<s32> m_flags;
+    s32 m_flags;
 };
 
 class Channel {
@@ -30,10 +29,10 @@ public:
 
     u64 id() const;
     bool isLocal() const;
-    std::mutex &mutex();
     const String &name() const;
 
     HashMap<u64, SharedPtr<ChannelUser>> &users();
+    const HashMap<u64, SharedPtr<ChannelUser>> &users() const;
 
     void addUser(SharedPtr<User> &user, s32 flags = 0);
     SharedPtr<ChannelUser> user(u64 id);
@@ -43,7 +42,6 @@ protected:
     u64 m_id;
     bool m_local;
     String m_name;
-    std::mutex m_mutex;
     HashMap<u64, SharedPtr<ChannelUser>> m_users;
 };
 
@@ -52,12 +50,12 @@ public:
     Channels();
     ~Channels();
 
-    SharedPtr<Channel> findByid(u64 id);
+    SharedPtr<Channel> findById(u64 id);
     SharedPtr<Channel> findByName(const String &name);
     SharedPtr<Channel> create(const String &name, SharedPtr<User> &user);
 
     HashMap<u64, SharedPtr<Channel>> &list();
-    std::mutex &mutex();
+    const HashMap<u64, SharedPtr<Channel>> &list() const;
 
     void setSlaveId(u32 id);
 
@@ -65,7 +63,6 @@ public:
 
 protected:
     HashMap<u64, SharedPtr<Channel>> m_list;
-    std::mutex m_mutex;
     u32 m_nextId;
     u32 m_slaveId;
 };

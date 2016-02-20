@@ -91,10 +91,7 @@ bool MasterModule::init()
 
 void MasterModule::dispatchPacket(EventPacket *ev)
 {
-    {
-        MutexLock lock(m_lastPacketMutex);
-        m_lastPacket = SteadyClock::now();
-    }
+    m_lastPacket = SteadyClock::now();
 
     m_context->dispatcher->dispatch(ev->clientid(), ev->packet());
 }
@@ -144,7 +141,7 @@ bool MasterModule::initTimeout()
     m_heartbeatTimer = m_context->sysLoop->addTimer(m_config.heartbeatInterval);
 
     if (m_timeoutTimer == -1 || m_heartbeatTimer == -1) {
-        m_context->log->error("Unable to initialize timers");
+        m_context->log->error("Unable to initialize master module's timers");
         return false;
     }
 
@@ -154,7 +151,7 @@ bool MasterModule::initTimeout()
     return true;
 }
 
-SharedPtr<Client> MasterModule::getMaster()
+SharedPtr<Client> MasterModule::get()
 {
     MutexLock lock(m_masterMutex);
 
@@ -171,12 +168,12 @@ bool MasterModule::isSynced()
     return m_synced.load();
 }
 
-u32 MasterModule::getSlaveId() const
+u32 MasterModule::slaveId() const
 {
     return m_ourSlaveId;
 }
 
-u64 MasterModule::getAuthPassword() const
+u64 MasterModule::authPassword() const
 {
     return m_authPassword;
 }
@@ -242,14 +239,12 @@ bool MasterModule::heartbeatHandler(int timer)
 {
     UNUSED(timer);
 
-    SharedPtr<Client> master = getMaster();
+    SharedPtr<Client> master = get();
 
     if (!master)
         return false;
 
-    // TODO: get slave load
-    MasterSlavePackets::SlaveHeartbeat packet(0);
-
+    MasterSlavePackets::SlaveHeartbeat packet(m_context->user->load());
     m_context->tcp->sendTo(master, &packet);
 
     return true;
@@ -259,14 +254,7 @@ bool MasterModule::timeoutHandler(int timer)
 {
     UNUSED(timer);
 
-    std::chrono::time_point<SteadyClock> time;
-
-    {
-        MutexLock lock(m_lastPacketMutex);
-        time = m_lastPacket;
-    }
-
-    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(SteadyClock::now() - time).count();
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(SteadyClock::now() - m_lastPacket).count();
 
     if (seconds >= m_config.timeout) {
         m_context->log << Logger::Line::Start
@@ -328,4 +316,3 @@ bool MasterModule::syncEnd(uint clientid, Packet *packet)
 }
 
 END_NAMESPACE
-

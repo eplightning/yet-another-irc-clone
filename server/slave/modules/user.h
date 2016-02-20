@@ -41,12 +41,14 @@ public:
     const String &publicAddress() const;
     u16 publicPort() const;
     uint capacity() const;
+    uint load() const;
     void slaveIdReceived(u32 id);
-    SharedPtr<Client> getConnection(u32 clientid);
     void cleanupSlave(u32 slave);
     void syncSlave(SharedPtr<Client> &client);
 
 protected:
+    SharedPtr<Client> connection(u32 clientid);
+
     bool initPackets();
     bool initTcp();
     bool initTimeout();

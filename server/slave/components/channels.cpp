@@ -16,17 +16,17 @@ ChannelUser::ChannelUser(SharedPtr<User> &user, s32 flags) :
 
 s32 ChannelUser::flags() const
 {
-    return m_flags.load();
+    return m_flags;
 }
 
-SharedPtr<User> &ChannelUser::user()
+const SharedPtr<User> &ChannelUser::user() const
 {
     return m_user;
 }
 
 void ChannelUser::setFlags(s32 flag)
 {
-    m_flags.store(flag);
+    m_flags = flag;
 }
 
 Channel::Channel(u64 id, String name, bool local) :
@@ -45,11 +45,6 @@ bool Channel::isLocal() const
     return m_local;
 }
 
-std::mutex &Channel::mutex()
-{
-    return m_mutex;
-}
-
 const String &Channel::name() const
 {
     return m_name;
@@ -60,17 +55,18 @@ HashMap<u64, SharedPtr<ChannelUser> > &Channel::users()
     return m_users;
 }
 
+const HashMap<u64, SharedPtr<ChannelUser> > &Channel::users() const
+{
+    return m_users;
+}
+
 void Channel::addUser(SharedPtr<User> &user, s32 flags)
 {
-    MutexLock lock(m_mutex);
-
     m_users[user->id()] = std::make_shared<ChannelUser>(user, flags);
 }
 
 SharedPtr<ChannelUser> Channel::user(u64 id)
 {
-    MutexLock lock(m_mutex);
-
     auto it = m_users.find(id);
 
     if (it == m_users.end())
@@ -81,8 +77,6 @@ SharedPtr<ChannelUser> Channel::user(u64 id)
 
 void Channel::removeUser(SharedPtr<User> &user)
 {
-    MutexLock lock(m_mutex);
-
     m_users.erase(user->id());
 }
 
@@ -97,10 +91,8 @@ Channels::~Channels()
 
 }
 
-SharedPtr<Channel> Channels::findByid(u64 id)
+SharedPtr<Channel> Channels::findById(u64 id)
 {
-    MutexLock lock(m_mutex);
-
     auto it = m_list.find(id);
 
     if (it == m_list.end())
@@ -111,8 +103,6 @@ SharedPtr<Channel> Channels::findByid(u64 id)
 
 SharedPtr<Channel> Channels::findByName(const String &name)
 {
-    MutexLock lock(m_mutex);
-
     for (auto &x : m_list) {
         if (x.second->name() == name)
             return x.second;
@@ -123,13 +113,6 @@ SharedPtr<Channel> Channels::findByName(const String &name)
 
 SharedPtr<Channel> Channels::create(const String &name, SharedPtr<User> &user)
 {
-    MutexLock lock(m_mutex);
-
-    for (auto &x : m_list) {
-        if (x.second->name() == name)
-            return nullptr;
-    }
-
     u64 id = getFullId(m_nextId);
 
     SharedPtr<Channel> chan = std::make_shared<Channel>(id, name, true);
@@ -147,9 +130,9 @@ HashMap<u64, SharedPtr<Channel> > &Channels::list()
     return m_list;
 }
 
-std::mutex &Channels::mutex()
+const HashMap<u64, SharedPtr<Channel> > &Channels::list() const
 {
-    return m_mutex;
+    return m_list;
 }
 
 void Channels::setSlaveId(u32 id)
