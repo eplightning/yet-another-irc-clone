@@ -103,7 +103,7 @@ Auth::Mode Auth::mode() const
     return m_mode;
 }
 
-void Auth::setMode(const Mode &mode)
+void Auth::setMode(Mode mode)
 {
     m_mode = mode;
 }
@@ -123,7 +123,7 @@ u16 Auth::userPort() const
     return m_userPort;
 }
 
-void Auth::setUserPort(const u16 &userPort)
+void Auth::setUserPort(u16 userPort)
 {
     m_userPort = userPort;
 }
@@ -143,7 +143,7 @@ u16 Auth::slavePort() const
     return m_slavePort;
 }
 
-void Auth::setSlavePort(const u16 &slavePort)
+void Auth::setSlavePort(u16 slavePort)
 {
     m_slavePort = slavePort;
 }
@@ -163,7 +163,7 @@ u32 Auth::capacity() const
     return m_capacity;
 }
 
-void Auth::setCapacity(const u32 &capacity)
+void Auth::setCapacity(u32 capacity)
 {
     m_capacity = capacity;
 }
@@ -249,7 +249,7 @@ u64 AuthResponse::authPassword() const
     return m_authPassword;
 }
 
-void AuthResponse::setAuthPassword(const u64 &authPassword)
+void AuthResponse::setAuthPassword(u64 authPassword)
 {
     m_authPassword = authPassword;
 }

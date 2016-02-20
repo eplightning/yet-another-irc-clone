@@ -40,7 +40,7 @@ public:
     void setId(u32 id);
 
     u64 authPassword() const;
-    void setAuthPassword(const u64 &authPassword);
+    void setAuthPassword(u64 authPassword);
 
 protected:
     Status m_status;
@@ -129,25 +129,25 @@ public:
     void setName(const String &name);
 
     Mode mode() const;
-    void setMode(const Mode &mode);
+    void setMode(Mode mode);
 
     const String &userAddress() const;
     void setUserAddress(const String &userAddress);
 
     u16 userPort() const;
-    void setUserPort(const u16 &userPort);
+    void setUserPort(u16 userPort);
 
     const String &slaveAddress() const;
     void setSlaveAddress(const String &slaveAddress);
 
     u16 slavePort() const;
-    void setSlavePort(const u16 &slavePort);
+    void setSlavePort(u16 slavePort);
 
     const String &plaintextPassword() const;
     void setPlaintextPassword(const String &plaintextPassword);
 
     u32 capacity() const;
-    void setCapacity(const u32 &capacity);
+    void setCapacity(u32 capacity);
 
 protected:
     String m_name;

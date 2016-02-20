@@ -8,12 +8,10 @@
 
 YAIC_NAMESPACE
 
-#pragma pack(push, 1)
 struct PacketHeader {
     u16 type;
     u32 payloadSize;
 };
-#pragma pack(pop)
 
 class Packet {
 public:
@@ -33,7 +31,6 @@ public:
         Unknown = 7
     };
 
-    // TODO: Trzeba pamiętać o dodaniu tego do factory
     enum class Type : u16 {
         Unknown = 0,
 
