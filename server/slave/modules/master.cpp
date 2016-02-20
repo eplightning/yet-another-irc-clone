@@ -235,22 +235,20 @@ void MasterModule::tcpReceive(u32 clientid, PacketHeader header, const Vector<ch
     m_context->eventQueue->append(new EventPacket(packet, clientid, SLAVE_APP_SOURCE_MASTER));
 }
 
-bool MasterModule::heartbeatHandler(int timer)
+void MasterModule::heartbeatHandler(int timer)
 {
     UNUSED(timer);
 
     SharedPtr<Client> master = get();
 
     if (!master)
-        return false;
+        return;
 
     MasterSlavePackets::SlaveHeartbeat packet(m_context->user->load());
     m_context->tcp->sendTo(master, &packet);
-
-    return true;
 }
 
-bool MasterModule::timeoutHandler(int timer)
+void MasterModule::timeoutHandler(int timer)
 {
     UNUSED(timer);
 
@@ -264,11 +262,9 @@ bool MasterModule::timeoutHandler(int timer)
         MutexLock lock(m_masterMutex);
         m_context->tcp->disconnect(m_master, true);
     }
-
-    return true;
 }
 
-bool MasterModule::authResponse(u32 clientid, Packet *packet)
+void MasterModule::authResponse(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
 
@@ -279,7 +275,7 @@ bool MasterModule::authResponse(u32 clientid, Packet *packet)
                        << "Master server refused authentication request: " << static_cast<u32>(response->status())
                        << Logger::Line::End;
 
-        return true;
+        return;
     }
 
     m_ourSlaveId = response->id();
@@ -299,11 +295,9 @@ bool MasterModule::authResponse(u32 clientid, Packet *packet)
     }
 
     m_context->log->message("Master server accepted authentication request");
-
-    return true;
 }
 
-bool MasterModule::syncEnd(u32 clientid, Packet *packet)
+void MasterModule::syncEnd(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
     UNUSED(packet);
@@ -311,8 +305,6 @@ bool MasterModule::syncEnd(u32 clientid, Packet *packet)
     m_synced.store(true);
 
     m_context->log->message("Synchronization finished");
-
-    return true;
 }
 
 END_NAMESPACE

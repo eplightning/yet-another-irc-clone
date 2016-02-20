@@ -98,13 +98,13 @@ protected:
     void tcpState(u32 clientid, TcpClientState state, int error);
     void tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data);
 
-    bool heartbeatHandler(int timer);
-    bool timeoutHandler(int timer);
+    void heartbeatHandler(int timer);
+    void timeoutHandler(int timer);
 
-    bool updateLoad(u32 clientid, Packet *packet);
-    bool auth(u32 clientid, Packet *packet);
-    bool syncStart(u32 clientid, Packet *packet);
-    bool newAck(u32 clientid, Packet *packet);
+    void updateLoad(u32 clientid, Packet *packet);
+    void auth(u32 clientid, Packet *packet);
+    void syncStart(u32 clientid, Packet *packet);
+    void newAck(u32 clientid, Packet *packet);
 
     Context *m_context;
     SlaveModuleConfig m_config;

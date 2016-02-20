@@ -51,9 +51,9 @@ protected:
     void tcpState(u32 clientid, TcpClientState state, int error);
     void tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data);
 
-    bool timeoutHandler(int timer);
+    void timeoutHandler(int timer);
 
-    bool serversRequest(u32 clientid, Packet *packet);
+    void serversRequest(u32 clientid, Packet *packet);
 
     SharedPtr<User> getUser(u32 clientid);
 

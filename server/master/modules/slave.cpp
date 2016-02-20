@@ -415,7 +415,7 @@ void SlaveModule::tcpReceive(u32 clientid, PacketHeader header, const Vector<cha
     m_context->eventQueue->append(new EventPacket(packet, clientid, MASTER_APP_SOURCE_SLAVE));
 }
 
-bool SlaveModule::heartbeatHandler(int timer)
+void SlaveModule::heartbeatHandler(int timer)
 {
     UNUSED(timer);
 
@@ -433,11 +433,9 @@ bool SlaveModule::heartbeatHandler(int timer)
     MasterSlavePackets::MasterHeartbeat packet;
 
     m_context->tcp->sendTo(clients, &packet);
-
-    return true;
 }
 
-bool SlaveModule::timeoutHandler(int timer)
+void SlaveModule::timeoutHandler(int timer)
 {
     UNUSED(timer);
 
@@ -457,34 +455,30 @@ bool SlaveModule::timeoutHandler(int timer)
             m_context->tcp->disconnect(x.second->client(), true);
         }
     }
-
-    return true;
 }
 
-bool SlaveModule::updateLoad(u32 clientid, Packet *packet)
+void SlaveModule::updateLoad(u32 clientid, Packet *packet)
 {
     MutexLock lock(m_slavesMutex);
 
     auto it = m_slaves.find(clientid);
 
     if (it == m_slaves.end())
-        return false;
+        return;
 
     MasterSlavePackets::SlaveHeartbeat *heartbeat = static_cast<MasterSlavePackets::SlaveHeartbeat*>(packet);
 
     it->second->setConnections(heartbeat->connections());
-
-    return true;
 }
 
-bool SlaveModule::auth(u32 clientid, Packet *packet)
+void SlaveModule::auth(u32 clientid, Packet *packet)
 {
     MutexLock lock(m_slavesMutex);
 
     auto it = m_slaves.find(clientid);
 
     if (it == m_slaves.end() || it->second->state() != SSUnauthed)
-        return false;
+        return;
 
     SlaveServer *srv = it->second.get();
 
@@ -504,7 +498,7 @@ bool SlaveModule::auth(u32 clientid, Packet *packet)
                        << "Slave not authenticated: [ID: " << srv->id() << "] (Invalid auth mode)"
                        << Logger::Line::End;
 
-        return false;
+        return;
     } else if (m_config.authMode == MasterSlavePackets::Auth::Mode::Plaintext) {
         if (m_config.plainTextPassword != request->plaintextPassword()) {
             MasterSlavePackets::AuthResponse response;
@@ -519,7 +513,7 @@ bool SlaveModule::auth(u32 clientid, Packet *packet)
                            << "Slave not authenticated: [ID: " << srv->id() << "] (Invalid password)"
                            << Logger::Line::End;
 
-            return false;
+            return;
         }
     }
 
@@ -542,11 +536,9 @@ bool SlaveModule::auth(u32 clientid, Packet *packet)
     m_context->log << Logger::Line::Start
                    << "Slave authenticated: [ID: " << srv->id() << ", Name: " << srv->name() << "]"
                    << Logger::Line::End;
-
-    return true;
 }
 
-bool SlaveModule::syncStart(u32 clientid, Packet *packet)
+void SlaveModule::syncStart(u32 clientid, Packet *packet)
 {
     UNUSED(packet);
 
@@ -554,7 +546,7 @@ bool SlaveModule::syncStart(u32 clientid, Packet *packet)
 
     auto it = m_slaves.find(clientid);
     if (it == m_slaves.end() || it->second->state() != SSAuthed)
-        return false;
+        return;
 
     Vector<SharedPtr<Client>*> clients;
 
@@ -595,25 +587,23 @@ bool SlaveModule::syncStart(u32 clientid, Packet *packet)
                        << "Slave starting synchronization: [ID: " << it->second->id() << ", Name: " << it->second->name() << "]"
                        << Logger::Line::End;
     }
-
-    return true;
 }
 
-bool SlaveModule::newAck(u32 clientid, Packet *packet)
+void SlaveModule::newAck(u32 clientid, Packet *packet)
 {
     MutexLock lock(m_slavesMutex);
 
     auto it = m_slaves.find(clientid);
 
     if (it == m_slaves.end() || it->second->state() == SSAuthed || it->second->state() == SSUnauthed)
-        return false;
+        return;
 
     MasterSlavePackets::NewAck *request = static_cast<MasterSlavePackets::NewAck*>(packet);
 
     // find syncing slave
     auto it2 = m_slaves.find(request->id());
     if (it2 == m_slaves.end() || it2->second->state() != SSSyncing)
-        return false;
+        return;
 
     m_context->log << Logger::Line::Start
                    << "Old slave acknowledged new slave: [Old ID: " << it->second->id() << ", New ID: " << it2->second->id() << "]"
@@ -636,8 +626,6 @@ bool SlaveModule::newAck(u32 clientid, Packet *packet)
     } else {
         it3->second--;
     }
-
-    return true;
 }
 
 

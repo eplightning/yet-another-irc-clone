@@ -57,15 +57,15 @@ protected:
     void tcpState(u32 clientid, TcpClientState state, int error);
     void tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data);
 
-    bool heartbeatHandler(int timer);
-    bool timeoutHandler(int timer);
+    void heartbeatHandler(int timer);
+    void timeoutHandler(int timer);
 
-    bool handshake(u32 clientid, Packet *packet);
-    bool channelList(u32 clientid, Packet *packet);
-    bool joinChannel(u32 clientid, Packet *packet);
-    bool partChannel(u32 clientid, Packet *packet);
-    bool messageChannel(u32 clientid, Packet *packet);
-    bool privateMessage(u32 clientid, Packet *packet);
+    void handshake(u32 clientid, Packet *packet);
+    void channelList(u32 clientid, Packet *packet);
+    void joinChannel(u32 clientid, Packet *packet);
+    void partChannel(u32 clientid, Packet *packet);
+    void messageChannel(u32 clientid, Packet *packet);
+    void privateMessage(u32 clientid, Packet *packet);
 
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;

@@ -165,7 +165,7 @@ bool UserModule::initTimeout()
     return true;
 }
 
-bool UserModule::timeoutHandler(int timer)
+void UserModule::timeoutHandler(int timer)
 {
     UNUSED(timer);
 
@@ -185,8 +185,6 @@ bool UserModule::timeoutHandler(int timer)
             m_context->tcp->disconnect(x.second->client(), true);
         }
     }
-
-    return true;
 }
 
 void UserModule::tcpState(uint clientid, TcpClientState state, int error)
@@ -242,11 +240,11 @@ void UserModule::tcpReceive(uint clientid, PacketHeader header, const Vector<cha
     m_context->eventQueue->append(new EventPacket(packet, clientid, MASTER_APP_SOURCE_USER));
 }
 
-bool UserModule::serversRequest(uint clientid, Packet *packet)
+void UserModule::serversRequest(uint clientid, Packet *packet)
 {
     SharedPtr<User> user = getUser(clientid);
     if (!user)
-        return false;
+        return;
 
     MasterUserPackets::RequestServers *request = static_cast<MasterUserPackets::RequestServers*>(packet);
 
@@ -271,8 +269,6 @@ bool UserModule::serversRequest(uint clientid, Packet *packet)
     m_context->log << Logger::Line::Start
                    << "Server list request served [ID: " << clientid << "]"
                    << Logger::Line::End;
-
-    return true;
 }
 
 END_NAMESPACE

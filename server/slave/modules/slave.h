@@ -83,14 +83,14 @@ protected:
     void establishConnection(SharedPtr<SlaveServer> &slave);
     void synchronize(SharedPtr<Client> &client);
 
-    bool heartbeatHandler(int timer);
-    bool timeoutHandler(int timer);
-    bool reconnectHandler(int timer);
+    void heartbeatHandler(int timer);
+    void timeoutHandler(int timer);
+    void reconnectHandler(int timer);
 
-    bool newSlave(u32 clientid, Packet *packet);
-    bool removeSlave(u32 clientid, Packet *packet);
-    bool hello(u32 clientid, Packet *packet);
-    bool helloResponse(u32 clientid, Packet *packet);
+    void newSlave(u32 clientid, Packet *packet);
+    void removeSlave(u32 clientid, Packet *packet);
+    void hello(u32 clientid, Packet *packet);
+    void helloResponse(u32 clientid, Packet *packet);
 
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;

@@ -429,7 +429,7 @@ void SlaveModule::synchronize(SharedPtr<Client> &client)
     m_context->user->syncSlave(client);
 }
 
-bool SlaveModule::heartbeatHandler(int timer)
+void SlaveModule::heartbeatHandler(int timer)
 {
     UNUSED(timer);
 
@@ -449,11 +449,9 @@ bool SlaveModule::heartbeatHandler(int timer)
     SlaveSlavePackets::Heartbeat packet;
 
     m_context->tcp->sendTo(clients, &packet);
-
-    return true;
 }
 
-bool SlaveModule::timeoutHandler(int timer)
+void SlaveModule::timeoutHandler(int timer)
 {
     UNUSED(timer);
 
@@ -479,11 +477,9 @@ bool SlaveModule::timeoutHandler(int timer)
             }
         }
     }
-
-    return true;
 }
 
-bool SlaveModule::reconnectHandler(int timer)
+void SlaveModule::reconnectHandler(int timer)
 {
     UNUSED(timer);
 
@@ -505,20 +501,18 @@ bool SlaveModule::reconnectHandler(int timer)
 
         establishConnection(srv);
     }
-
-    return true;
 }
 
-bool SlaveModule::newSlave(u32 clientid, Packet *packet)
+void SlaveModule::newSlave(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
 
     if (!m_context->master->isAuthed())
-        return false;
+        return;
 
     SharedPtr<Client> master = m_context->master->get();
     if (!master)
-        return false;
+        return;
 
     MasterSlavePackets::NewSlave *request = static_cast<MasterSlavePackets::NewSlave*>(packet);
 
@@ -531,16 +525,14 @@ bool SlaveModule::newSlave(u32 clientid, Packet *packet)
     }
 
     establishConnection(srv);
-
-    return true;
 }
 
-bool SlaveModule::removeSlave(u32 clientid, Packet *packet)
+void SlaveModule::removeSlave(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
 
     if (!m_context->master->isAuthed())
-        return false;
+        return;
 
     MasterSlavePackets::RemoveSlave *request = static_cast<MasterSlavePackets::RemoveSlave*>(packet);
 
@@ -551,7 +543,7 @@ bool SlaveModule::removeSlave(u32 clientid, Packet *packet)
         auto it = m_slaves.find(request->id());
 
         if (it == m_slaves.end())
-            return true;
+            return;
 
         srv = it->second;
 
@@ -568,22 +560,20 @@ bool SlaveModule::removeSlave(u32 clientid, Packet *packet)
                    << "Slave removed, as requested by the master server: [ID: " << request->id() << ", Name: "
                    << srv->name() << "]"
                    << Logger::Line::End;
-
-    return true;
 }
 
-bool SlaveModule::hello(u32 clientid, Packet *packet)
+void SlaveModule::hello(u32 clientid, Packet *packet)
 {
     SharedPtr<Client> master = m_context->master->get();
     if (!master)
-        return false;
+        return;
 
     if (!m_context->master->isAuthed())
-        return false;
+        return;
 
     SharedPtr<Client> client = connection(clientid);
     if (!client)
-        return false;
+        return;
 
     SlaveSlavePackets::Hello *request = static_cast<SlaveSlavePackets::Hello*>(packet);
 
@@ -592,7 +582,7 @@ bool SlaveModule::hello(u32 clientid, Packet *packet)
                        << "Slave hello refused: [ID: " << request->id() << "]: Invalid auth password"
                        << Logger::Line::End;
 
-        return false;
+        return;
     }
 
     bool synchronizeNeeded = false;
@@ -608,7 +598,7 @@ bool SlaveModule::hello(u32 clientid, Packet *packet)
                                << "Slave hello refused: [ID: " << request->id() << "]: Hello reconnect from not elder"
                                << Logger::Line::End;
 
-                return false;
+                return;
             } else {
                 synchronizeNeeded = true;
                 it->second->replaceClient(client);
@@ -628,36 +618,34 @@ bool SlaveModule::hello(u32 clientid, Packet *packet)
 
     if (synchronizeNeeded)
         synchronize(client);
-
-    return true;
 }
 
-bool SlaveModule::helloResponse(u32 clientid, Packet *packet)
+void SlaveModule::helloResponse(u32 clientid, Packet *packet)
 {
     UNUSED(packet);
 
     SharedPtr<Client> master = m_context->master->get();
     if (!master)
-        return false;
+        return;
 
     if (!m_context->master->isAuthed())
-        return false;
+        return;
 
     SharedPtr<Client> client = connection(clientid);
     if (!client)
-        return false;
+        return;
 
     SlaveSlavePackets::HelloResponse *request = static_cast<SlaveSlavePackets::HelloResponse*>(packet);
 
     if (request->authPassword() != m_context->master->authPassword())
-        return false;
+        return;
 
     SharedPtr<SlaveServer> slave = get(request->id());
     if (!slave)
-        return false;
+        return;
 
     if (slave->isElder())
-        return false;
+        return;
 
     slave->replaceClient(client);
 
@@ -669,8 +657,6 @@ bool SlaveModule::helloResponse(u32 clientid, Packet *packet)
     m_context->log << Logger::Line::Start
                    << "Slave acknowledged: " << slave->id()
                    << Logger::Line::End;
-
-    return true;
 }
 
 END_NAMESPACE

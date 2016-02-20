@@ -18,8 +18,7 @@ void PacketDispatcher::dispatch(u32 clientid, Packet *packet) const
         return;
 
     for (auto &x : it->second)
-        if (!x(clientid, packet))
-            break;
+        x(clientid, packet);
 }
 
 void PacketDispatcher::append(Packet::Type packet, const PacketDispatcher::DispatchFunction &func)
@@ -47,8 +46,7 @@ void TimerDispatcher::dispatch(int timer) const
         return;
 
     for (auto &x : it->second)
-        if (!x(timer))
-            break;
+        x(timer);
 }
 
 void TimerDispatcher::append(int timer, const TimerDispatcher::DispatchFunction &func)

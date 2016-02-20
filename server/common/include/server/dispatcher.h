@@ -12,7 +12,7 @@ YAIC_NAMESPACE
 
 class PacketDispatcher {
 public:
-    typedef std::function<bool(u32 clientid, Packet *packet)> DispatchFunction;
+    typedef std::function<void(u32 clientid, Packet *packet)> DispatchFunction;
 
     PacketDispatcher();
 
@@ -26,7 +26,7 @@ protected:
 
 class TimerDispatcher {
 public:
-    typedef std::function<bool(int timer)> DispatchFunction;
+    typedef std::function<void(int timer)> DispatchFunction;
 
     TimerDispatcher();
 
