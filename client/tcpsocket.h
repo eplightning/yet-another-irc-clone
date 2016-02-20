@@ -30,6 +30,7 @@ public:
 signals:
     void serversRead(MasterUserPackets::ServerList *p);
     void handshakeAck(SlaveUserPackets::HandshakeAck *p);
+    void channels(SlaveUserPackets::Channels *p);
 
 public slots:
     void readyRead();

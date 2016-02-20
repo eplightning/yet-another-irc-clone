@@ -35,6 +35,7 @@ private slots:
     void on_channelList_doubleClicked(const QModelIndex &index);
     void on_serverListRead(MasterUserPackets::ServerList *p);
     void on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p);
+    void on_channelsReceived(SlaveUserPackets::Channels *p);
     void on_serverChanged();
 
 private:

@@ -78,6 +78,8 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
         {
             QObject::connect(slave, SIGNAL(handshakeAck(SlaveUserPackets::HandshakeAck*)),
                                   this, SLOT(on_handshakeAckCome(SlaveUserPackets::HandshakeAck*)));
+            QObject::connect(slave, SIGNAL(channels(SlaveUserPackets::Channels*)),
+                                  this, SLOT(on_channelsReceived(SlaveUserPackets::Channels*)));
             SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
             a->setNick(userName.toStdString());
             slave->write(a);
@@ -119,15 +121,8 @@ void MainWindow::on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p)
 
 void MainWindow::on_channelJoiningButton_clicked()
 {
-    //TODO - here only sending a channel list request
-    QList<QString> a;
-    a.append("a");
-    a.append("b");
-
-    ChannelJoiningDialog channelJoin;
-    channelJoin.setItems(a);
-    channelJoin.setModal(true);
-    channelJoin.exec();
+    SlaveUserPackets::ListChannels *channels = new SlaveUserPackets::ListChannels();
+    slave->write(channels);
 }
 
 void MainWindow::on_serverChanged()
@@ -140,6 +135,29 @@ void MainWindow::on_serverChanged()
     }
     delete slave;
     connectWithServer();
+}
+
+void MainWindow::on_channelsReceived(SlaveUserPackets::Channels *p)
+{
+    Vector<String> channels = p->channels();
+    QList<QString> qChannels;
+
+    for (int i=0; i<channels.size(); i++)
+    {
+        qChannels.push_back(QString::fromStdString(channels[i]));
+    }
+    ChannelJoiningDialog channelJoin;
+    channelJoin.setItems(qChannels);
+    channelJoin.setModal(true);
+    if(!channelJoin.exec())
+    {
+        QString channel = channelJoin.getChoosenChannel();
+        if(channel != nullptr)
+        {
+            SlaveUserPackets::JoinChannel *packet = new SlaveUserPackets::JoinChannel(channel.toStdString());
+            slave->write(packet);
+        }
+    }
 }
 
 //Set all channels in channelList

@@ -124,6 +124,9 @@ void tcpSocket::readyRead()
                             case Packet::Type::HandshakeAck:
                                 emit handshakeAck(static_cast<SlaveUserPackets::HandshakeAck*>(a));
                                 break;
+                            case Packet::Type::Channels:
+                                emit channels(static_cast<SlaveUserPackets::Channels*>(a));
+                                break;
                             default:
                                 //doSth
                                 break;
