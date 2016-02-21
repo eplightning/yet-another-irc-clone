@@ -114,6 +114,7 @@ void tcpSocket::readyRead()
                     if (a != nullptr)
                     {
                         lastReceivedPacketTime = QDateTime::currentDateTime();
+
                         switch (a->packetType())
                         {
                             case Packet::Type::ServerList:
@@ -146,14 +147,13 @@ void tcpSocket::readyRead()
 
 void tcpSocket::sendHeartbeat()
 {
-    SlaveUserPackets::UserHeartbeat *a = new SlaveUserPackets::UserHeartbeat();
-    write(a);
-    delete a;
+    SlaveUserPackets::UserHeartbeat a;
+    write(&a);
 }
 
 void tcpSocket::heartbeatTimeExpired()
 {
-    if ((lastReceivedPacketTime.toTime_t() - QDateTime::currentDateTime().toTime_t()) > (10 * 1000))
+    if (lastReceivedPacketTime.secsTo(QDateTime::currentDateTime()) > 10)
     {
         disconnect();
         qDebug() << "Rozłączyło mnie";
