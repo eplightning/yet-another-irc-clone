@@ -1,7 +1,7 @@
 #include "channelconversation.h"
 
 ChannelConversation::ChannelConversation(u64 id, QString name, QStandardItemModel *channelListModel, QVector<SlaveUserPackets::ChanUser> users):
-    Conversation("[CH]", name, channelListModel)
+    Conversation("#", name, channelListModel)
 {
     this->id = id;
     this->users = users;
