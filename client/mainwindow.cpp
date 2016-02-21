@@ -348,7 +348,7 @@ void MainWindow::on_channelMessage(SlaveUserPackets::ChannelMessage *p)
 void MainWindow::on_channelUserJoined(SlaveUserPackets::ChannelUserJoined *p)
 {
     qDebug() << channelList[0]->getId();
-    //qDebug() << p->channel();
+    qDebug() << p->channel();
     for (int i = 0; i < channelList.size(); i++)
     {
         if (channelList[i]->getId() == p->channel())
