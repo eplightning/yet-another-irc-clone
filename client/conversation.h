@@ -21,13 +21,13 @@ public:
     void setUnread();
     void addMessage(QString author, QString messageText);
     void userDisconnectedMessage(QString userName);
+    void removeFromList();
 
 signals:
 
 public slots:
 
-private:
-
+protected:
     QString name;
     QString prefix;
     QString text;

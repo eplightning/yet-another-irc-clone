@@ -32,6 +32,7 @@ signals:
     void handshakeAck(SlaveUserPackets::HandshakeAck *p);
     void channels(SlaveUserPackets::Channels *p);
     void channelJoined(SlaveUserPackets::ChannelJoined *p);
+    void channelParted(SlaveUserPackets::ChannelParted *p);
 
 public slots:
     void readyRead();

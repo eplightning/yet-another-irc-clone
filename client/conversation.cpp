@@ -8,7 +8,7 @@ Conversation::Conversation(QString prefix, QString name, QStandardItemModel *cha
 
     this->text = "";
 
-    this->item = new QStandardItem;
+    this->item = new QStandardItem();
     item->setData(getFullName(), Qt::DisplayRole);
     item->setEditable(false);
     channelListModel->appendRow(item);
@@ -34,4 +34,14 @@ void Conversation::addMessage(QString author, QString messageText)
 QString Conversation::getFullName()
 {
     return prefix + " " + name;
+}
+
+QString Conversation::getName()
+{
+    return name;
+}
+
+void Conversation::removeFromList()
+{
+    channelListModel->removeRow(channelListModel->indexFromItem(item).row());
 }
