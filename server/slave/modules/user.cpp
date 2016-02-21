@@ -486,6 +486,7 @@ void UserModule::joinChannel(u32 clientid, Packet *packet)
             notification.user().flags = 0;
             notification.user().id = user->id();
             notification.user().nick = user->nick();
+            notification.setChannel(chan->id());
 
             Vector<SharedPtr<Client>*> clients;
 
@@ -520,7 +521,7 @@ void UserModule::joinChannel(u32 clientid, Packet *packet)
 
     m_context->log << Logger::Line::Start
                    << "Channel join handled [From: " << user->nick() << ", To: "
-                   << chan->name() << ", Local: " << chan->isLocal() << "]"
+                   << chan->name() << " (" << chan->id() << "), Local: " << chan->isLocal() << "]"
                    << Logger::Line::End;
 
     // TODO: Slave
