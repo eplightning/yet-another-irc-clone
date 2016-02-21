@@ -1,8 +1,9 @@
 #include "channelconversation.h"
 
-ChannelConversation::ChannelConversation(u64 id, QString name, QStandardItemModel *channelListModel, QVector<SlaveUserPackets::ChanUser> users):
+ChannelConversation::ChannelConversation(u64 id, QString name, QStandardItemModel *channelListModel, QVector<SlaveUserPackets::ChanUser> users, s32 flags):
     Conversation("#", name, channelListModel)
 {
+    this->flags = flags;
     this->id = id;
     this->users = users;
 }
@@ -60,14 +61,13 @@ QVector<SlaveUserPackets::ChanUser> ChannelConversation::getUsers()
     return users;
 }
 
-SlaveUserPackets::ChanUser ChannelConversation::getUser(int position)
+SlaveUserPackets::ChanUser* ChannelConversation::getUser(int position)
 {
     if (position < users.size())
     {
-        return users[position];
+        return &users[position];
     }
-        return users[0];
-        //TODO - popraw to na zwracanie jakiegoś nulla
+    return nullptr;
 }
 
 bool ChannelConversation::containsUser(u64 id)
@@ -77,4 +77,26 @@ bool ChannelConversation::containsUser(u64 id)
         return true;
     }
     return false;
+}
+
+void ChannelConversation::setFlagsToUser(u64 userId, u32 flags)
+{
+    for (int i = 0; i < users.size(); i++)
+    {
+        if (users[i].id == userId)
+        {
+            users[i].flags = flags;
+        }
+    }
+}
+
+void ChannelConversation::updateUserName(u64 userId, String nick)
+{
+    for (int i = 0; i < users.size(); i++)
+    {
+        if (users[i].id == userId)
+        {
+            users[i].nick = nick;
+        }
+    }
 }

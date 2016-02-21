@@ -16,19 +16,20 @@ Conversation::Conversation(QString prefix, QString name, QStandardItemModel *cha
 
 void Conversation::setRead()
 {
-    QFont serifFont("Sans", 10, QFont::Normal);
+    QFont serifFont("Sans", 9, QFont::Normal);
     item->setFont(serifFont);
 }
 
 void Conversation::setUnread()
 {
-    QFont serifFont("Sans", 10, QFont::Bold);
+    QFont serifFont("Sans", 9, QFont::Bold);
     item->setFont(serifFont);
 }
 
 void Conversation::addMessage(QString author, QString messageText)
 {
     text += "<b>" + author + "</b><br>" + messageText + "<br>";
+    setUnread();
 }
 
 QString Conversation::getFullName()
@@ -59,4 +60,5 @@ QString Conversation::getPrefix()
 void Conversation::addServerMessage(QString messageText)
 {
     text += "<i>" + messageText + "</i><br>";
+    setUnread();
 }

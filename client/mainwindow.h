@@ -46,6 +46,8 @@ private slots:
     void on_channelUserJoined(SlaveUserPackets::ChannelUserJoined *p);
     void on_channelUserParted(SlaveUserPackets::ChannelUserParted *p);
     void on_userDisconnected(SlaveUserPackets::UserDisconnected *p);
+    void on_channelUserUpdated(SlaveUserPackets::ChannelUserUpdated *p);
+    void on_userUpdated(SlaveUserPackets::UserUpdated *p);
 
 private:
     Ui::MainWindow *ui;

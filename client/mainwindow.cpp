@@ -51,13 +51,14 @@ void MainWindow::on_sendingButton_clicked()
     {
         //TODO add with PM
     }
+    selectedConversation->setRead();
 }
 
 void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
 {
     QString inChannel = channelListModel->itemFromIndex(index)->text();
 
-    if(inChannel == "Komunikaty Serwera")
+    if (inChannel == "Komunikaty Serwera")
     {
         ui->chatEditBox->setEnabled(false);
         ui->sendingButton->setEnabled(false);
@@ -74,9 +75,9 @@ void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
                 selectedConversation = channelList[i];
             }
         }
-
         //TODO - add for PM
     }
+    selectedConversation->setRead();
     refreshUserList();
     refreshChatBox();
 }
@@ -110,6 +111,10 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
                                   this, SLOT(on_channelUserParted(SlaveUserPackets::ChannelUserParted*)));
             QObject::connect(slave, SIGNAL(userDisconnected(SlaveUserPackets::UserDisconnected*)),
                                   this, SLOT(on_userDisconnected(SlaveUserPackets::UserDisconnected*)));
+            QObject::connect(slave, SIGNAL(channelUserUpdated(SlaveUserPackets::ChannelUserUpdated*)),
+                                  this, SLOT(on_channelUserUpdated(SlaveUserPackets::ChannelUserUpdated*)));
+            QObject::connect(slave, SIGNAL(userUpdated(SlaveUserPackets::UserUpdated*)),
+                                  this, SLOT(on_userUpdated(SlaveUserPackets::UserUpdated*)));
 
             SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
             a->setNick(userName.toStdString());
@@ -125,7 +130,6 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
 
 void MainWindow::on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p)
 {
-
     switch (p->status())
     {
         case SlaveUserPackets::HandshakeAck::Status::Ok:
@@ -184,19 +188,18 @@ void MainWindow::on_channelsReceived(SlaveUserPackets::Channels *p)
 
 void MainWindow::on_channelJoined(SlaveUserPackets::ChannelJoined *p)
 {
-    //TODO add flags
     switch(p->status())
     {
         case SlaveUserPackets::ChannelJoined::Status::Ok:
         {
             ChannelConversation *conversation = new ChannelConversation(p->id(), QString::fromStdString(p->name()),
-                                                                        channelListModel, QVector<SlaveUserPackets::ChanUser>::fromStdVector(p->users()));
+                                                                        channelListModel, QVector<SlaveUserPackets::ChanUser>::fromStdVector(p->users()), p->userFlags());
             channelList.push_back(conversation);
             break;
         }
         case SlaveUserPackets::ChannelJoined::Status::UnknownError:
         {
-            serverConversation->addMessage("Nie udało się dołączyć do kanału: "+QString::fromStdString(p->name()));
+            serverConversation->addMessage("Nie udało się dołączyć do kanału: " + QString::fromStdString(p->name()));
             refreshChatBox();
             break;
         }
@@ -307,7 +310,7 @@ void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
                     break;
             }
 
-            if(selectedConversation->getFullName() == channelList[index]->getFullName())
+            if (selectedConversation->getFullName() == channelList[index]->getFullName())
             {
                 selectedConversation = nullptr;
                 refreshChatBox();
@@ -390,9 +393,8 @@ void MainWindow::addItemToUserList(QString str)
 void MainWindow::refreshUserList()
 {
     userListModel->clear();
-    if(selectedConversation != nullptr)
+    if (selectedConversation != nullptr)
     {
-
         if (selectedConversation->getPrefix() == "#")
         {
             for (int i = 0; i < channelList.size(); i++)
@@ -401,7 +403,7 @@ void MainWindow::refreshUserList()
                 {
                     for (int j = 0; j < channelList[i]->getUsers().size(); j++)
                     {
-                        addItemToUserList(QString::fromStdString(channelList[i]->getUser(j).nick));
+                        addItemToUserList(QString::fromStdString(channelList[i]->getUser(j)->nick));
                     }
                 }
             }
@@ -433,6 +435,40 @@ void MainWindow::on_userDisconnected(SlaveUserPackets::UserDisconnected *p)
             channelList[i]->delUser(p->id());
         }
     }
+    //TODO - same for PM
+    refreshUserList();
+    refreshChatBox();
+}
+
+void MainWindow::on_channelUserUpdated(SlaveUserPackets::ChannelUserUpdated *p)
+{
+    //TODO - add message when needed
+    for (int i = 0; i < channelList.size(); i++)
+    {
+        if (channelList[i]->getId() == p->channel())
+        {
+            for (int j = 0; j < channelList[i]->getUsers().size(); j++)
+            {
+                channelList[i]->setFlagsToUser(p->user(), p->flags());
+            }
+            //channelList[i]->addServerMessage("Użytkownik " + QString::fromStdString(p->user().nick) + " dołączył do konwersacji.");
+        }
+    }
+    refreshUserList();
+    //refreshChatBox();
+}
+
+void MainWindow::on_userUpdated(SlaveUserPackets::UserUpdated *p)
+{
+    for (int i = 0; i < channelList.size(); i++)
+    {
+        if (channelList[i]->containsUser(p->id()))
+        {
+            channelList[i]->addServerMessage("Użytkownik " + channelList[i]->getUserName(p->id()) + " zmienił nick na: " + QString::fromStdString(p->nick()));
+            channelList[i]->updateUserName(p->id(), p->nick());
+        }
+    }
+    //TODO - same for PM
     refreshUserList();
     refreshChatBox();
 }

@@ -37,6 +37,8 @@ signals:
     void channelUserJoined(SlaveUserPackets::ChannelUserJoined *p);
     void channelUserPatred(SlaveUserPackets::ChannelUserParted *p);
     void userDisconnected(SlaveUserPackets::UserDisconnected *p);
+    void channelUserUpdated(SlaveUserPackets::ChannelUserUpdated *p);
+    void userUpdated(SlaveUserPackets::UserUpdated *p);
 
 public slots:
     void readyRead();

@@ -33,7 +33,6 @@ void Dialog::on_connectButton_clicked()
 {
     if ((!ui->serverIPEdit->text().isEmpty()) && (!ui->userNameEdit->text().isEmpty()) && (!ui->serverPortEdit->text().isEmpty()))
     {
-        userName = ui->userNameEdit->text();
         serverIP = ui->serverIPEdit->text();
 
         bool isPortInt;
@@ -45,10 +44,24 @@ void Dialog::on_connectButton_clicked()
             messageBox.setFixedSize(500,200);
             return;
         }
+        QRegExp userNameValidation("\\b[A-Z0-9_]*\\b");
+        userNameValidation.setCaseSensitivity(Qt::CaseInsensitive);
+        userNameValidation.setPatternSyntax(QRegExp::RegExp);
+        if (userNameValidation.exactMatch(ui->userNameEdit->text()))
+        {
+                    userName = ui->userNameEdit->text();
+        }
+        else
+        {
+            QMessageBox messageBox;
+            messageBox.critical(0,"Uwaga","Nazwa użytkownika może zawierać tylko litery a-z dowolnej wielkości, cyfry oraz znak '_'.");
+            messageBox.setFixedSize(500,200);
+            return;
+        }
         close();
     }
     else
-    {
+    {      
         QMessageBox messageBox;
         messageBox.critical(0,"Uwaga","Żadne z pól nie może być puste!");
         messageBox.setFixedSize(500,200);

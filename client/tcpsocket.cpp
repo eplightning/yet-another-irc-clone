@@ -46,7 +46,7 @@ void tcpSocket::disconnect()
 {
     socket->close();
     connected = false;
-    if(dir == Packet::Direction::SlaveToUser)
+    if (dir == Packet::Direction::SlaveToUser)
     {
         timerUserHeartbeat->stop();
         timerSlaveHeartbeat->stop();
@@ -146,6 +146,12 @@ void tcpSocket::readyRead()
                                 break;
                             case Packet::Type::UserDisconnected:
                                 emit userDisconnected(static_cast<SlaveUserPackets::UserDisconnected*>(a));
+                                break;
+                            case Packet::Type::ChannelUserUpdated:
+                                emit channelUserUpdated(static_cast<SlaveUserPackets::ChannelUserUpdated*>(a));
+                                break;
+                            case Packet::Type::UserUpdated:
+                                emit userUpdated(static_cast<SlaveUserPackets::UserUpdated*>(a));
                                 break;
                             default:
                                 break;
