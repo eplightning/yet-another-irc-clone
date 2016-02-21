@@ -66,7 +66,7 @@ void LoggerStdout::print(double floating)
     std::cout << floating;
 }
 
-void LoggerStdout::print(bool flag)
+void LoggerStdout::printBool(bool flag)
 {
     if (flag)
         std::cout << "Yes";

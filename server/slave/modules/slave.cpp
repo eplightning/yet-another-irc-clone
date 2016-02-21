@@ -196,7 +196,7 @@ u16 SlaveModule::publicPort() const
     return m_config.publicPort;
 }
 
-SharedPtr<SlaveServer> SlaveModule::getSlaveByClientId(u32 clientid)
+SharedPtr<SlaveServer> SlaveModule::getByClientId(u32 clientid)
 {
     MutexLock lock(m_slavesMutex);
 
@@ -208,7 +208,7 @@ SharedPtr<SlaveServer> SlaveModule::getSlaveByClientId(u32 clientid)
     return nullptr;
 }
 
-SharedPtr<SlaveServer> SlaveModule::getSlave(u32 id)
+SharedPtr<SlaveServer> SlaveModule::get(u32 id)
 {
     MutexLock lock(m_slavesMutex);
 
@@ -220,7 +220,7 @@ SharedPtr<SlaveServer> SlaveModule::getSlave(u32 id)
     return it->second;
 }
 
-SharedPtr<Client> SlaveModule::getConnection(u32 clientid)
+SharedPtr<Client> SlaveModule::connection(u32 clientid)
 {
     MutexLock lock(m_connectionsMutex);
 
@@ -275,7 +275,7 @@ bool SlaveModule::initTcp()
 
     if (pool->listenSockets()->empty()) {
         delete pool;
-        m_context->log->error("Couldn't create any listen socket");
+        m_context->log->error("Couldn't create any listen socket for slave module");
         return false;
     }
 
@@ -302,7 +302,7 @@ bool SlaveModule::initTimeout()
     return true;
 }
 
-void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
+void SlaveModule::tcpState(u32 clientid, TcpClientState state, int error)
 {
     if (state == TCSConnected) {
         SharedPtr<Client> client = m_context->tcp->client(clientid);
@@ -319,8 +319,8 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
 
         // jeśli łączyliśmy się z jakimkolwiek slave'm to połączenie z masterem już było
         SlaveSlavePackets::Hello packet;
-        packet.setAuthPassword(m_context->master->getAuthPassword());
-        packet.setId(m_context->master->getSlaveId());
+        packet.setAuthPassword(m_context->master->authPassword());
+        packet.setId(m_context->master->slaveId());
         packet.setName(m_context->slaveName);
 
         m_context->tcp->sendTo(client, &packet);
@@ -341,7 +341,7 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
             m_connections.erase(clientid);
         }
 
-        SharedPtr<SlaveServer> srv = getSlaveByClientId(clientid);
+        SharedPtr<SlaveServer> srv = getByClientId(clientid);
 
         if (!srv)
             return;
@@ -349,8 +349,8 @@ void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
         srv->replaceClient();
 
         m_context->log << Logger::Line::Start
-                       << "Slave connection dropped / reconnection failed: [ID: " << srv->id() << ", Name: " << srv->name() <<
-                       "]: (" << MiscUtils::systemError(error) << ")"
+                       << "Slave connection dropped / reconnection failed: [ID: " << srv->id() << ", Name: " << srv->name()
+                       << "]: (" << MiscUtils::systemError(error) << ")"
                        << Logger::Line::End;
 
         if (srv->isElder())
@@ -388,7 +388,7 @@ bool SlaveModule::tcpNew(SharedPtr<Client> &client)
     return true;
 }
 
-void SlaveModule::tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data)
+void SlaveModule::tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data)
 {
     Packet *packet;
 
@@ -429,7 +429,7 @@ void SlaveModule::synchronize(SharedPtr<Client> &client)
     m_context->user->syncSlave(client);
 }
 
-bool SlaveModule::heartbeatHandler(int timer)
+void SlaveModule::heartbeatHandler(int timer)
 {
     UNUSED(timer);
 
@@ -449,11 +449,9 @@ bool SlaveModule::heartbeatHandler(int timer)
     SlaveSlavePackets::Heartbeat packet;
 
     m_context->tcp->sendTo(clients, &packet);
-
-    return true;
 }
 
-bool SlaveModule::timeoutHandler(int timer)
+void SlaveModule::timeoutHandler(int timer)
 {
     UNUSED(timer);
 
@@ -479,11 +477,9 @@ bool SlaveModule::timeoutHandler(int timer)
             }
         }
     }
-
-    return true;
 }
 
-bool SlaveModule::reconnectHandler(int timer)
+void SlaveModule::reconnectHandler(int timer)
 {
     UNUSED(timer);
 
@@ -498,27 +494,25 @@ bool SlaveModule::reconnectHandler(int timer)
         u32 slaveid = queueCopy.front();
         queueCopy.pop();
 
-        SharedPtr<SlaveServer> srv = getSlave(slaveid);
+        SharedPtr<SlaveServer> srv = get(slaveid);
 
         if (!srv)
             continue;
 
         establishConnection(srv);
     }
-
-    return true;
 }
 
-bool SlaveModule::newSlave(uint clientid, Packet *packet)
+void SlaveModule::newSlave(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
 
     if (!m_context->master->isAuthed())
-        return false;
+        return;
 
-    SharedPtr<Client> master = m_context->master->getMaster();
+    SharedPtr<Client> master = m_context->master->get();
     if (!master)
-        return false;
+        return;
 
     MasterSlavePackets::NewSlave *request = static_cast<MasterSlavePackets::NewSlave*>(packet);
 
@@ -531,16 +525,14 @@ bool SlaveModule::newSlave(uint clientid, Packet *packet)
     }
 
     establishConnection(srv);
-
-    return true;
 }
 
-bool SlaveModule::removeSlave(uint clientid, Packet *packet)
+void SlaveModule::removeSlave(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
 
     if (!m_context->master->isAuthed())
-        return false;
+        return;
 
     MasterSlavePackets::RemoveSlave *request = static_cast<MasterSlavePackets::RemoveSlave*>(packet);
 
@@ -551,7 +543,7 @@ bool SlaveModule::removeSlave(uint clientid, Packet *packet)
         auto it = m_slaves.find(request->id());
 
         if (it == m_slaves.end())
-            return true;
+            return;
 
         srv = it->second;
 
@@ -568,31 +560,29 @@ bool SlaveModule::removeSlave(uint clientid, Packet *packet)
                    << "Slave removed, as requested by the master server: [ID: " << request->id() << ", Name: "
                    << srv->name() << "]"
                    << Logger::Line::End;
-
-    return true;
 }
 
-bool SlaveModule::hello(uint clientid, Packet *packet)
+void SlaveModule::hello(u32 clientid, Packet *packet)
 {
-    SharedPtr<Client> master = m_context->master->getMaster();
+    SharedPtr<Client> master = m_context->master->get();
     if (!master)
-        return false;
+        return;
 
     if (!m_context->master->isAuthed())
-        return false;
+        return;
 
-    SharedPtr<Client> client = getConnection(clientid);
+    SharedPtr<Client> client = connection(clientid);
     if (!client)
-        return false;
+        return;
 
     SlaveSlavePackets::Hello *request = static_cast<SlaveSlavePackets::Hello*>(packet);
 
-    if (request->authPassword() != m_context->master->getAuthPassword()) {
+    if (request->authPassword() != m_context->master->authPassword()) {
         m_context->log << Logger::Line::Start
                        << "Slave hello refused: [ID: " << request->id() << "]: Invalid auth password"
                        << Logger::Line::End;
 
-        return false;
+        return;
     }
 
     bool synchronizeNeeded = false;
@@ -608,7 +598,7 @@ bool SlaveModule::hello(uint clientid, Packet *packet)
                                << "Slave hello refused: [ID: " << request->id() << "]: Hello reconnect from not elder"
                                << Logger::Line::End;
 
-                return false;
+                return;
             } else {
                 synchronizeNeeded = true;
                 it->second->replaceClient(client);
@@ -622,42 +612,40 @@ bool SlaveModule::hello(uint clientid, Packet *packet)
         }
     }
 
-    SlaveSlavePackets::HelloResponse response(m_context->master->getSlaveId());
-    response.setAuthPassword(m_context->master->getAuthPassword());
+    SlaveSlavePackets::HelloResponse response(m_context->master->slaveId());
+    response.setAuthPassword(m_context->master->authPassword());
     m_context->tcp->sendTo(client, &response);
 
     if (synchronizeNeeded)
         synchronize(client);
-
-    return true;
 }
 
-bool SlaveModule::helloResponse(uint clientid, Packet *packet)
+void SlaveModule::helloResponse(u32 clientid, Packet *packet)
 {
     UNUSED(packet);
 
-    SharedPtr<Client> master = m_context->master->getMaster();
+    SharedPtr<Client> master = m_context->master->get();
     if (!master)
-        return false;
+        return;
 
     if (!m_context->master->isAuthed())
-        return false;
+        return;
 
-    SharedPtr<Client> client = getConnection(clientid);
+    SharedPtr<Client> client = connection(clientid);
     if (!client)
-        return false;
+        return;
 
     SlaveSlavePackets::HelloResponse *request = static_cast<SlaveSlavePackets::HelloResponse*>(packet);
 
-    if (request->authPassword() != m_context->master->getAuthPassword())
-        return false;
+    if (request->authPassword() != m_context->master->authPassword())
+        return;
 
-    SharedPtr<SlaveServer> slave = getSlave(request->id());
+    SharedPtr<SlaveServer> slave = get(request->id());
     if (!slave)
-        return false;
+        return;
 
     if (slave->isElder())
-        return false;
+        return;
 
     slave->replaceClient(client);
 
@@ -669,8 +657,6 @@ bool SlaveModule::helloResponse(uint clientid, Packet *packet)
     m_context->log << Logger::Line::Start
                    << "Slave acknowledged: " << slave->id()
                    << Logger::Line::End;
-
-    return true;
 }
 
 END_NAMESPACE

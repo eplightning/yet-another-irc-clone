@@ -313,7 +313,7 @@ bool SlaveModule::initTimers()
     return true;
 }
 
-SharedPtr<SlaveServer> SlaveModule::getSlave(uint clientid)
+SharedPtr<SlaveServer> SlaveModule::get(u32 clientid)
 {
     MutexLock lock(m_slavesMutex);
 
@@ -348,7 +348,7 @@ Vector<SharedPtr<SlaveServer>> SlaveModule::getSlaves(bool ipv4, bool ipv6)
     return servers;
 }
 
-void SlaveModule::tcpState(uint clientid, TcpClientState state, int error)
+void SlaveModule::tcpState(u32 clientid, TcpClientState state, int error)
 {
     if (state != TCSDisconnected)
         return;
@@ -397,14 +397,14 @@ bool SlaveModule::tcpNew(SharedPtr<Client> &client)
     return true;
 }
 
-void SlaveModule::tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data)
+void SlaveModule::tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data)
 {
     Packet *packet;
 
     // jeśli błąd to instant disconnect
     if (!Packet::checkDirection(header.type, Packet::Direction::SlaveToMaster) ||
             (packet = Packet::factory(header, data)) == nullptr) {
-        SharedPtr<SlaveServer> slave = getSlave(clientid);
+        SharedPtr<SlaveServer> slave = get(clientid);
 
         if (slave)
             m_context->tcp->disconnect(slave->client(), true);
@@ -415,7 +415,7 @@ void SlaveModule::tcpReceive(uint clientid, PacketHeader header, const Vector<ch
     m_context->eventQueue->append(new EventPacket(packet, clientid, MASTER_APP_SOURCE_SLAVE));
 }
 
-bool SlaveModule::heartbeatHandler(int timer)
+void SlaveModule::heartbeatHandler(int timer)
 {
     UNUSED(timer);
 
@@ -433,11 +433,9 @@ bool SlaveModule::heartbeatHandler(int timer)
     MasterSlavePackets::MasterHeartbeat packet;
 
     m_context->tcp->sendTo(clients, &packet);
-
-    return true;
 }
 
-bool SlaveModule::timeoutHandler(int timer)
+void SlaveModule::timeoutHandler(int timer)
 {
     UNUSED(timer);
 
@@ -457,34 +455,30 @@ bool SlaveModule::timeoutHandler(int timer)
             m_context->tcp->disconnect(x.second->client(), true);
         }
     }
-
-    return true;
 }
 
-bool SlaveModule::updateLoad(uint clientid, Packet *packet)
+void SlaveModule::updateLoad(u32 clientid, Packet *packet)
 {
     MutexLock lock(m_slavesMutex);
 
     auto it = m_slaves.find(clientid);
 
     if (it == m_slaves.end())
-        return false;
+        return;
 
     MasterSlavePackets::SlaveHeartbeat *heartbeat = static_cast<MasterSlavePackets::SlaveHeartbeat*>(packet);
 
     it->second->setConnections(heartbeat->connections());
-
-    return true;
 }
 
-bool SlaveModule::auth(uint clientid, Packet *packet)
+void SlaveModule::auth(u32 clientid, Packet *packet)
 {
     MutexLock lock(m_slavesMutex);
 
     auto it = m_slaves.find(clientid);
 
     if (it == m_slaves.end() || it->second->state() != SSUnauthed)
-        return false;
+        return;
 
     SlaveServer *srv = it->second.get();
 
@@ -504,7 +498,7 @@ bool SlaveModule::auth(uint clientid, Packet *packet)
                        << "Slave not authenticated: [ID: " << srv->id() << "] (Invalid auth mode)"
                        << Logger::Line::End;
 
-        return false;
+        return;
     } else if (m_config.authMode == MasterSlavePackets::Auth::Mode::Plaintext) {
         if (m_config.plainTextPassword != request->plaintextPassword()) {
             MasterSlavePackets::AuthResponse response;
@@ -519,7 +513,7 @@ bool SlaveModule::auth(uint clientid, Packet *packet)
                            << "Slave not authenticated: [ID: " << srv->id() << "] (Invalid password)"
                            << Logger::Line::End;
 
-            return false;
+            return;
         }
     }
 
@@ -542,11 +536,9 @@ bool SlaveModule::auth(uint clientid, Packet *packet)
     m_context->log << Logger::Line::Start
                    << "Slave authenticated: [ID: " << srv->id() << ", Name: " << srv->name() << "]"
                    << Logger::Line::End;
-
-    return true;
 }
 
-bool SlaveModule::syncStart(uint clientid, Packet *packet)
+void SlaveModule::syncStart(u32 clientid, Packet *packet)
 {
     UNUSED(packet);
 
@@ -554,7 +546,7 @@ bool SlaveModule::syncStart(uint clientid, Packet *packet)
 
     auto it = m_slaves.find(clientid);
     if (it == m_slaves.end() || it->second->state() != SSAuthed)
-        return false;
+        return;
 
     Vector<SharedPtr<Client>*> clients;
 
@@ -595,25 +587,23 @@ bool SlaveModule::syncStart(uint clientid, Packet *packet)
                        << "Slave starting synchronization: [ID: " << it->second->id() << ", Name: " << it->second->name() << "]"
                        << Logger::Line::End;
     }
-
-    return true;
 }
 
-bool SlaveModule::newAck(uint clientid, Packet *packet)
+void SlaveModule::newAck(u32 clientid, Packet *packet)
 {
     MutexLock lock(m_slavesMutex);
 
     auto it = m_slaves.find(clientid);
 
     if (it == m_slaves.end() || it->second->state() == SSAuthed || it->second->state() == SSUnauthed)
-        return false;
+        return;
 
     MasterSlavePackets::NewAck *request = static_cast<MasterSlavePackets::NewAck*>(packet);
 
     // find syncing slave
     auto it2 = m_slaves.find(request->id());
     if (it2 == m_slaves.end() || it2->second->state() != SSSyncing)
-        return false;
+        return;
 
     m_context->log << Logger::Line::Start
                    << "Old slave acknowledged new slave: [Old ID: " << it->second->id() << ", New ID: " << it2->second->id() << "]"
@@ -636,8 +626,6 @@ bool SlaveModule::newAck(uint clientid, Packet *packet)
     } else {
         it3->second--;
     }
-
-    return true;
 }
 
 

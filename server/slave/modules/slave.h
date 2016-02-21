@@ -66,40 +66,31 @@ public:
     // api
     const String &publicAddress() const;
     u16 publicPort() const;
-    SharedPtr<SlaveServer> getSlaveByClientId(u32 clientid);
-    SharedPtr<SlaveServer> getSlave(u32 id);
-    SharedPtr<Client> getConnection(u32 clientid);
+    SharedPtr<SlaveServer> getByClientId(u32 clientid);
+    SharedPtr<SlaveServer> get(u32 id);
 
 protected:
+    SharedPtr<Client> connection(u32 clientid);
+
     bool initPackets();
     bool initTcp();
     bool initTimeout();
 
     bool tcpNew(SharedPtr<Client> &client);
-    void tcpState(uint clientid, TcpClientState state, int error);
-    void tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data);
+    void tcpState(u32 clientid, TcpClientState state, int error);
+    void tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data);
 
     void establishConnection(SharedPtr<SlaveServer> &slave);
     void synchronize(SharedPtr<Client> &client);
-    /*
 
-    bool heartbeatHandler(int timer);
-    bool timeoutHandler(int timer);
+    void heartbeatHandler(int timer);
+    void timeoutHandler(int timer);
+    void reconnectHandler(int timer);
 
-    bool authResponse(uint clientid, Packet *packet);
-    bool syncEnd(uint clientid, Packet *packet);
-
-    void masterDisconnected();*/
-
-
-    bool heartbeatHandler(int timer);
-    bool timeoutHandler(int timer);
-    bool reconnectHandler(int timer);
-
-    bool newSlave(uint clientid, Packet *packet);
-    bool removeSlave(uint clientid, Packet *packet);
-    bool hello(uint clientid, Packet *packet);
-    bool helloResponse(uint clientid, Packet *packet);
+    void newSlave(u32 clientid, Packet *packet);
+    void removeSlave(u32 clientid, Packet *packet);
+    void hello(u32 clientid, Packet *packet);
+    void helloResponse(u32 clientid, Packet *packet);
 
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;

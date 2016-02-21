@@ -41,29 +41,31 @@ public:
     const String &publicAddress() const;
     u16 publicPort() const;
     uint capacity() const;
+    uint load() const;
     void slaveIdReceived(u32 id);
-    SharedPtr<Client> getConnection(u32 clientid);
     void cleanupSlave(u32 slave);
     void syncSlave(SharedPtr<Client> &client);
 
 protected:
+    SharedPtr<Client> connection(u32 clientid);
+
     bool initPackets();
     bool initTcp();
     bool initTimeout();
 
     bool tcpNew(SharedPtr<Client> &client);
-    void tcpState(uint clientid, TcpClientState state, int error);
-    void tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data);
+    void tcpState(u32 clientid, TcpClientState state, int error);
+    void tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data);
 
-    bool heartbeatHandler(int timer);
-    bool timeoutHandler(int timer);
+    void heartbeatHandler(int timer);
+    void timeoutHandler(int timer);
 
-    bool handshake(uint clientid, Packet *packet);
-    bool channelList(uint clientid, Packet *packet);
-    bool joinChannel(uint clientid, Packet *packet);
-    bool partChannel(uint clientid, Packet *packet);
-    bool messageChannel(uint clientid, Packet *packet);
-    bool privateMessage(uint clientid, Packet *packet);
+    void handshake(u32 clientid, Packet *packet);
+    void channelList(u32 clientid, Packet *packet);
+    void joinChannel(u32 clientid, Packet *packet);
+    void partChannel(u32 clientid, Packet *packet);
+    void messageChannel(u32 clientid, Packet *packet);
+    void privateMessage(u32 clientid, Packet *packet);
 
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;

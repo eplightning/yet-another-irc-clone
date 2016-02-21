@@ -91,10 +91,7 @@ bool MasterModule::init()
 
 void MasterModule::dispatchPacket(EventPacket *ev)
 {
-    {
-        MutexLock lock(m_lastPacketMutex);
-        m_lastPacket = SteadyClock::now();
-    }
+    m_lastPacket = SteadyClock::now();
 
     m_context->dispatcher->dispatch(ev->clientid(), ev->packet());
 }
@@ -144,7 +141,7 @@ bool MasterModule::initTimeout()
     m_heartbeatTimer = m_context->sysLoop->addTimer(m_config.heartbeatInterval);
 
     if (m_timeoutTimer == -1 || m_heartbeatTimer == -1) {
-        m_context->log->error("Unable to initialize timers");
+        m_context->log->error("Unable to initialize master module's timers");
         return false;
     }
 
@@ -154,7 +151,7 @@ bool MasterModule::initTimeout()
     return true;
 }
 
-SharedPtr<Client> MasterModule::getMaster()
+SharedPtr<Client> MasterModule::get()
 {
     MutexLock lock(m_masterMutex);
 
@@ -171,17 +168,17 @@ bool MasterModule::isSynced()
     return m_synced.load();
 }
 
-u32 MasterModule::getSlaveId() const
+u32 MasterModule::slaveId() const
 {
     return m_ourSlaveId;
 }
 
-u64 MasterModule::getAuthPassword() const
+u64 MasterModule::authPassword() const
 {
     return m_authPassword;
 }
 
-void MasterModule::tcpState(uint clientid, TcpClientState state, int error)
+void MasterModule::tcpState(u32 clientid, TcpClientState state, int error)
 {
     MutexLock lock(m_masterMutex);
 
@@ -220,7 +217,7 @@ bool MasterModule::tcpNew(SharedPtr<Client> &client)
     return false;
 }
 
-void MasterModule::tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data)
+void MasterModule::tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data)
 {
     Packet *packet;
 
@@ -238,35 +235,24 @@ void MasterModule::tcpReceive(uint clientid, PacketHeader header, const Vector<c
     m_context->eventQueue->append(new EventPacket(packet, clientid, SLAVE_APP_SOURCE_MASTER));
 }
 
-bool MasterModule::heartbeatHandler(int timer)
+void MasterModule::heartbeatHandler(int timer)
 {
     UNUSED(timer);
 
-    SharedPtr<Client> master = getMaster();
+    SharedPtr<Client> master = get();
 
     if (!master)
-        return false;
+        return;
 
-    // TODO: get slave load
-    MasterSlavePackets::SlaveHeartbeat packet(0);
-
+    MasterSlavePackets::SlaveHeartbeat packet(m_context->user->load());
     m_context->tcp->sendTo(master, &packet);
-
-    return true;
 }
 
-bool MasterModule::timeoutHandler(int timer)
+void MasterModule::timeoutHandler(int timer)
 {
     UNUSED(timer);
 
-    std::chrono::time_point<SteadyClock> time;
-
-    {
-        MutexLock lock(m_lastPacketMutex);
-        time = m_lastPacket;
-    }
-
-    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(SteadyClock::now() - time).count();
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(SteadyClock::now() - m_lastPacket).count();
 
     if (seconds >= m_config.timeout) {
         m_context->log << Logger::Line::Start
@@ -276,11 +262,9 @@ bool MasterModule::timeoutHandler(int timer)
         MutexLock lock(m_masterMutex);
         m_context->tcp->disconnect(m_master, true);
     }
-
-    return true;
 }
 
-bool MasterModule::authResponse(uint clientid, Packet *packet)
+void MasterModule::authResponse(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
 
@@ -291,7 +275,7 @@ bool MasterModule::authResponse(uint clientid, Packet *packet)
                        << "Master server refused authentication request: " << static_cast<u32>(response->status())
                        << Logger::Line::End;
 
-        return true;
+        return;
     }
 
     m_ourSlaveId = response->id();
@@ -311,11 +295,9 @@ bool MasterModule::authResponse(uint clientid, Packet *packet)
     }
 
     m_context->log->message("Master server accepted authentication request");
-
-    return true;
 }
 
-bool MasterModule::syncEnd(uint clientid, Packet *packet)
+void MasterModule::syncEnd(u32 clientid, Packet *packet)
 {
     UNUSED(clientid);
     UNUSED(packet);
@@ -323,9 +305,6 @@ bool MasterModule::syncEnd(uint clientid, Packet *packet)
     m_synced.store(true);
 
     m_context->log->message("Synchronization finished");
-
-    return true;
 }
 
 END_NAMESPACE
-

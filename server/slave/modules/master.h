@@ -35,13 +35,13 @@ public:
     void dispatchSimple(EventSimple *ev);
 
     // api
-    SharedPtr<Client> getMaster();
+    SharedPtr<Client> get();
     bool isAuthed();
     bool isSynced();
 
-    // thread-safe if authed
-    u32 getSlaveId() const;
-    u64 getAuthPassword() const;
+    // correct if authed
+    u32 slaveId() const;
+    u64 authPassword() const;
 
 protected:
     bool initPackets();
@@ -49,16 +49,14 @@ protected:
     bool initTimeout();
 
     bool tcpNew(SharedPtr<Client> &client);
-    void tcpState(uint clientid, TcpClientState state, int error);
-    void tcpReceive(uint clientid, PacketHeader header, const Vector<char> &data);
+    void tcpState(u32 clientid, TcpClientState state, int error);
+    void tcpReceive(u32 clientid, PacketHeader header, const Vector<char> &data);
 
-    bool heartbeatHandler(int timer);
-    bool timeoutHandler(int timer);
+    void heartbeatHandler(int timer);
+    void timeoutHandler(int timer);
 
-    bool authResponse(uint clientid, Packet *packet);
-    bool syncEnd(uint clientid, Packet *packet);
-
-    void masterDisconnected();
+    void authResponse(u32 clientid, Packet *packet);
+    void syncEnd(u32 clientid, Packet *packet);
 
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;
@@ -71,7 +69,6 @@ protected:
     std::mutex m_masterMutex;
 
     std::chrono::time_point<SteadyClock> m_lastPacket;
-    std::mutex m_lastPacketMutex;
 
     u32 m_ourSlaveId;
     u64 m_authPassword;

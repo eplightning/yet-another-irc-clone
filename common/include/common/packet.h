@@ -8,12 +8,10 @@
 
 YAIC_NAMESPACE
 
-#pragma pack(push, 1)
 struct PacketHeader {
     u16 type;
     u32 payloadSize;
 };
-#pragma pack(pop)
 
 class Packet {
 public:
@@ -33,7 +31,6 @@ public:
         Unknown = 7
     };
 
-    // TODO: Trzeba pamiętać o dodaniu tego do factory
     enum class Type : u16 {
         Unknown = 0,
 
@@ -115,6 +112,11 @@ protected:
     bool read(const Vector<char> &payload, String &data);
     bool readVectorSize(const Vector<char> &payload, u32 &data);
 
+    u64 hostToNetwork(u64 data) const;
+    s64 hostToNetwork(s64 data) const;
+    u64 networkToHost(u64 data) const;
+    s64 networkToHost(s64 data) const;
+
 protected:
     Type m_packetType;
     uint m_packetReaderPos;
@@ -160,14 +162,14 @@ inline void Packet::write(Vector<char> &payload, s32 data) const
 
 inline void Packet::write(Vector<char> &payload, u64 data) const
 {
-    // TODO: Byte swap
+    data = hostToNetwork(data);
     char *raw = reinterpret_cast<char*>(&data);
     payload.insert(payload.end(), raw, raw + 8);
 }
 
 inline void Packet::write(Vector<char> &payload, s64 data) const
 {
-    // TODO: Byte swap
+    data = hostToNetwork(data);
     char *raw = reinterpret_cast<char*>(&data);
     payload.insert(payload.end(), raw, raw + 8);
 }
@@ -248,8 +250,7 @@ inline bool Packet::read(const Vector<char> &payload, s64 &data)
     if (payload.size() < 8 + m_packetReaderPos)
         return false;
 
-    // TODO: Byte swap
-    data = *(reinterpret_cast<const s64*>(&payload[m_packetReaderPos]));
+    data = networkToHost(*(reinterpret_cast<const s64*>(&payload[m_packetReaderPos])));
     m_packetReaderPos += 8;
     return true;
 }
@@ -259,8 +260,7 @@ inline bool Packet::read(const Vector<char> &payload, u64 &data)
     if (payload.size() < 8 + m_packetReaderPos)
         return false;
 
-    // TODO: Byte swap
-    data = *(reinterpret_cast<const u64*>(&payload[m_packetReaderPos]));
+    data = networkToHost(*(reinterpret_cast<const u64*>(&payload[m_packetReaderPos])));
     m_packetReaderPos += 8;
     return true;
 }
@@ -283,6 +283,40 @@ inline bool Packet::readVectorSize(const Vector<char> &payload, u32 &data)
         return false;
 
     return data <= MaxVectorSize;
+}
+
+inline u64 Packet::hostToNetwork(u64 data) const
+{
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    u32 high = htonl(static_cast<u32>(data >> 32));
+    u32 low = htonl(static_cast<u32>(data & 0xFFFFFFFFLL));
+
+    return (static_cast<u64>(low) << 32) | high;
+#else
+    return data;
+#endif
+}
+
+inline s64 Packet::hostToNetwork(s64 data) const
+{
+    return static_cast<s64>(hostToNetwork(static_cast<u64>(data)));
+}
+
+inline u64 Packet::networkToHost(u64 data) const
+{
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    u32 high = ntohl(static_cast<u32>(data >> 32));
+    u32 low = ntohl(static_cast<u32>(data & 0xFFFFFFFFLL));
+
+    return (static_cast<u64>(low) << 32) | high;
+#else
+    return data;
+#endif
+}
+
+inline s64 Packet::networkToHost(s64 data) const
+{
+    return static_cast<s64>(networkToHost(static_cast<u64>(data)));
 }
 
 END_NAMESPACE
