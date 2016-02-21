@@ -137,7 +137,6 @@ void tcpSocket::readyRead()
                         delete a;
                     }
                 }
-
                 bufferedData.clear();
             }
         }
@@ -148,6 +147,7 @@ void tcpSocket::sendHeartbeat()
 {
     SlaveUserPackets::UserHeartbeat *a = new SlaveUserPackets::UserHeartbeat();
     write(a);
+    delete a;
 }
 
 void tcpSocket::heartbeatTimeExpired()

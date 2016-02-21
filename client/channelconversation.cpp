@@ -37,3 +37,8 @@ int ChannelConversation::findUserPosition(u64 userId)
     }
     return index;
 }
+
+u64 ChannelConversation::getId()
+{
+    return this->id;
+}

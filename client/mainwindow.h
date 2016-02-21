@@ -38,6 +38,7 @@ private slots:
     void on_channelsReceived(SlaveUserPackets::Channels *p);
     void on_channelJoined(SlaveUserPackets::ChannelJoined *p);
     void on_serverChanged();
+    void on_channelLeavingButton_clicked();
 
 private:
     Ui::MainWindow *ui;
@@ -54,7 +55,6 @@ private:
     QString masterIP;
     int masterPort;
 
-    void setChannelList(QList<QString>  &str);
     void addItemToUserList(QString &str);
     void showDialog();
     void connectWithServer();

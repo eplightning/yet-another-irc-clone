@@ -18,14 +18,6 @@ MainWindow::MainWindow(QWidget *parent) :
     dialog.setModal(true);
     showDialog();
     connectWithServer();
-
-    //We need to get here names of channels on the server
-    QList<QString>  a;
-    a.push_back("Pierwszy");
-    a.push_back("Drugi");
-
-    //Initializing channel list
-    setChannelList(a);
 }
 
 MainWindow::~MainWindow()
@@ -146,7 +138,7 @@ void MainWindow::on_channelsReceived(SlaveUserPackets::Channels *p)
     Vector<String> channels = p->channels();
     QList<QString> qChannels;
 
-    for (int i=0; i<channels.size(); i++)
+    for (unsigned i = 0; i < channels.size(); i++)
     {
         qChannels.push_back(QString::fromStdString(channels[i]));
     }
@@ -186,33 +178,6 @@ void MainWindow::on_channelJoined(SlaveUserPackets::ChannelJoined *p)
         default:
             break;
     }
-}
-
-//Set all channels in channelList
-void MainWindow::setChannelList(QList<QString> &list)
-{
- /*
-    channelListModel->clear();
-    for (int i = 0; i < list.size(); i++)
-    {
-        QStandardItem *item;
-        item = new QStandardItem();
-
-        item->setData(list[i], Qt::DisplayRole);
-        item->setEditable(false);
-
-        //Test pogrubiania danych na liście
-        if(list[i]=="Pierwszy")
-        {
-            QFont serifFont("Sans", 10, QFont::Bold);
-            item->setFont(serifFont);
-        }
-
-        channelListModel->appendRow(item);
-    }
-    QFont boldFont("Sans", 10, QFont::Bold);
-    channelListModel->item(0, 0)->setFont(boldFont);
-*/
 }
 
 //Add user to userList (listo of users on the channel)
@@ -263,4 +228,33 @@ void MainWindow::connectWithServer()
         master->write(a);
     }
 }
+
+
+void MainWindow::on_channelLeavingButton_clicked()
+{
+    QString channelName;
+    foreach (const QModelIndex &index, ui->channelList->selectionModel()->selectedIndexes())
+    {
+        channelName = channelListModel->itemFromIndex(index)->text();
+    }
+
+    if (channelName != nullptr)
+    {
+        for (int i = 0; i < channelList.size(); i++)
+        {
+            if (channelName == channelList[i]->getFullName())
+            {
+                SlaveUserPackets::PartChannel *packet = new SlaveUserPackets::PartChannel(channelList[i]->getId());
+                slave->write(packet);
+            }
+        }
+    }
+    else
+    {
+        QMessageBox messageBox;
+        messageBox.critical(0,"Uwaga","Aby opuścić kanał najpierw go zaznacz.");
+        messageBox.setFixedSize(500,200);
+    }
+}
+
 
