@@ -41,6 +41,7 @@ private slots:
     void on_serverChanged();
     void on_channelLeavingButton_clicked();
     void on_channelParted(SlaveUserPackets::ChannelParted *p);
+    void on_channelChosen(QString name);
 
 private:
     Ui::MainWindow *ui;

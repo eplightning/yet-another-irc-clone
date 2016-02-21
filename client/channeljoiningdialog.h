@@ -17,8 +17,13 @@ public:
     void setItems(QList<QString> list);
     QString getChoosenChannel();
 
+signals:
+    void setChosenChannel(QString name);
+
 private slots:
     void on_joiningButton_clicked();
+
+    void on_ChannelJoiningDialog_finished(int result);
 
 private:
     Ui::ChannelJoiningDialog *ui;

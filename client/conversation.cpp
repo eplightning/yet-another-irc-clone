@@ -33,7 +33,7 @@ void Conversation::addMessage(QString author, QString messageText)
 
 QString Conversation::getFullName()
 {
-    return prefix + " " + name;
+    return prefix + name;
 }
 
 QString Conversation::getName()

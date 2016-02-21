@@ -46,8 +46,11 @@ void tcpSocket::disconnect()
 {
     socket->close();
     connected = false;
-    timerUserHeartbeat->stop();
-    timerSlaveHeartbeat->stop();
+    if(dir == Packet::Direction::SlaveToUser)
+    {
+        timerUserHeartbeat->stop();
+        timerSlaveHeartbeat->stop();
+    }
 }
 
 void tcpSocket::write(Packet *p)

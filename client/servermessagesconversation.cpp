@@ -1,7 +1,7 @@
 #include "servermessagesconversation.h"
 
 ServerMessagesConversation::ServerMessagesConversation(QStandardItemModel *channelListModel):
-    Conversation("@", "Komunikaty Serwera", channelListModel)
+    Conversation("", "Komunikaty Serwera", channelListModel)
 {
 
 }

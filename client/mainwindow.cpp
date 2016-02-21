@@ -148,15 +148,9 @@ void MainWindow::on_channelsReceived(SlaveUserPackets::Channels *p)
     ChannelJoiningDialog channelJoin;
     channelJoin.setItems(qChannels);
     channelJoin.setModal(true);
-    if(!channelJoin.exec())
-    {
-        QString channel = channelJoin.getChoosenChannel();
-        if(channel != nullptr)
-        {
-            SlaveUserPackets::JoinChannel *packet = new SlaveUserPackets::JoinChannel(channel.toStdString());
-            slave->write(packet);
-        }
-    }
+
+    connect(&channelJoin, SIGNAL(setChosenChannel(QString)), this, SLOT(on_channelChosen(QString)));
+    channelJoin.show();
 }
 
 void MainWindow::on_channelJoined(SlaveUserPackets::ChannelJoined *p)
@@ -306,6 +300,15 @@ void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
         default:
             break;
     }
+}
+
+void MainWindow::on_channelChosen(QString name)
+{
+        if(name != "")
+        {
+            SlaveUserPackets::JoinChannel *packet = new SlaveUserPackets::JoinChannel(name.toStdString());
+            slave->write(packet);
+        }
 }
 
 
