@@ -8,6 +8,7 @@
 #include "dialog.h"
 #include "channeljoiningdialog.h"
 #include "channelconversation.h"
+#include "servermessagesconversation.h"
 #include "tcpsocket.h"
 #include "common/packet.h"
 #include "common/types.h"
@@ -39,6 +40,7 @@ private slots:
     void on_channelJoined(SlaveUserPackets::ChannelJoined *p);
     void on_serverChanged();
     void on_channelLeavingButton_clicked();
+    void on_channelParted(SlaveUserPackets::ChannelParted *p);
 
 private:
     Ui::MainWindow *ui;
@@ -54,6 +56,7 @@ private:
     tcpSocket *slave;
     QString masterIP;
     int masterPort;
+    ServerMessagesConversation *serverConversation;
 
     void addItemToUserList(QString &str);
     void showDialog();

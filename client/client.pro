@@ -10,7 +10,8 @@ SOURCES += main.cpp\
     channeljoiningdialog.cpp \
     conversation.cpp \
     privateconversation.cpp \
-    channelconversation.cpp
+    channelconversation.cpp \
+    servermessagesconversation.cpp
 
 HEADERS  += mainwindow.h \
     dialog.h \
@@ -18,7 +19,8 @@ HEADERS  += mainwindow.h \
     channeljoiningdialog.h \
     conversation.h \
     privateconversation.h \
-    channelconversation.h
+    channelconversation.h \
+    servermessagesconversation.h
 
 FORMS    += mainwindow.ui \
     dialog.ui \

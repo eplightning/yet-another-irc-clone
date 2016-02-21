@@ -56,6 +56,7 @@ void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
 
 void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
 {
+    //master->disconnect();
     ui->chatEditBox->setPlainText("asd");
     severs  = p->servers();
     if (!severs.empty())
@@ -75,6 +76,8 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
                                   this, SLOT(on_channelsReceived(SlaveUserPackets::Channels*)));
             QObject::connect(slave, SIGNAL(channelJoined(SlaveUserPackets::ChannelJoined*)),
                                   this, SLOT(on_channelJoined(SlaveUserPackets::ChannelJoined*)));
+            QObject::connect(slave, SIGNAL(channelParted(SlaveUserPackets::ChannelParted*)),
+                                  this, SLOT(on_channelParted(SlaveUserPackets::ChannelParted*)));
 
             SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
             a->setNick(userName.toStdString());
@@ -206,6 +209,15 @@ void MainWindow::showDialog()
 void MainWindow::connectWithServer()
 {
     //TODO - clear everything
+    channelListModel->clear();
+    serverConversation = new ServerMessagesConversation(channelListModel);
+
+    for (int i = 0; i < channelList.size(); i++)
+    {
+        delete channelList[i];
+    }
+    channelList.clear();
+
     ui->chatEditBox->setEnabled(false);
     ui->channelJoiningButton->setEnabled(false);
     ui->channelLeavingButton->setEnabled(false);
@@ -254,6 +266,45 @@ void MainWindow::on_channelLeavingButton_clicked()
         QMessageBox messageBox;
         messageBox.critical(0,"Uwaga","Aby opuścić kanał najpierw go zaznacz.");
         messageBox.setFixedSize(500,200);
+    }
+}
+
+void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
+{
+    int index = -1;
+    for (int i = 0; i < channelList.size(); i++)
+    {
+        if (channelList[i]->getId() == p->id())
+        {
+            index = i;
+        }
+    }
+
+    switch(p->status())
+    {
+        case SlaveUserPackets::ChannelParted::Status::Ok:
+            switch(p->reason())
+            {
+                case SlaveUserPackets::ChannelParted::Reason::Requested:
+                    serverConversation->addMessage("Pomyślnie opuszczono kanał " + channelList[index]->getName());
+                    break;
+                case SlaveUserPackets::ChannelParted::Reason::Kicked:
+                    serverConversation->addMessage("Zostałeś wyrzucony z kanału " + channelList[index]->getName());
+                    break;
+                case SlaveUserPackets::ChannelParted::Reason::Unknown:
+                    serverConversation->addMessage("Z nieznanego powodu opuszczono kanał " + channelList[index]->getName());
+                    break;
+            }
+            //Opuść faktycznie kanał
+            channelList[index]->removeFromList();
+            delete channelList[index];
+            channelList.remove(index);
+            break;
+        case SlaveUserPackets::ChannelParted::Status::UnknownError:
+            serverConversation->addMessage("Błąd przy wychodzeniu z kanału " + channelList[index]->getName());
+            break;
+        default:
+            break;
     }
 }
 

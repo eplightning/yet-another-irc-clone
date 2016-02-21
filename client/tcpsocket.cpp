@@ -45,11 +45,9 @@ bool tcpSocket::connectWith(QString address, int port, Packet::Direction directi
 void tcpSocket::disconnect()
 {
     socket->close();
+    connected = false;
     timerUserHeartbeat->stop();
     timerSlaveHeartbeat->stop();
-    delete socket;
-    delete timerUserHeartbeat;
-    delete timerSlaveHeartbeat;
 }
 
 void tcpSocket::write(Packet *p)
@@ -131,7 +129,9 @@ void tcpSocket::readyRead()
                             case Packet::Type::ChannelJoined:
                                 emit channelJoined(static_cast<SlaveUserPackets::ChannelJoined*>(a));
                                 break;
-                        //case Packet::Type::
+                            case Packet::Type::ChannelParted:
+                                emit channelParted(static_cast<SlaveUserPackets::ChannelParted*>(a));
+                                break;
                             default:
                                 //doSth
                                 break;
