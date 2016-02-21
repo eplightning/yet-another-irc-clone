@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>439</width>
-    <height>488</height>
+    <width>470</width>
+    <height>537</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -53,7 +53,7 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout" stretch="6,1">
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout" stretch="3,1">
+           <layout class="QHBoxLayout" name="horizontalLayout" stretch="5,2">
             <item>
              <widget class="QTextEdit" name="chatBox">
               <property name="styleSheet">
@@ -155,7 +155,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>439</width>
+     <width>470</width>
      <height>20</height>
     </rect>
    </property>

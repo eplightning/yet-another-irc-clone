@@ -7,7 +7,7 @@
 
 #include "dialog.h"
 #include "channeljoiningdialog.h"
-#include "channel.h"
+#include "channelconversation.h"
 #include "tcpsocket.h"
 #include "common/packet.h"
 #include "common/types.h"
@@ -36,6 +36,7 @@ private slots:
     void on_serverListRead(MasterUserPackets::ServerList *p);
     void on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p);
     void on_channelsReceived(SlaveUserPackets::Channels *p);
+    void on_channelJoined(SlaveUserPackets::ChannelJoined *p);
     void on_serverChanged();
 
 private:
@@ -46,7 +47,7 @@ private:
     QString userName;
     QString mainChatText;
     QString inChannel;
-    Channel *channelList;
+    QVector<ChannelConversation*> channelList;
     Vector<MasterUserPackets::ServerListServer> severs;
     tcpSocket *master;
     tcpSocket *slave;

@@ -127,6 +127,9 @@ void tcpSocket::readyRead()
                             case Packet::Type::Channels:
                                 emit channels(static_cast<SlaveUserPackets::Channels*>(a));
                                 break;
+                            case Packet::Type::ChannelJoined:
+                                emit channelJoined(static_cast<SlaveUserPackets::ChannelJoined*>(a));
+                                break;
                             default:
                                 //doSth
                                 break;

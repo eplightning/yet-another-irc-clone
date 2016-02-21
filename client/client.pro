@@ -6,15 +6,19 @@ CONFIG += c++11
 SOURCES += main.cpp\
         mainwindow.cpp \
     dialog.cpp \
-    channel.cpp \
     tcpsocket.cpp \
-    channeljoiningdialog.cpp
+    channeljoiningdialog.cpp \
+    conversation.cpp \
+    privateconversation.cpp \
+    channelconversation.cpp
 
 HEADERS  += mainwindow.h \
     dialog.h \
-    channel.h \
     tcpsocket.h \
-    channeljoiningdialog.h
+    channeljoiningdialog.h \
+    conversation.h \
+    privateconversation.h \
+    channelconversation.h
 
 FORMS    += mainwindow.ui \
     dialog.ui \

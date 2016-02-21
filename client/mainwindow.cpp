@@ -35,6 +35,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_sendingButton_clicked()
 {
+    //TODO - send text to object
     if(!inChannel.isNull())
     {
 
@@ -80,6 +81,9 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
                                   this, SLOT(on_handshakeAckCome(SlaveUserPackets::HandshakeAck*)));
             QObject::connect(slave, SIGNAL(channels(SlaveUserPackets::Channels*)),
                                   this, SLOT(on_channelsReceived(SlaveUserPackets::Channels*)));
+            QObject::connect(slave, SIGNAL(channelJoined(SlaveUserPackets::ChannelJoined*)),
+                                  this, SLOT(on_channelJoined(SlaveUserPackets::ChannelJoined*)));
+
             SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
             a->setNick(userName.toStdString());
             slave->write(a);
@@ -160,9 +164,34 @@ void MainWindow::on_channelsReceived(SlaveUserPackets::Channels *p)
     }
 }
 
+void MainWindow::on_channelJoined(SlaveUserPackets::ChannelJoined *p)
+{
+    //TODO add flags
+    switch(p->status())
+    {
+        case SlaveUserPackets::ChannelJoined::Status::Ok:
+        {
+            ChannelConversation *conversation = new ChannelConversation(p->id(), QString::fromStdString(p->name()),
+                                                                        channelListModel, QVector<SlaveUserPackets::ChanUser>::fromStdVector(p->users()));
+            channelList.push_back(conversation);
+            break;
+        }
+        case SlaveUserPackets::ChannelJoined::Status::UnknownError:
+        {
+            QMessageBox messageBox;
+            messageBox.critical(0,"Uwaga","Nie udało się dołączyć do kanału: "+QString::fromStdString(p->name()));
+            messageBox.setFixedSize(500,200);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
 //Set all channels in channelList
 void MainWindow::setChannelList(QList<QString> &list)
 {
+ /*
     channelListModel->clear();
     for (int i = 0; i < list.size(); i++)
     {
@@ -173,15 +202,14 @@ void MainWindow::setChannelList(QList<QString> &list)
         item->setEditable(false);
 
         //Test pogrubiania danych na liście
-/*        if(list[i]=="Pierwszy")
+        if(list[i]=="Pierwszy")
         {
             QFont serifFont("Sans", 10, QFont::Bold);
             item->setFont(serifFont);
         }
-*/
+
         channelListModel->appendRow(item);
     }
-/*
     QFont boldFont("Sans", 10, QFont::Bold);
     channelListModel->item(0, 0)->setFont(boldFont);
 */
