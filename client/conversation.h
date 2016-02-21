@@ -23,6 +23,7 @@ public:
     void addMessage(QString author, QString messageText);
     void userDisconnectedMessage(QString userName);
     void removeFromList();
+    void addServerMessage(QString messageText);
 
 signals:
 

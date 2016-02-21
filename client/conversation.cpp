@@ -55,3 +55,8 @@ QString Conversation::getPrefix()
 {
     return prefix;
 }
+
+void Conversation::addServerMessage(QString messageText)
+{
+    text += "<i>" + messageText + "</i><br>";
+}

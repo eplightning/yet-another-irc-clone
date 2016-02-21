@@ -106,6 +106,10 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
                                   this, SLOT(on_channelMessage(SlaveUserPackets::ChannelMessage*)));
             QObject::connect(slave, SIGNAL(channelUserJoined(SlaveUserPackets::ChannelUserJoined*)),
                                   this, SLOT(on_channelUserJoined(SlaveUserPackets::ChannelUserJoined*)));
+            QObject::connect(slave, SIGNAL(channelUserPatred(SlaveUserPackets::ChannelUserParted*)),
+                                  this, SLOT(on_channelUserParted(SlaveUserPackets::ChannelUserParted*)));
+            QObject::connect(slave, SIGNAL(userDisconnected(SlaveUserPackets::UserDisconnected*)),
+                                  this, SLOT(on_userDisconnected(SlaveUserPackets::UserDisconnected*)));
 
             SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
             a->setNick(userName.toStdString());
@@ -302,10 +306,18 @@ void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
                     refreshChatBox();
                     break;
             }
+
+            if(selectedConversation->getFullName() == channelList[index]->getFullName())
+            {
+                selectedConversation = nullptr;
+                refreshChatBox();
+                refreshUserList();
+            }
             //Opuść faktycznie kanał
             channelList[index]->removeFromList();
             delete channelList[index];
             channelList.remove(index);
+
             break;
         case SlaveUserPackets::ChannelParted::Status::UnknownError:
             serverConversation->addMessage("Błąd przy wychodzeniu z kanału " + channelList[index]->getName());
@@ -331,6 +343,10 @@ void MainWindow::refreshChatBox()
     {
         ui->chatBox->setHtml(selectedConversation->getText());
     }
+    else
+    {
+        ui->chatBox->setPlainText("");
+    }
 }
 
 void MainWindow::on_channelMessage(SlaveUserPackets::ChannelMessage *p)
@@ -347,16 +363,16 @@ void MainWindow::on_channelMessage(SlaveUserPackets::ChannelMessage *p)
 
 void MainWindow::on_channelUserJoined(SlaveUserPackets::ChannelUserJoined *p)
 {
-    qDebug() << channelList[0]->getId();
-    qDebug() << p->channel();
     for (int i = 0; i < channelList.size(); i++)
     {
         if (channelList[i]->getId() == p->channel())
         {
             channelList[i]->addUser(p->user());
+            channelList[i]->addServerMessage("Użytkownik " + QString::fromStdString(p->user().nick) + " dołączył do konwersacji.");
         }
     }
     refreshUserList();
+    refreshChatBox();
 }
 
 //Add user to userList (listo of users on the channel)
@@ -374,18 +390,49 @@ void MainWindow::addItemToUserList(QString str)
 void MainWindow::refreshUserList()
 {
     userListModel->clear();
-    if (selectedConversation->getPrefix() == "#")
+    if(selectedConversation != nullptr)
     {
-        for (int i = 0; i < channelList.size(); i++)
+
+        if (selectedConversation->getPrefix() == "#")
         {
-            if (channelList[i]->getFullName() == selectedConversation->getFullName())
+            for (int i = 0; i < channelList.size(); i++)
             {
-                for (int j = 0; j < channelList[i]->getUsers().size(); j++)
+                if (channelList[i]->getFullName() == selectedConversation->getFullName())
                 {
-                    qDebug() << channelList[i]->getUsers().size();
-                    addItemToUserList(QString::fromStdString(channelList[i]->getUser(j).nick));
+                    for (int j = 0; j < channelList[i]->getUsers().size(); j++)
+                    {
+                        addItemToUserList(QString::fromStdString(channelList[i]->getUser(j).nick));
+                    }
                 }
             }
         }
     }
+}
+
+void MainWindow::on_channelUserParted(SlaveUserPackets::ChannelUserParted *p)
+{
+    for (int i = 0; i < channelList.size(); i++)
+    {
+        if (channelList[i]->getId() == p->channel())
+        {
+            channelList[i]->addServerMessage("Użytkownik " + channelList[i]->getUserName(p->user()) + " opuścił konwersację.");
+            channelList[i]->delUser(p->user());
+        }
+    }
+    refreshUserList();
+    refreshChatBox();
+}
+
+void MainWindow::on_userDisconnected(SlaveUserPackets::UserDisconnected *p)
+{
+    for (int i = 0; i < channelList.size(); i++)
+    {
+        if (channelList[i]->containsUser(p->id()))
+        {
+            channelList[i]->addServerMessage("Użytkownik " + channelList[i]->getUserName(p->id()) + " opuścił konwersację.");
+            channelList[i]->delUser(p->id());
+        }
+    }
+    refreshUserList();
+    refreshChatBox();
 }

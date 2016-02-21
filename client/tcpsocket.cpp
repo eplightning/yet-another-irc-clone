@@ -141,6 +141,12 @@ void tcpSocket::readyRead()
                             case Packet::Type::ChannelUserJoined:
                                 emit channelUserJoined(static_cast<SlaveUserPackets::ChannelUserJoined*>(a));
                                 break;
+                            case Packet::Type::ChannelUserParted:
+                                emit channelUserPatred(static_cast<SlaveUserPackets::ChannelUserParted*>(a));
+                                break;
+                            case Packet::Type::UserDisconnected:
+                                emit userDisconnected(static_cast<SlaveUserPackets::UserDisconnected*>(a));
+                                break;
                             default:
                                 break;
                         }

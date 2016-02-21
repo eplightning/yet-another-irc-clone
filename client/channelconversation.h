@@ -22,15 +22,16 @@ public:
     QVector <SlaveUserPackets::ChanUser> getUsers();
     SlaveUserPackets::ChanUser getUser(int position);
     u64 getId();
+    bool containsUser(u64 id);
 
 signals:
 
 public slots:
 
 private:
-        u64 id;
-        QVector<SlaveUserPackets::ChanUser> users;
-        int findUserPosition(u64 userId);
+    u64 id;
+    QVector<SlaveUserPackets::ChanUser> users;
+    int findUserPosition(u64 userId);
 };
 
 #endif // CHANNELCONVERSATION_H

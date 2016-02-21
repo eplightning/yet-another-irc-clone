@@ -44,6 +44,8 @@ private slots:
     void on_channelChosen(QString name);
     void on_channelMessage(SlaveUserPackets::ChannelMessage *p);
     void on_channelUserJoined(SlaveUserPackets::ChannelUserJoined *p);
+    void on_channelUserParted(SlaveUserPackets::ChannelUserParted *p);
+    void on_userDisconnected(SlaveUserPackets::UserDisconnected *p);
 
 private:
     Ui::MainWindow *ui;

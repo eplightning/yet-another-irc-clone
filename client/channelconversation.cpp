@@ -69,3 +69,12 @@ SlaveUserPackets::ChanUser ChannelConversation::getUser(int position)
         return users[0];
         //TODO - popraw to na zwracanie jakiegoś nulla
 }
+
+bool ChannelConversation::containsUser(u64 id)
+{
+    if (findUserPosition(id) > -1)
+    {
+        return true;
+    }
+    return false;
+}
