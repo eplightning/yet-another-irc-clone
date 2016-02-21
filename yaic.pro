@@ -1,7 +1,6 @@
 TEMPLATE = subdirs
 CONFIG += ordered
 
-SUBDIRS = common server \
-    test_cli_client
+SUBDIRS = common server
 
 server.depends = common
