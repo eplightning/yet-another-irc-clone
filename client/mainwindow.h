@@ -58,10 +58,12 @@ private:
     QString masterIP;
     int masterPort;
     ServerMessagesConversation *serverConversation;
+    Conversation *selectedConversation;
 
     void addItemToUserList(QString &str);
     void showDialog();
     void connectWithServer();
+    void refreshChatBox();
 };
 
 #endif // MAINWINDOW_H

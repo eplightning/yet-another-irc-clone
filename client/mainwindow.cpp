@@ -41,9 +41,28 @@ void MainWindow::on_sendingButton_clicked()
 
 void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
 {
-    inChannel = channelListModel->itemFromIndex(index)->text();
+    QString inChannel = channelListModel->itemFromIndex(index)->text();
 
+    if(inChannel == "Komunikaty Serwera")
+    {
+        selectedConversation = serverConversation;
+    }
+    else
+    {
+        for (int i = 0; i < channelList.size(); i++)
+        {
+            if (channelList[i]->getFullName() == inChannel)
+            {
+                selectedConversation = channelList[i];
+            }
+        }
+
+        //TODO - add for PM
+    }
+
+    refreshChatBox();
     //Test - after adding connection with the server this part will bewe changed
+    /*
     userListModel->clear();
     QString a1 = (inChannel+"1");
     QString a2 = (inChannel+"2");
@@ -52,21 +71,20 @@ void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
 
     mainChatText = "";
     ui->chatBox->setPlainText("");
+    */
 }
 
 void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
 {
-    //master->disconnect();
+    master->disconnect();
     ui->chatEditBox->setPlainText("asd");
     severs  = p->servers();
     if (!severs.empty())
     {
-        //slave = new tcpSocket();
         if (!slave->connectWith(QString::fromStdString(severs[0].address), severs[0].port, Packet::Direction::SlaveToUser))
         {
-            QMessageBox messageBox;
-            messageBox.critical(0,"Uwaga","Nie udało się połączyć z serwerem!");
-            messageBox.setFixedSize(500,200);
+            serverConversation->addMessage("Nie udało się połączyć z serwerem.");
+            refreshChatBox();
         }
         else
         {
@@ -86,9 +104,8 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
     }
     else
     {
-        QMessageBox messageBox;
-        messageBox.critical(0,"Uwaga","Brak serwerów.");
-        messageBox.setFixedSize(500,200);
+         serverConversation->addMessage("Brak serwerów.");
+         refreshChatBox();
     }
 }
 
@@ -145,12 +162,12 @@ void MainWindow::on_channelsReceived(SlaveUserPackets::Channels *p)
     {
         qChannels.push_back(QString::fromStdString(channels[i]));
     }
-    ChannelJoiningDialog channelJoin;
-    channelJoin.setItems(qChannels);
-    channelJoin.setModal(true);
+    ChannelJoiningDialog *channelJoin = new ChannelJoiningDialog(this);
+    channelJoin->setItems(qChannels);
+    channelJoin->setModal(true);
 
-    connect(&channelJoin, SIGNAL(setChosenChannel(QString)), this, SLOT(on_channelChosen(QString)));
-    channelJoin.show();
+    connect(channelJoin, SIGNAL(setChosenChannel(QString)), this, SLOT(on_channelChosen(QString)));
+    channelJoin->show();
 }
 
 void MainWindow::on_channelJoined(SlaveUserPackets::ChannelJoined *p)
@@ -167,9 +184,8 @@ void MainWindow::on_channelJoined(SlaveUserPackets::ChannelJoined *p)
         }
         case SlaveUserPackets::ChannelJoined::Status::UnknownError:
         {
-            QMessageBox messageBox;
-            messageBox.critical(0,"Uwaga","Nie udało się dołączyć do kanału: "+QString::fromStdString(p->name()));
-            messageBox.setFixedSize(500,200);
+            serverConversation->addMessage("Nie udało się dołączyć do kanału: "+QString::fromStdString(p->name()));
+            refreshChatBox();
             break;
         }
         default:
@@ -221,9 +237,8 @@ void MainWindow::connectWithServer()
     slave = new tcpSocket(this);
     if (!master->connectWith(masterIP, masterPort, Packet::Direction::MasterToUser))
     {
-        QMessageBox messageBox;
-        messageBox.critical(0,"Uwaga","Nie udało się połączyć z serwerem!");
-        messageBox.setFixedSize(500,200);
+        serverConversation->addMessage("Nie udało się połączyć z serwerem głównym.");
+        refreshChatBox();
     }
     else if (userName != nullptr)
     {
@@ -257,9 +272,8 @@ void MainWindow::on_channelLeavingButton_clicked()
     }
     else
     {
-        QMessageBox messageBox;
-        messageBox.critical(0,"Uwaga","Aby opuścić kanał najpierw go zaznacz.");
-        messageBox.setFixedSize(500,200);
+        serverConversation->addMessage("Aby opuścić kanał należy najpierw go zaznaczyć.");
+        refreshChatBox();
     }
 }
 
@@ -281,12 +295,15 @@ void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
             {
                 case SlaveUserPackets::ChannelParted::Reason::Requested:
                     serverConversation->addMessage("Pomyślnie opuszczono kanał " + channelList[index]->getName());
+                    refreshChatBox();
                     break;
                 case SlaveUserPackets::ChannelParted::Reason::Kicked:
                     serverConversation->addMessage("Zostałeś wyrzucony z kanału " + channelList[index]->getName());
+                    refreshChatBox();
                     break;
                 case SlaveUserPackets::ChannelParted::Reason::Unknown:
                     serverConversation->addMessage("Z nieznanego powodu opuszczono kanał " + channelList[index]->getName());
+                    refreshChatBox();
                     break;
             }
             //Opuść faktycznie kanał
@@ -296,6 +313,7 @@ void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
             break;
         case SlaveUserPackets::ChannelParted::Status::UnknownError:
             serverConversation->addMessage("Błąd przy wychodzeniu z kanału " + channelList[index]->getName());
+            refreshChatBox();
             break;
         default:
             break;
@@ -304,11 +322,17 @@ void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
 
 void MainWindow::on_channelChosen(QString name)
 {
-        if(name != "")
+        if (name != "")
         {
             SlaveUserPackets::JoinChannel *packet = new SlaveUserPackets::JoinChannel(name.toStdString());
             slave->write(packet);
         }
 }
 
-
+void MainWindow::refreshChatBox()
+{
+    if (selectedConversation!=nullptr)
+    {
+        ui->chatBox->setHtml(selectedConversation->getText());
+    }
+}

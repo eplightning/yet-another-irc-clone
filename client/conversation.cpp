@@ -45,3 +45,8 @@ void Conversation::removeFromList()
 {
     channelListModel->removeRow(channelListModel->indexFromItem(item).row());
 }
+
+QString Conversation::getText()
+{
+    return text;
+}
