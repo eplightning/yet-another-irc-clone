@@ -55,14 +55,12 @@ private:
     QStandardItemModel *userListModel;
     Dialog dialog;
     QString userName;
-    QString mainChatText;
-    QString inChannel;
+    QString masterIP;
+    int masterPort;
     QVector<ChannelConversation*> channelList;
     Vector<MasterUserPackets::ServerListServer> severs;
     tcpSocket *master;
     tcpSocket *slave;
-    QString masterIP;
-    int masterPort;
     ServerMessagesConversation *serverConversation;
     Conversation *selectedConversation;
 

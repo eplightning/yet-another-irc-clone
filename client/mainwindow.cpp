@@ -223,7 +223,11 @@ void MainWindow::connectWithServer()
 {
     //TODO - clear everything
     channelListModel->clear();
+    userListModel->clear();
+
     serverConversation = new ServerMessagesConversation(channelListModel);
+
+    selectedConversation = nullptr;
 
     for (int i = 0; i < channelList.size(); i++)
     {
@@ -403,7 +407,14 @@ void MainWindow::refreshUserList()
                 {
                     for (int j = 0; j < channelList[i]->getUsers().size(); j++)
                     {
-                        addItemToUserList(QString::fromStdString(channelList[i]->getUser(j)->nick));
+                        if (channelList[i]->getUser(j)->flags == 0)
+                        {
+                            addItemToUserList(QString::fromStdString(channelList[i]->getUser(j)->nick));
+                        }
+                        else
+                        {
+                            addItemToUserList("@" + QString::fromStdString(channelList[i]->getUser(j)->nick));
+                        }
                     }
                 }
             }
@@ -451,7 +462,7 @@ void MainWindow::on_channelUserUpdated(SlaveUserPackets::ChannelUserUpdated *p)
             {
                 channelList[i]->setFlagsToUser(p->user(), p->flags());
             }
-            //channelList[i]->addServerMessage("Użytkownik " + QString::fromStdString(p->user().nick) + " dołączył do konwersacji.");
+            //channelList[i]->addServerMessage("Użytkownik " + QString::fromStdString(p->user().nick) + " zmienił flagi.");
         }
     }
     refreshUserList();
