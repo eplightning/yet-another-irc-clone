@@ -42,6 +42,8 @@ private slots:
     void on_channelLeavingButton_clicked();
     void on_channelParted(SlaveUserPackets::ChannelParted *p);
     void on_channelChosen(QString name);
+    void on_channelMessage(SlaveUserPackets::ChannelMessage *p);
+    void on_channelUserJoined(SlaveUserPackets::ChannelUserJoined *p);
 
 private:
     Ui::MainWindow *ui;
@@ -60,10 +62,11 @@ private:
     ServerMessagesConversation *serverConversation;
     Conversation *selectedConversation;
 
-    void addItemToUserList(QString &str);
+    void addItemToUserList(QString str);
     void showDialog();
     void connectWithServer();
     void refreshChatBox();
+    void refreshUserList();
 };
 
 #endif // MAINWINDOW_H

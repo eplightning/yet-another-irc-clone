@@ -50,3 +50,8 @@ QString Conversation::getText()
 {
     return text;
 }
+
+QString Conversation::getPrefix()
+{
+    return prefix;
+}

@@ -27,16 +27,30 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_sendingButton_clicked()
 {
-    //TODO - send text to object
-    if(!inChannel.isNull())
+    QString text = ui->chatEditBox->toPlainText();
+    selectedConversation->addMessage(userName, text);
+    refreshChatBox();
+    ui->chatEditBox->clear();
+
+    if (selectedConversation->getPrefix() == "#")
     {
-
-        //Changing textEdit_2 box
-        mainChatText += "<b>" + userName + "</b><br>" + ui->chatEditBox->toPlainText() + "<br>";
-        ui->chatBox->setHtml("<html>"+mainChatText+"</html>");
-        ui->chatEditBox->clear();
+        QString name = selectedConversation->getFullName();
+        u64 id;
+        for (int i = 0; i < channelList.size(); i++)
+        {
+            if (channelList[i]->getFullName() == name)
+            {
+                id = channelList[i]->getId();
+            }
+        }
+        SlaveUserPackets::SendChannelMessage *packet = new SlaveUserPackets::SendChannelMessage(id);
+        packet->setMessage(text.toStdString());
+        slave->write(packet);
     }
-
+    else
+    {
+        //TODO add with PM
+    }
 }
 
 void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
@@ -45,10 +59,14 @@ void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
 
     if(inChannel == "Komunikaty Serwera")
     {
+        ui->chatEditBox->setEnabled(false);
+        ui->sendingButton->setEnabled(false);
         selectedConversation = serverConversation;
     }
     else
     {
+        ui->chatEditBox->setEnabled(true);
+        ui->sendingButton->setEnabled(true);
         for (int i = 0; i < channelList.size(); i++)
         {
             if (channelList[i]->getFullName() == inChannel)
@@ -59,25 +77,13 @@ void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
 
         //TODO - add for PM
     }
-
+    refreshUserList();
     refreshChatBox();
-    //Test - after adding connection with the server this part will bewe changed
-    /*
-    userListModel->clear();
-    QString a1 = (inChannel+"1");
-    QString a2 = (inChannel+"2");
-    addItemToUserList(a1);
-    addItemToUserList(a2);
-
-    mainChatText = "";
-    ui->chatBox->setPlainText("");
-    */
 }
 
 void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
 {
     master->disconnect();
-    ui->chatEditBox->setPlainText("asd");
     severs  = p->servers();
     if (!severs.empty())
     {
@@ -96,6 +102,10 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
                                   this, SLOT(on_channelJoined(SlaveUserPackets::ChannelJoined*)));
             QObject::connect(slave, SIGNAL(channelParted(SlaveUserPackets::ChannelParted*)),
                                   this, SLOT(on_channelParted(SlaveUserPackets::ChannelParted*)));
+            QObject::connect(slave, SIGNAL(channelMessage(SlaveUserPackets::ChannelMessage*)),
+                                  this, SLOT(on_channelMessage(SlaveUserPackets::ChannelMessage*)));
+            QObject::connect(slave, SIGNAL(channelUserJoined(SlaveUserPackets::ChannelUserJoined*)),
+                                  this, SLOT(on_channelUserJoined(SlaveUserPackets::ChannelUserJoined*)));
 
             SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
             a->setNick(userName.toStdString());
@@ -115,10 +125,8 @@ void MainWindow::on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p)
     switch (p->status())
     {
         case SlaveUserPackets::HandshakeAck::Status::Ok:
-            ui->chatEditBox->setEnabled(true);
             ui->channelJoiningButton->setEnabled(true);
             ui->channelLeavingButton->setEnabled(true);
-            ui->sendingButton->setEnabled(true);    //TODO - only when in channel
             break;
         case SlaveUserPackets::HandshakeAck::Status::UnknownError:
             qDebug() << "Unnown";
@@ -191,18 +199,6 @@ void MainWindow::on_channelJoined(SlaveUserPackets::ChannelJoined *p)
         default:
             break;
     }
-}
-
-//Add user to userList (listo of users on the channel)
-void MainWindow::addItemToUserList(QString &str)
-{
-    QStandardItem *item;
-    item = new QStandardItem();
-
-    item->setData(str, Qt::DisplayRole);
-    item->setEditable(false);
-
-    userListModel->appendRow(item);
 }
 
 void MainWindow::showDialog()
@@ -334,5 +330,62 @@ void MainWindow::refreshChatBox()
     if (selectedConversation!=nullptr)
     {
         ui->chatBox->setHtml(selectedConversation->getText());
+    }
+}
+
+void MainWindow::on_channelMessage(SlaveUserPackets::ChannelMessage *p)
+{
+    for (int i = 0; i < channelList.size(); i++)
+    {
+        if (channelList[i]->getId() == p->channel())
+        {
+            channelList[i]->addMessage(channelList[i]->getUserName(p->user()), QString::fromStdString(p->message()));
+        }
+    }
+    refreshChatBox();
+}
+
+void MainWindow::on_channelUserJoined(SlaveUserPackets::ChannelUserJoined *p)
+{
+    qDebug() << channelList[0]->getId();
+    //qDebug() << p->channel();
+    for (int i = 0; i < channelList.size(); i++)
+    {
+        if (channelList[i]->getId() == p->channel())
+        {
+            channelList[i]->addUser(p->user());
+        }
+    }
+    refreshUserList();
+}
+
+//Add user to userList (listo of users on the channel)
+void MainWindow::addItemToUserList(QString str)
+{
+    QStandardItem *item;
+    item = new QStandardItem();
+
+    item->setData(str, Qt::DisplayRole);
+    item->setEditable(false);
+
+    userListModel->appendRow(item);
+}
+
+void MainWindow::refreshUserList()
+{
+    userListModel->clear();
+    if (selectedConversation->getPrefix() == "#")
+    {
+        for (int i = 0; i < channelList.size(); i++)
+        {
+            if (channelList[i]->getFullName() == selectedConversation->getFullName())
+            {
+                for (int j = 0; j < channelList[i]->getUsers().size(); j++)
+                {
+                    qDebug() << channelList[i]->getUsers().size();
+                    addItemToUserList(QString::fromStdString(channelList[i]->getUser(j).nick));
+                }
+            }
+        }
     }
 }

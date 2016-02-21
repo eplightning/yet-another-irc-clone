@@ -42,3 +42,30 @@ u64 ChannelConversation::getId()
 {
     return this->id;
 }
+
+QString ChannelConversation::getUserName(u64 id)
+{
+    for (int i = 0; i < users.size(); i++)
+    {
+        if (users[i].id == id)
+        {
+            return QString::fromStdString(users[i].nick);
+        }
+    }
+    return "";
+}
+
+QVector<SlaveUserPackets::ChanUser> ChannelConversation::getUsers()
+{
+    return users;
+}
+
+SlaveUserPackets::ChanUser ChannelConversation::getUser(int position)
+{
+    if (position < users.size())
+    {
+        return users[position];
+    }
+        return users[0];
+        //TODO - popraw to na zwracanie jakiegoś nulla
+}

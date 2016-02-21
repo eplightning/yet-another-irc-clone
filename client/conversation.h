@@ -17,6 +17,7 @@ public:
     QString getName();
     QString getFullName();
     QString getText();
+    QString getPrefix();
     void setRead();
     void setUnread();
     void addMessage(QString author, QString messageText);

@@ -18,6 +18,9 @@ public:
     ChannelConversation(u64 id, QString name, QStandardItemModel *channelListModel, QVector<SlaveUserPackets::ChanUser> user);   //TODO add flags
     void addUser(SlaveUserPackets::ChanUser user);
     void delUser(u64 userId);
+    QString getUserName(u64 id);
+    QVector <SlaveUserPackets::ChanUser> getUsers();
+    SlaveUserPackets::ChanUser getUser(int position);
     u64 getId();
 
 signals:

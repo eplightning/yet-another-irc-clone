@@ -135,8 +135,13 @@ void tcpSocket::readyRead()
                             case Packet::Type::ChannelParted:
                                 emit channelParted(static_cast<SlaveUserPackets::ChannelParted*>(a));
                                 break;
+                            case Packet::Type::ChannelMessage:
+                                emit channelMessage(static_cast<SlaveUserPackets::ChannelMessage*>(a));
+                                break;
+                            case Packet::Type::ChannelUserJoined:
+                                emit channelUserJoined(static_cast<SlaveUserPackets::ChannelUserJoined*>(a));
+                                break;
                             default:
-                                //doSth
                                 break;
                         }
                         delete a;
