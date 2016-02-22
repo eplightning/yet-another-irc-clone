@@ -24,6 +24,9 @@
           <property name="styleSheet">
            <string notr="true"/>
           </property>
+          <property name="horizontalScrollBarPolicy">
+           <enum>Qt::ScrollBarAsNeeded</enum>
+          </property>
          </widget>
         </item>
         <item>

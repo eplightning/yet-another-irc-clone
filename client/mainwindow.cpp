@@ -49,16 +49,18 @@ void MainWindow::on_sendingButton_clicked()
     }
     else
     {
-        //TODO add with PM
+        PrivateConversation *conversation = static_cast<PrivateConversation*>(selectedConversation);
+        SlaveUserPackets::SendPrivateMessage *packet = new SlaveUserPackets::SendPrivateMessage();
+        packet->setMessage(text.toStdString());
+        packet->setUser(conversation->getUserId());
+        slave->write(packet);
     }
     selectedConversation->setRead();
 }
 
 void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
 {
-    QString inChannel = channelListModel->itemFromIndex(index)->text();
-
-    if (inChannel == "Komunikaty Serwera")
+    if (channelListModel->itemFromIndex(index)->text() == "Komunikaty Serwera")
     {
         ui->chatEditBox->setEnabled(false);
         ui->sendingButton->setEnabled(false);
@@ -70,12 +72,18 @@ void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
         ui->sendingButton->setEnabled(true);
         for (int i = 0; i < channelList.size(); i++)
         {
-            if (channelList[i]->getFullName() == inChannel)
+            if (channelList[i]->getFullName() == channelListModel->itemFromIndex(index)->text())
             {
                 selectedConversation = channelList[i];
             }
         }
-        //TODO - add for PM
+        for (int j = 0; j < privateMessagesList.size(); j++)
+        {
+            if (privateMessagesList[j]->getFullName() == channelListModel->itemFromIndex(index)->text())
+            {
+                selectedConversation = privateMessagesList[j];
+            }
+        }
     }
     selectedConversation->setRead();
     refreshUserList();
@@ -115,6 +123,8 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
                                   this, SLOT(on_channelUserUpdated(SlaveUserPackets::ChannelUserUpdated*)));
             QObject::connect(slave, SIGNAL(userUpdated(SlaveUserPackets::UserUpdated*)),
                                   this, SLOT(on_userUpdated(SlaveUserPackets::UserUpdated*)));
+            QObject::connect(slave, SIGNAL(privateMessageReceived(SlaveUserPackets::PrivateMessageReceived*)),
+                                  this, SLOT(on_privateMessageReceived(SlaveUserPackets::PrivateMessageReceived*)));
 
             SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
             a->setNick(userName.toStdString());
@@ -135,20 +145,21 @@ void MainWindow::on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p)
         case SlaveUserPackets::HandshakeAck::Status::Ok:
             ui->channelJoiningButton->setEnabled(true);
             ui->channelLeavingButton->setEnabled(true);
+            serverConversation->addMessage("Dołączono do serwera.");
             break;
         case SlaveUserPackets::HandshakeAck::Status::UnknownError:
-            qDebug() << "Unnown";
+            serverConversation->addMessage("Podczas dołączania do serwera wystąpił nieznany błąd.");
             break;
         case SlaveUserPackets::HandshakeAck::Status::InvalidNick:
-            qDebug() << "Invalid nick";
+            serverConversation->addMessage("Nie dołączono do serwera z powodu niedozwolonej nazwy użytkownika.");
             break;
         case SlaveUserPackets::HandshakeAck::Status::Full:
-            qDebug() << "Full";
+            serverConversation->addMessage("Serwer pełny, dołączenie nie jest możliwe. Spróbuj później.");
             break;
         default:
-            //doSth
             break;
     }
+    refreshChatBox();
 }
 
 void MainWindow::on_channelJoiningButton_clicked()
@@ -221,7 +232,6 @@ void MainWindow::showDialog()
 
 void MainWindow::connectWithServer()
 {
-    //TODO - clear everything
     channelListModel->clear();
     userListModel->clear();
 
@@ -234,6 +244,12 @@ void MainWindow::connectWithServer()
         delete channelList[i];
     }
     channelList.clear();
+
+    for (int i = 0; i < privateMessagesList.size(); i++)
+    {
+        delete privateMessagesList[i];
+    }
+    privateMessagesList.clear();
 
     ui->chatEditBox->setEnabled(false);
     ui->channelJoiningButton->setEnabled(false);
@@ -257,7 +273,6 @@ void MainWindow::connectWithServer()
     }
 }
 
-
 void MainWindow::on_channelLeavingButton_clicked()
 {
     QString channelName;
@@ -276,12 +291,30 @@ void MainWindow::on_channelLeavingButton_clicked()
                 slave->write(packet);
             }
         }
+        for (int j = 0; j < privateMessagesList.size(); j++)
+        {
+            if (channelName == privateMessagesList[j]->getFullName())
+            {
+                if (selectedConversation->getFullName() == channelName)
+                {
+                    selectedConversation = nullptr;
+                }
+                serverConversation->addMessage("Zamknięto konwersację z użytkownikiem " + privateMessagesList[j]->getName());
+                privateMessagesList[j]->removeFromList();
+                if (!privateMessagesList[j]->isUserOnline())
+                {
+                    delete privateMessagesList[j];
+                    privateMessagesList.remove(j);
+                }
+            }
+        }
     }
     else
     {
         serverConversation->addMessage("Aby opuścić kanał należy najpierw go zaznaczyć.");
-        refreshChatBox();
     }
+    refreshChatBox();
+    refreshUserList();
 }
 
 void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
@@ -349,10 +382,21 @@ void MainWindow::refreshChatBox()
     if (selectedConversation!=nullptr)
     {
         ui->chatBox->setHtml(selectedConversation->getText());
+        if (selectedConversation->getPrefix() == "*")
+        {
+            PrivateConversation *a = static_cast<PrivateConversation*>(selectedConversation);
+            if(!a->isUserOnline())
+            {
+                ui->chatEditBox->setEnabled(false);
+                ui->sendingButton->setEnabled(false);
+            }
+        }
     }
     else
     {
         ui->chatBox->setPlainText("");
+        ui->chatEditBox->setEnabled(false);
+        ui->sendingButton->setEnabled(false);
     }
 }
 
@@ -401,6 +445,7 @@ void MainWindow::refreshUserList()
     {
         if (selectedConversation->getPrefix() == "#")
         {
+            /*
             for (int i = 0; i < channelList.size(); i++)
             {
                 if (channelList[i]->getFullName() == selectedConversation->getFullName())
@@ -417,6 +462,27 @@ void MainWindow::refreshUserList()
                         }
                     }
                 }
+            }
+            */
+            ChannelConversation *a = static_cast<ChannelConversation*>(selectedConversation);
+            for (int i = 0; i < a->getUsers().size(); i++)
+            {
+                if (a->getUser(i)->flags == 0)
+                {
+                    addItemToUserList(QString::fromStdString(a->getUser(i)->nick));
+                }
+                else
+                {
+                    addItemToUserList("@" + QString::fromStdString(a->getUser(i)->nick));
+                }
+            }
+        }
+        else if (selectedConversation->getPrefix() == "*")
+        {
+            PrivateConversation *a = static_cast<PrivateConversation*>(selectedConversation);
+            if (a->isUserOnline())
+            {
+                addItemToUserList(a->getUserName());
             }
         }
     }
@@ -446,7 +512,18 @@ void MainWindow::on_userDisconnected(SlaveUserPackets::UserDisconnected *p)
             channelList[i]->delUser(p->id());
         }
     }
-    //TODO - same for PM
+    for (int j = 0; j < privateMessagesList.size(); j++)
+    {
+        if (privateMessagesList[j]->getUserId() == p->id())
+        {
+            privateMessagesList[j]->setUserOffline();
+            if (!privateMessagesList[j]->isOnTheList())
+            {
+                privateMessagesList[j]->reAddToList();
+            }
+            privateMessagesList[j]->addServerMessage("Użytkownik " + privateMessagesList[j]->getUserName() + " opuścił konwersację.");
+        }
+    }
     refreshUserList();
     refreshChatBox();
 }
@@ -479,7 +556,101 @@ void MainWindow::on_userUpdated(SlaveUserPackets::UserUpdated *p)
             channelList[i]->updateUserName(p->id(), p->nick());
         }
     }
-    //TODO - same for PM
+    for (int j = 0; j < privateMessagesList.size(); j++)
+    {
+        if (privateMessagesList[j]->getUserId() == p->id())
+        {
+            privateMessagesList[j]->addServerMessage("Użytkownik " + privateMessagesList[j]->getUserName() +  "zmienił nick na: " + QString::fromStdString(p->nick()));
+            privateMessagesList[j]->renameConversation(QString::fromStdString(p->nick()));
+            privateMessagesList[j]->setUserName(QString::fromStdString(p->nick()));
+        }
+    }
     refreshUserList();
+    refreshChatBox();
+}
+
+void MainWindow::on_userList_doubleClicked(const QModelIndex &index)
+{
+    if (selectedConversation != nullptr)
+    {
+        if (selectedConversation->getPrefix() == "#")
+        {
+            ChannelConversation *a = static_cast<ChannelConversation*>(selectedConversation);
+                    if (!privateMessagesListContains(a->getUser(index.row())->id))
+                    {
+                        PrivateConversation *conversation = new PrivateConversation(a->getUser(index.row())->id,
+                                                                                    QString::fromStdString(a->getUser(index.row())->nick), channelListModel);
+                        privateMessagesList.push_back(conversation);
+                        selectedConversation = conversation;
+                    }
+                    else
+                    {
+                        for (int j = 0; j < privateMessagesList.size(); j++)
+                        {
+                            if (privateMessagesList[j]->getUserId() == a->getUser(index.row())->id)
+                            {
+                                selectedConversation = privateMessagesList[j];
+                                if (!privateMessagesList[j]->isOnTheList())
+                                {
+                                    privateMessagesList[j]->reAddToList();
+                                }
+                            }
+                      }
+                    }
+
+                    ui->channelList->setCurrentIndex(channelListModel->index(selectedConversation->getRow(),0));
+
+                    refreshChatBox();
+                    refreshUserList();
+        }
+        else if (selectedConversation->getPrefix() == "*")
+        {
+            selectedConversation->setRead();
+        }
+    }
+}
+
+bool MainWindow::privateMessagesListContains(u64 userId)
+{
+    for (int i = 0; i < privateMessagesList.size(); i++)
+    {
+        if (privateMessagesList[i]->getUserId() == userId)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void MainWindow::on_privateMessageReceived(SlaveUserPackets::PrivateMessageReceived *p)
+{
+    bool messageAdded = false;
+    for (int i = 0; i < privateMessagesList.size(); i++)
+    {
+        if (privateMessagesList[i]->getUserId() == p->user())
+        {
+            messageAdded = true;
+            if (!privateMessagesList[i]->isOnTheList())
+            {
+                privateMessagesList[i]->reAddToList();
+            }
+            privateMessagesList[i]->addMessage(QString::fromStdString(p->nick()), QString::fromStdString(p->message()));
+            privateMessagesList[i]->setUnread();
+        }
+    }
+
+    if (!messageAdded)
+    {
+        PrivateConversation *conversation = new PrivateConversation(p->user(), QString::fromStdString(p->nick()), channelListModel);
+        conversation->addMessage(QString::fromStdString(p->nick()), QString::fromStdString(p->message()));
+        conversation->setUnread();
+        privateMessagesList.push_back(conversation);
+    }
+    refreshChatBox();
+}
+
+void MainWindow::on_serverDisconnected()
+{
+    serverConversation->addMessage("Utracono połączenie z serwerem");
     refreshChatBox();
 }

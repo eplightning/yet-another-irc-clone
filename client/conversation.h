@@ -23,7 +23,11 @@ public:
     void addMessage(QString author, QString messageText);
     void userDisconnectedMessage(QString userName);
     void removeFromList();
+    void reAddToList();
     void addServerMessage(QString messageText);
+    int getRow();
+    void renameConversation(QString newName);
+    bool isOnTheList();
 
 signals:
 
@@ -35,6 +39,7 @@ protected:
     QString text;
     QStandardItem *item;
     QStandardItemModel *channelListModel;
+    bool onTheList;
 
 
 };

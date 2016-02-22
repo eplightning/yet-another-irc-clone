@@ -12,7 +12,6 @@
 #include <netinet/in.h>
 
 #include <QtCore>
-#include <QDebug>
 
 using namespace YAIC;
 
@@ -39,6 +38,8 @@ signals:
     void userDisconnected(SlaveUserPackets::UserDisconnected *p);
     void channelUserUpdated(SlaveUserPackets::ChannelUserUpdated *p);
     void userUpdated(SlaveUserPackets::UserUpdated *p);
+    void privateMessageReceived(SlaveUserPackets::PrivateMessageReceived *p);
+    void serverDisconnected();
 
 public slots:
     void readyRead();

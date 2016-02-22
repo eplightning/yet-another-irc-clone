@@ -12,6 +12,7 @@ Conversation::Conversation(QString prefix, QString name, QStandardItemModel *cha
     item->setData(getFullName(), Qt::DisplayRole);
     item->setEditable(false);
     channelListModel->appendRow(item);
+    this->onTheList = true;
 }
 
 void Conversation::setRead()
@@ -45,6 +46,7 @@ QString Conversation::getName()
 void Conversation::removeFromList()
 {
     channelListModel->removeRow(channelListModel->indexFromItem(item).row());
+    this->onTheList = false;
 }
 
 QString Conversation::getText()
@@ -61,4 +63,29 @@ void Conversation::addServerMessage(QString messageText)
 {
     text += "<i>" + messageText + "</i><br>";
     setUnread();
+}
+
+int Conversation::getRow()
+{
+    return channelListModel->indexFromItem(item).row();
+}
+
+void Conversation::renameConversation(QString newName)
+{
+    this->name = newName;
+    item->setData(getFullName(), Qt::DisplayRole);
+}
+
+void Conversation::reAddToList()
+{
+    this->item = new QStandardItem();
+    item->setData(getFullName(), Qt::DisplayRole);
+    item->setEditable(false);
+    channelListModel->appendRow(item);
+    this->onTheList = true;
+}
+
+bool Conversation::isOnTheList()
+{
+    return onTheList;
 }

@@ -153,6 +153,9 @@ void tcpSocket::readyRead()
                             case Packet::Type::UserUpdated:
                                 emit userUpdated(static_cast<SlaveUserPackets::UserUpdated*>(a));
                                 break;
+                            case Packet::Type::PrivateMessageReceived:
+                                emit privateMessageReceived(static_cast<SlaveUserPackets::PrivateMessageReceived*>(a));
+                                break;
                             default:
                                 break;
                         }
@@ -176,7 +179,7 @@ void tcpSocket::heartbeatTimeExpired()
     if (lastReceivedPacketTime.secsTo(QDateTime::currentDateTime()) > 10)
     {
         disconnect();
-        qDebug() << "Rozłączyło mnie";
+        emit serverDisconnected();
     }
 }
 

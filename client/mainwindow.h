@@ -9,6 +9,7 @@
 #include "channeljoiningdialog.h"
 #include "channelconversation.h"
 #include "servermessagesconversation.h"
+#include "privateconversation.h"
 #include "tcpsocket.h"
 #include "common/packet.h"
 #include "common/types.h"
@@ -48,6 +49,9 @@ private slots:
     void on_userDisconnected(SlaveUserPackets::UserDisconnected *p);
     void on_channelUserUpdated(SlaveUserPackets::ChannelUserUpdated *p);
     void on_userUpdated(SlaveUserPackets::UserUpdated *p);
+    void on_userList_doubleClicked(const QModelIndex &index);
+    void on_privateMessageReceived(SlaveUserPackets::PrivateMessageReceived *p);
+    void on_serverDisconnected();
 
 private:
     Ui::MainWindow *ui;
@@ -58,6 +62,7 @@ private:
     QString masterIP;
     int masterPort;
     QVector<ChannelConversation*> channelList;
+    QVector<PrivateConversation*> privateMessagesList;
     Vector<MasterUserPackets::ServerListServer> severs;
     tcpSocket *master;
     tcpSocket *slave;
@@ -69,6 +74,7 @@ private:
     void connectWithServer();
     void refreshChatBox();
     void refreshUserList();
+    bool privateMessagesListContains(u64 userId);
 };
 
 #endif // MAINWINDOW_H
