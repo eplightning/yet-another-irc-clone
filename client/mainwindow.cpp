@@ -68,6 +68,17 @@ void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
     }
     else
     {
+        int row = index.row();
+        QVector<int> places;
+        int count = 0;
+        for (int z = 0; z < channelListModel->rowCount(); z++)
+        {
+            if(channelListModel->itemFromIndex(index)->text() == channelListModel->itemFromIndex(channelListModel->index(z,0))->text())
+            {
+                places.push_back(z);
+            }
+            count = places.indexOf(row);
+        }
         ui->chatEditBox->setEnabled(true);
         ui->sendingButton->setEnabled(true);
         for (int i = 0; i < channelList.size(); i++)
@@ -81,7 +92,11 @@ void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
         {
             if (privateMessagesList[j]->getFullName() == channelListModel->itemFromIndex(index)->text())
             {
-                selectedConversation = privateMessagesList[j];
+                if (count == 0)
+                {
+                    selectedConversation = privateMessagesList[j];
+                }
+                count --;
             }
         }
     }
@@ -278,15 +293,27 @@ void MainWindow::connectWithServer()
 void MainWindow::on_channelLeavingButton_clicked()
 {
     QString channelName;
+    int row = 0;
+    int count = 0;
+    QVector<int> places;
     foreach (const QModelIndex &index, ui->channelList->selectionModel()->selectedIndexes())
     {        
         channelName = channelListModel->itemFromIndex(index)->text();
+        row = index.row();
     }
 
+
     if (channelName != nullptr)
-    {        
-        for (int i = 0; i < channelList.size(); i++)
+    {
+        for (int z = 0; z < channelListModel->rowCount(); z++)
         {
+            if(channelName == channelListModel->itemFromIndex(channelListModel->index(z,0))->text())
+            {
+                places.push_back(z);
+            }
+            count = places.indexOf(row);
+        }
+        for (int i = 0; i < channelList.size(); i++)        {
             if (channelName == channelList[i]->getFullName())
             {                
                 SlaveUserPackets::PartChannel *packet = new SlaveUserPackets::PartChannel(channelList[i]->getId());
@@ -297,17 +324,21 @@ void MainWindow::on_channelLeavingButton_clicked()
         {
             if (channelName == privateMessagesList[j]->getFullName())
             {
-                if (selectedConversation != nullptr && selectedConversation->getFullName() == channelName)
+                if (count == 0)
                 {
-                    selectedConversation = nullptr;
+                    if (selectedConversation != nullptr && selectedConversation->getFullName() == channelName)
+                    {
+                        selectedConversation = nullptr;
+                    }
+                    serverConversation->addMessage("Zamknięto konwersację z użytkownikiem " + privateMessagesList[j]->getName() + ".");
+                    privateMessagesList[j]->removeFromList();
+                    if (!privateMessagesList[j]->isUserOnline())
+                    {
+                        delete privateMessagesList[j];
+                        privateMessagesList.remove(j);
+                    }
                 }
-                serverConversation->addMessage("Zamknięto konwersację z użytkownikiem " + privateMessagesList[j]->getName() + ".");
-                privateMessagesList[j]->removeFromList();
-                if (!privateMessagesList[j]->isUserOnline())
-                {
-                    delete privateMessagesList[j];
-                    privateMessagesList.remove(j);
-                }
+                count--;
             }
         }
     }
@@ -447,25 +478,6 @@ void MainWindow::refreshUserList()
     {
         if (selectedConversation->getPrefix() == "#")
         {
-            /*
-            for (int i = 0; i < channelList.size(); i++)
-            {
-                if (channelList[i]->getFullName() == selectedConversation->getFullName())
-                {
-                    for (int j = 0; j < channelList[i]->getUsers().size(); j++)
-                    {
-                        if (channelList[i]->getUser(j)->flags == 0)
-                        {
-                            addItemToUserList(QString::fromStdString(channelList[i]->getUser(j)->nick));
-                        }
-                        else
-                        {
-                            addItemToUserList("@" + QString::fromStdString(channelList[i]->getUser(j)->nick));
-                        }
-                    }
-                }
-            }
-            */
             ChannelConversation *a = static_cast<ChannelConversation*>(selectedConversation);
             for (int i = 0; i < a->getUsers().size(); i++)
             {
