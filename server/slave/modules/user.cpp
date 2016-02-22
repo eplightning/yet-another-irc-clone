@@ -200,6 +200,9 @@ SharedPtr<Client> UserModule::connection(u32 clientid)
 
 void UserModule::cleanupSlave(u32 slave)
 {
+    int removedUsers = 0;
+    int removedChannels = 0;
+
     // All users
     Vector<SharedPtr<Client>*> allUsers;
     for (auto &x : m_users.list()) {
@@ -214,6 +217,7 @@ void UserModule::cleanupSlave(u32 slave)
             m_context->tcp->sendTo(allUsers, &dc);
 
             it = m_users.list().erase(it);
+            removedUsers++;
         } else {
             ++it;
         }
@@ -235,10 +239,15 @@ void UserModule::cleanupSlave(u32 slave)
             m_context->tcp->sendTo(allChannelUsers, &parted);
 
             it = m_channels.list().erase(it);
+            removedChannels++;
         } else {
             ++it;
         }
     }
+
+    m_context->log << Logger::Line::Start
+                   << "Slave removed [Users -" << removedUsers << ", Channels -" << removedChannels << "]"
+                   << Logger::Line::End;
 }
 
 void UserModule::syncSlave(SharedPtr<Client> &client)
@@ -805,6 +814,10 @@ void UserModule::slaveSyncUsers(u32 clientid, Packet *packet)
     for (auto &x : request->users()) {
         m_users.addUser(x.id, x.nick);
     }
+
+    m_context->log << Logger::Line::Start
+                   << "User sync [Users #: " << request->users().size() << "]"
+                   << Logger::Line::End;
 }
 
 void UserModule::slaveSyncChannels(u32 clientid, Packet *packet)
@@ -828,6 +841,10 @@ void UserModule::slaveSyncChannels(u32 clientid, Packet *packet)
                 chan->addUser(usr, y.flags);
         }
     }
+
+    m_context->log << Logger::Line::Start
+                   << "Channel sync [Channels #: " << request->channels().size() << "]"
+                   << Logger::Line::End;
 }
 
 void UserModule::slaveUserConnect(u32 clientid, Packet *packet)
@@ -840,6 +857,10 @@ void UserModule::slaveUserConnect(u32 clientid, Packet *packet)
     SlaveSlavePackets::UserConnect *request = static_cast<SlaveSlavePackets::UserConnect*>(packet);
 
     m_users.addUser(request->id(), request->nick());
+
+    m_context->log << Logger::Line::Start
+                   << "User connect from slave [User: " << request->nick() << "]"
+                   << Logger::Line::End;
 }
 
 void UserModule::slaveUserDisconnect(u32 clientid, Packet *packet)
@@ -872,6 +893,10 @@ void UserModule::slaveUserDisconnect(u32 clientid, Packet *packet)
     }
 
     m_context->tcp->sendTo(clients, &dc);
+
+    m_context->log << Logger::Line::Start
+                   << "User DC from slave [User: " << usr->nick() << "]"
+                   << Logger::Line::End;
 }
 
 void UserModule::slaveChannelNew(u32 clientid, Packet *packet)
@@ -885,6 +910,10 @@ void UserModule::slaveChannelNew(u32 clientid, Packet *packet)
 
     SharedPtr<Channel> chan = m_channels.create(request->id(), request->name());
     UNUSED(chan);
+
+    m_context->log << Logger::Line::Start
+                   << "New channel from slave [Chan: " << chan->name() << "]"
+                   << Logger::Line::End;
 }
 
 void UserModule::slaveChannelRemove(u32 clientid, Packet *packet)
@@ -915,6 +944,10 @@ void UserModule::slaveChannelRemove(u32 clientid, Packet *packet)
     m_context->tcp->sendTo(allChannelUsers, &parted);
 
     m_channels.remove(chan->id());
+
+    m_context->log << Logger::Line::Start
+                   << "Channel remove slave [Chan: " << chan->name() << "]"
+                   << Logger::Line::End;
 }
 
 void UserModule::slaveChannelUser(u32 clientid, Packet *packet)
@@ -964,6 +997,10 @@ void UserModule::slaveChannelUser(u32 clientid, Packet *packet)
     chan->addUser(user, request->flags());
 
     m_context->tcp->sendTo(clients, &notification);
+
+    m_context->log << Logger::Line::Start
+                   << "User join from slave [Chan: " << chan->name() << ", User: " << user->nick() << "]"
+                   << Logger::Line::End;
 }
 
 void UserModule::slaveChannelUserPart(u32 clientid, Packet *packet)
@@ -1005,6 +1042,10 @@ void UserModule::slaveChannelUserPart(u32 clientid, Packet *packet)
     }
 
     m_context->tcp->sendTo(clients, &notification);
+
+    m_context->log << Logger::Line::Start
+                   << "User part from slave [Chan: " << chan->name() << ", User: " << user->nick() << "]"
+                   << Logger::Line::End;
 }
 
 void UserModule::slaveChannelMessage(u32 clientid, Packet *packet)
@@ -1038,6 +1079,10 @@ void UserModule::slaveChannelMessage(u32 clientid, Packet *packet)
     }
 
     m_context->tcp->sendTo(clients, &notification);
+
+    m_context->log << Logger::Line::Start
+                   << "New channel message from slave [Chan: " << chan->name() << ", Sender: " << user->nick() << "]"
+                   << Logger::Line::End;
 }
 
 void UserModule::slavePrivateMessage(u32 clientid, Packet *packet)
@@ -1064,6 +1109,10 @@ void UserModule::slavePrivateMessage(u32 clientid, Packet *packet)
     notification.setNick(user->nick());
 
     m_context->tcp->sendTo(recipient->client(), &notification);
+
+    m_context->log << Logger::Line::Start
+                   << "New private message from slave [Recipient: " << recipient->nick() << ", Sender: " << user->nick() << "]"
+                   << Logger::Line::End;
 }
 
 END_NAMESPACE
