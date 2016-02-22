@@ -212,7 +212,7 @@ void MainWindow::on_channelJoined(SlaveUserPackets::ChannelJoined *p)
         }
         case SlaveUserPackets::ChannelJoined::Status::UnknownError:
         {
-            serverConversation->addMessage("Nie udało się dołączyć do kanału: " + QString::fromStdString(p->name()));
+            serverConversation->addMessage("Nie udało się dołączyć do kanału: " + QString::fromStdString(p->name()) + ".");
             refreshChatBox();
             break;
         }
@@ -301,7 +301,7 @@ void MainWindow::on_channelLeavingButton_clicked()
                 {
                     selectedConversation = nullptr;
                 }
-                serverConversation->addMessage("Zamknięto konwersację z użytkownikiem " + privateMessagesList[j]->getName());
+                serverConversation->addMessage("Zamknięto konwersację z użytkownikiem " + privateMessagesList[j]->getName() + ".");
                 privateMessagesList[j]->removeFromList();
                 if (!privateMessagesList[j]->isUserOnline())
                 {
@@ -336,15 +336,15 @@ void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
             switch(p->reason())
             {
                 case SlaveUserPackets::ChannelParted::Reason::Requested:
-                    serverConversation->addMessage("Pomyślnie opuszczono kanał " + channelList[index]->getName());
+                    serverConversation->addMessage("Pomyślnie opuszczono kanał " + channelList[index]->getName() + ".");
                     refreshChatBox();
                     break;
                 case SlaveUserPackets::ChannelParted::Reason::Kicked:
-                    serverConversation->addMessage("Zostałeś wyrzucony z kanału " + channelList[index]->getName());
+                    serverConversation->addMessage("Zostałeś wyrzucony z kanału " + channelList[index]->getName() + ".");
                     refreshChatBox();
                     break;
                 case SlaveUserPackets::ChannelParted::Reason::Unknown:
-                    serverConversation->addMessage("Z nieznanego powodu opuszczono kanał " + channelList[index]->getName());
+                    serverConversation->addMessage("Z nieznanego powodu opuszczono kanał " + channelList[index]->getName() + ".");
                     refreshChatBox();
                     break;
             }
@@ -362,7 +362,7 @@ void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
 
             break;
         case SlaveUserPackets::ChannelParted::Status::UnknownError:
-            serverConversation->addMessage("Błąd przy wychodzeniu z kanału " + channelList[index]->getName());
+            serverConversation->addMessage("Błąd przy wychodzeniu z kanału " + channelList[index]->getName() + ".");
             refreshChatBox();
             break;
         default:
@@ -653,6 +653,6 @@ void MainWindow::on_privateMessageReceived(SlaveUserPackets::PrivateMessageRecei
 
 void MainWindow::on_serverDisconnected()
 {
-    serverConversation->addMessage("Utracono połączenie z serwerem");
+    serverConversation->addMessage("Utracono połączenie z serwerem.");
     refreshChatBox();
 }
