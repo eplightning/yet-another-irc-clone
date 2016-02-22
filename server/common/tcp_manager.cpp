@@ -199,6 +199,15 @@ TcpManager::~TcpManager()
     for (auto &x : m_clients)
         close(x.second->socket());
 
+    // czytamy wszystko z pipe'a jako że niektóre wiadomości mają wskaźnik na dane które trzeba usunać
+    if (SocketUtils::makeNonBlocking(m_pipe[0])) {
+        TcpManagerMessage notify;
+        while (read(m_pipe[0], &notify, sizeof(TcpManagerMessage)) == sizeof(TcpManagerMessage)) {
+            if (notify.type == TMMTConnect && notify.options.ptr)
+                delete static_cast<TcpManagerConnectInfo*>(notify.options.ptr);
+        }
+    }
+
     close(m_pipe[0]);
     close(m_pipe[1]);
 }
