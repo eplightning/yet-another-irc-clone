@@ -247,8 +247,12 @@ public:
     const String &message() const;
     void setMessage(const String &message);
 
+    u64 recipient() const;
+    void setRecipient(u64 recipient);
+
 protected:
     u64 m_user;
+    u64 m_recipient;
     String m_message;
 };
 

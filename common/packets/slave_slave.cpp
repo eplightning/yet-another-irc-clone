@@ -349,6 +349,7 @@ PrivateMessage::PrivateMessage() :
 bool PrivateMessage::decodePayload(const Vector<char> &payload)
 {
     bool result = read(payload, m_user);
+    result &= read(payload, m_recipient);
     result &= read(payload, m_message);
 
     return result;
@@ -357,6 +358,7 @@ bool PrivateMessage::decodePayload(const Vector<char> &payload)
 void PrivateMessage::encodePayload(Vector<char> &payload) const
 {
     write(payload, m_user);
+    write(payload, m_recipient);
     write(payload, m_message);
 }
 
@@ -378,6 +380,16 @@ const String &PrivateMessage::message() const
 void PrivateMessage::setMessage(const String &message)
 {
     m_message = message;
+}
+
+u64 PrivateMessage::recipient() const
+{
+    return m_recipient;
+}
+
+void PrivateMessage::setRecipient(u64 recipient)
+{
+    m_recipient = recipient;
 }
 
 SyncUser::SyncUser(u64 uid, const String &name) :
