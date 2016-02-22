@@ -25,6 +25,7 @@ public:
     bool containsUser(u64 id);
     void setFlagsToUser(u64 userId, u32 flags);
     void updateUserName(u64 userId, String nick);
+    s32 getFlags();
 
 signals:
 

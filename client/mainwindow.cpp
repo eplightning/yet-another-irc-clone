@@ -23,6 +23,22 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete channelListModel;
+    delete userListModel;
+    delete slave;
+    delete master;
+
+    for (int i = 0; i < channelList.size(); i++)
+    {
+        delete channelList[i];
+    }
+
+    for (int i = 0; i < privateMessagesList.size(); i++)
+    {
+        delete privateMessagesList[i];
+    }
+
+    delete serverConversation;
 }
 
 void MainWindow::on_sendingButton_clicked()
@@ -43,22 +59,22 @@ void MainWindow::on_sendingButton_clicked()
                 id = channelList[i]->getId();
             }
         }
-        SlaveUserPackets::SendChannelMessage *packet = new SlaveUserPackets::SendChannelMessage(id);
-        packet->setMessage(text.toStdString());
-        slave->write(packet);
+        SlaveUserPackets::SendChannelMessage packet(id);
+        packet.setMessage(text.toStdString());
+        slave->write(&packet);
     }
     else
     {
         PrivateConversation *conversation = static_cast<PrivateConversation*>(selectedConversation);
-        SlaveUserPackets::SendPrivateMessage *packet = new SlaveUserPackets::SendPrivateMessage();
-        packet->setMessage(text.toStdString());
-        packet->setUser(conversation->getUserId());
-        slave->write(packet);
+        SlaveUserPackets::SendPrivateMessage packet;
+        packet.setMessage(text.toStdString());
+        packet.setUser(conversation->getUserId());
+        slave->write(&packet);
     }
     selectedConversation->setRead();
 }
 
-void MainWindow::on_channelList_doubleClicked(const QModelIndex &index)
+void MainWindow::on_channelList_activated(const QModelIndex &index)
 {
     if (channelListModel->itemFromIndex(index)->text() == "Komunikaty Serwera")
     {
@@ -143,9 +159,9 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
             QObject::connect(slave, SIGNAL(serverDisconnected()),
                                   this, SLOT(on_serverDisconnected()));
 
-            SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
-            a->setNick(userName.toStdString());
-            slave->write(a);
+            SlaveUserPackets::Handshake a;
+            a.setNick(userName.toStdString());
+            slave->write(&a);
         }
     }
     else
@@ -166,12 +182,15 @@ void MainWindow::on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p)
             break;
         case SlaveUserPackets::HandshakeAck::Status::UnknownError:
             serverConversation->addMessage("Podczas dołączania do serwera wystąpił nieznany błąd.");
+            slave->disconnect();
             break;
         case SlaveUserPackets::HandshakeAck::Status::InvalidNick:
             serverConversation->addMessage("Nie dołączono do serwera z powodu niedozwolonej nazwy użytkownika.");
+            slave->disconnect();
             break;
         case SlaveUserPackets::HandshakeAck::Status::Full:
             serverConversation->addMessage("Serwer pełny, dołączenie nie jest możliwe. Spróbuj później.");
+            slave->disconnect();
             break;
         default:
             break;
@@ -181,8 +200,8 @@ void MainWindow::on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p)
 
 void MainWindow::on_channelJoiningButton_clicked()
 {
-    SlaveUserPackets::ListChannels *channels = new SlaveUserPackets::ListChannels();
-    slave->write(channels);
+    SlaveUserPackets::ListChannels channels;
+    slave->write(&channels);
 }
 
 void MainWindow::on_serverChanged()
@@ -284,9 +303,9 @@ void MainWindow::connectWithServer()
     {
         QObject::connect(master, SIGNAL(serversRead(MasterUserPackets::ServerList*)),
                               this, SLOT(on_serverListRead(MasterUserPackets::ServerList*)));
-        MasterUserPackets::RequestServers *a = new MasterUserPackets::RequestServers();
-        a->setMax(1);
-        master->write(a);
+        MasterUserPackets::RequestServers a;
+        a.setMax(1);
+        master->write(&a);
     }
 }
 
@@ -316,8 +335,8 @@ void MainWindow::on_channelLeavingButton_clicked()
         for (int i = 0; i < channelList.size(); i++)        {
             if (channelName == channelList[i]->getFullName())
             {                
-                SlaveUserPackets::PartChannel *packet = new SlaveUserPackets::PartChannel(channelList[i]->getId());
-                slave->write(packet);                
+                SlaveUserPackets::PartChannel packet(channelList[i]->getId());
+                slave->write(&packet);
             }
         }
         for (int j = 0; j < privateMessagesList.size(); j++)
@@ -404,8 +423,8 @@ void MainWindow::on_channelChosen(QString name)
 {
         if (name != "")
         {
-            SlaveUserPackets::JoinChannel *packet = new SlaveUserPackets::JoinChannel(name.toStdString());
-            slave->write(packet);
+            SlaveUserPackets::JoinChannel packet(name.toStdString());
+            slave->write(&packet);
         }
 }
 
@@ -478,6 +497,14 @@ void MainWindow::refreshUserList()
         if (selectedConversation->getPrefix() == "#")
         {
             ChannelConversation *a = static_cast<ChannelConversation*>(selectedConversation);
+            if (a->getFlags() == 0)
+            {
+                addItemToUserList(userName);
+            }
+            else
+            {
+                addItemToUserList("@" + userName);
+            }
             for (int i = 0; i < a->getUsers().size(); i++)
             {
                 if (a->getUser(i)->flags == 0)
@@ -492,6 +519,7 @@ void MainWindow::refreshUserList()
         }
         else if (selectedConversation->getPrefix() == "*")
         {
+            addItemToUserList(userName);
             PrivateConversation *a = static_cast<PrivateConversation*>(selectedConversation);
             if (a->isUserOnline())
             {
@@ -581,37 +609,36 @@ void MainWindow::on_userUpdated(SlaveUserPackets::UserUpdated *p)
 
 void MainWindow::on_userList_doubleClicked(const QModelIndex &index)
 {
-    if (selectedConversation != nullptr)
+    if (selectedConversation != nullptr && index.row()>0)
     {
         if (selectedConversation->getPrefix() == "#")
         {
             ChannelConversation *a = static_cast<ChannelConversation*>(selectedConversation);
-                    if (!privateMessagesListContains(a->getUser(index.row())->id))
+            if (!privateMessagesListContains(a->getUser(index.row()-1)->id))
+            {
+                PrivateConversation *conversation = new PrivateConversation(a->getUser(index.row()-1)->id,
+                                                                                    QString::fromStdString(a->getUser(index.row()-1)->nick), channelListModel);
+                privateMessagesList.push_back(conversation);
+                selectedConversation = conversation;
+            }
+            else
+            {
+                for (int j = 0; j < privateMessagesList.size(); j++)
+                {
+                    if (privateMessagesList[j]->getUserId() == a->getUser(index.row()-1)->id)
                     {
-                        PrivateConversation *conversation = new PrivateConversation(a->getUser(index.row())->id,
-                                                                                    QString::fromStdString(a->getUser(index.row())->nick), channelListModel);
-                        privateMessagesList.push_back(conversation);
-                        selectedConversation = conversation;
-                    }
-                    else
-                    {
-                        for (int j = 0; j < privateMessagesList.size(); j++)
+                        selectedConversation = privateMessagesList[j];
+                        if (!privateMessagesList[j]->isOnTheList())
                         {
-                            if (privateMessagesList[j]->getUserId() == a->getUser(index.row())->id)
-                            {
-                                selectedConversation = privateMessagesList[j];
-                                if (!privateMessagesList[j]->isOnTheList())
-                                {
-                                    privateMessagesList[j]->reAddToList();
-                                }
-                            }
-                      }
+                            privateMessagesList[j]->reAddToList();
+                        }
                     }
+                }
+            }
+            ui->channelList->setCurrentIndex(channelListModel->index(selectedConversation->getRow(),0));
 
-                    ui->channelList->setCurrentIndex(channelListModel->index(selectedConversation->getRow(),0));
-
-                    refreshChatBox();
-                    refreshUserList();
+            refreshChatBox();
+            refreshUserList();
         }
         else if (selectedConversation->getPrefix() == "*")
         {

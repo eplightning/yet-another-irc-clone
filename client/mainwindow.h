@@ -31,10 +31,10 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+
 private slots:
     void on_sendingButton_clicked();
     void on_channelJoiningButton_clicked();
-    void on_channelList_doubleClicked(const QModelIndex &index);
     void on_serverListRead(MasterUserPackets::ServerList *p);
     void on_handshakeAckCome(SlaveUserPackets::HandshakeAck *p);
     void on_channelsReceived(SlaveUserPackets::Channels *p);
@@ -51,7 +51,8 @@ private slots:
     void on_userUpdated(SlaveUserPackets::UserUpdated *p);
     void on_userList_doubleClicked(const QModelIndex &index);
     void on_privateMessageReceived(SlaveUserPackets::PrivateMessageReceived *p);
-    void on_serverDisconnected();
+    void on_serverDisconnected();    
+    void on_channelList_activated(const QModelIndex &index);
 
 private:
     Ui::MainWindow *ui;

@@ -100,3 +100,8 @@ void ChannelConversation::updateUserName(u64 userId, String nick)
         }
     }
 }
+
+s32 ChannelConversation::getFlags()
+{
+    return flags;
+}

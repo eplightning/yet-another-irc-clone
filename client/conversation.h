@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QStandardItem>
+#include <QTime>
 
 #include "common/types.h"
 #include "common/packet.h"
