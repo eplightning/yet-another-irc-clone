@@ -279,25 +279,25 @@ void MainWindow::on_channelLeavingButton_clicked()
 {
     QString channelName;
     foreach (const QModelIndex &index, ui->channelList->selectionModel()->selectedIndexes())
-    {
+    {        
         channelName = channelListModel->itemFromIndex(index)->text();
     }
 
     if (channelName != nullptr)
-    {
+    {        
         for (int i = 0; i < channelList.size(); i++)
         {
             if (channelName == channelList[i]->getFullName())
-            {
+            {                
                 SlaveUserPackets::PartChannel *packet = new SlaveUserPackets::PartChannel(channelList[i]->getId());
-                slave->write(packet);
+                slave->write(packet);                
             }
         }
         for (int j = 0; j < privateMessagesList.size(); j++)
         {
             if (channelName == privateMessagesList[j]->getFullName())
             {
-                if (selectedConversation->getFullName() == channelName)
+                if (selectedConversation != nullptr && selectedConversation->getFullName() == channelName)
                 {
                     selectedConversation = nullptr;
                 }
@@ -349,7 +349,7 @@ void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
                     break;
             }
 
-            if (selectedConversation->getFullName() == channelList[index]->getFullName())
+            if (selectedConversation != nullptr && selectedConversation->getFullName() == channelList[index]->getFullName())
             {
                 selectedConversation = nullptr;
                 refreshChatBox();
