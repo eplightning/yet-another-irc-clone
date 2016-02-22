@@ -125,6 +125,8 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
                                   this, SLOT(on_userUpdated(SlaveUserPackets::UserUpdated*)));
             QObject::connect(slave, SIGNAL(privateMessageReceived(SlaveUserPackets::PrivateMessageReceived*)),
                                   this, SLOT(on_privateMessageReceived(SlaveUserPackets::PrivateMessageReceived*)));
+            QObject::connect(slave, SIGNAL(serverDisconnected()),
+                                  this, SLOT(on_serverDisconnected()));
 
             SlaveUserPackets::Handshake *a = new SlaveUserPackets::Handshake();
             a->setNick(userName.toStdString());
