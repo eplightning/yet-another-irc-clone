@@ -9,7 +9,6 @@ ServerMessagesConversation::ServerMessagesConversation(QStandardItemModel *chann
 void ServerMessagesConversation::addMessage(QString text)
 {
     Conversation::addMessage("Serwer", text);
-    //this->text += text + "<br>";
 }
 
 void ServerMessagesConversation::clear()

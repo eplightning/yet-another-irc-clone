@@ -386,7 +386,6 @@ void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
                 refreshChatBox();
                 refreshUserList();
             }
-            //Opuść faktycznie kanał
             channelList[index]->removeFromList();
             delete channelList[index];
             channelList.remove(index);
@@ -459,7 +458,7 @@ void MainWindow::on_channelUserJoined(SlaveUserPackets::ChannelUserJoined *p)
     refreshChatBox();
 }
 
-//Add user to userList (listo of users on the channel)
+//Add user to userList (list of users on the channel)
 void MainWindow::addItemToUserList(QString str)
 {
     QStandardItem *item;
@@ -544,7 +543,6 @@ void MainWindow::on_userDisconnected(SlaveUserPackets::UserDisconnected *p)
 
 void MainWindow::on_channelUserUpdated(SlaveUserPackets::ChannelUserUpdated *p)
 {
-    //TODO - add message when needed
     for (int i = 0; i < channelList.size(); i++)
     {
         if (channelList[i]->getId() == p->channel())
@@ -553,11 +551,9 @@ void MainWindow::on_channelUserUpdated(SlaveUserPackets::ChannelUserUpdated *p)
             {
                 channelList[i]->setFlagsToUser(p->user(), p->flags());
             }
-            //channelList[i]->addServerMessage("Użytkownik " + QString::fromStdString(p->user().nick) + " zmienił flagi.");
         }
     }
     refreshUserList();
-    //refreshChatBox();
 }
 
 void MainWindow::on_userUpdated(SlaveUserPackets::UserUpdated *p)
