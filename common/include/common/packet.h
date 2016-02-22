@@ -72,7 +72,17 @@ public:
 
         SlaveHello = 49152,
         SlaveHelloResponse = 49153,
-        SlaveSlaveHeartbeat = 49154
+        SlaveSlaveHeartbeat = 49154,
+        SlaveSyncUsers = 49155,
+        SlaveSyncChannels = 49156,
+        SlaveUserConnect = 49157,
+        SlaveUserDisconnect = 49158,
+        SlaveChannelNew = 49159,
+        SlaveChannelRemove = 49160,
+        SlaveChannelUser = 49161,
+        SlaveChannelUserPart = 49162,
+        SlaveChannelMessage = 49163,
+        SlavePrivateMessage = 49164
     };
 
     static bool checkDirection(u16 rawType, Direction dir);
