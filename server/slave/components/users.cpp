@@ -50,7 +50,8 @@ void User::setNick(const String &nick)
     m_nick.assign(nick);
 }
 
-Users::Users()
+Users::Users() :
+    m_localCount(0)
 {
 
 }
@@ -62,6 +63,8 @@ Users::~Users()
 
 SharedPtr<User> Users::addUser(u32 id, const String &nick, SharedPtr<Client> &client)
 {
+    m_localCount++;
+
     u64 fullid = getFullId(id);
 
     m_list[fullid] = std::make_shared<User>(fullid, nick, client);
@@ -79,6 +82,11 @@ SharedPtr<User> Users::addUser(u64 id, const String &nick)
 uint Users::count() const
 {
     return static_cast<uint>(m_list.size());
+}
+
+uint Users::localCount() const
+{
+    return m_localCount;
 }
 
 SharedPtr<User> Users::findById(u32 clientid)
@@ -113,6 +121,9 @@ void Users::removeUser(u32 id)
 
 void Users::removeUser(u64 id)
 {
+    if ((id >> 32) == m_slaveId)
+        m_localCount--;
+
     m_list.erase(id);
 }
 

@@ -177,7 +177,7 @@ uint UserModule::capacity() const
 
 uint UserModule::load() const
 {
-    return m_users.count();
+    return m_users.localCount();
 }
 
 void UserModule::slaveIdReceived(u32 id)

@@ -18,7 +18,7 @@
 YAIC_NAMESPACE
 
 SlaveServer::SlaveServer(SharedPtr<Client> &client, u32 id)
-    : m_client(client), m_id(id), m_state(SSUnauthed)
+    : m_client(client), m_id(id), m_state(SSUnauthed), m_lastPacket(SteadyClock::now())
 {
 
 }

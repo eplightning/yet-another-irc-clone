@@ -36,6 +36,7 @@ public:
     SharedPtr<User> addUser(u64 id, const String &nick);
 
     uint count() const;
+    uint localCount() const;
 
     SharedPtr<User> findById(u32 clientid);
     SharedPtr<User> findById(u64 id);
@@ -56,6 +57,7 @@ public:
 protected:
     HashMap<u64, SharedPtr<User>> m_list;
     u32 m_slaveId;
+    uint m_localCount;
 };
 
 END_NAMESPACE
