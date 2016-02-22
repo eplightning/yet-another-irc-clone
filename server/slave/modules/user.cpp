@@ -645,6 +645,7 @@ void UserModule::privateMessage(u32 clientid, Packet *packet)
         SlaveUserPackets::PrivateMessageReceived notification;
         notification.setMessage(request->message());
         notification.setUser(user->id());
+        notification.setNick(user->nick());
 
         m_context->tcp->sendTo(recipient->client(), &notification);
     } else {

@@ -351,11 +351,15 @@ public:
     u64 user() const;
     void setUser(u64 user);
 
+    const String &nick() const;
+    void setNick(const String &nick);
+
     const String &message() const;
     void setMessage(const String &message);
 
 protected:
     u64 m_user;
+    String m_nick;
     String m_message;
 };
 

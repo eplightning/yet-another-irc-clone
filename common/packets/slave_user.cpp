@@ -753,6 +753,7 @@ PrivateMessageReceived::PrivateMessageReceived() :
 bool PrivateMessageReceived::decodePayload(const Vector<char> &payload)
 {
     bool result = read(payload, m_user);
+    result &= read(payload, m_nick);
     result &= read(payload, m_message);
 
     return result;
@@ -761,6 +762,7 @@ bool PrivateMessageReceived::decodePayload(const Vector<char> &payload)
 void PrivateMessageReceived::encodePayload(Vector<char> &payload) const
 {
     write(payload, m_user);
+    write(payload, m_nick);
     write(payload, m_message);
 }
 
@@ -772,6 +774,16 @@ u64 PrivateMessageReceived::user() const
 void PrivateMessageReceived::setUser(u64 user)
 {
     m_user = user;
+}
+
+const String &PrivateMessageReceived::nick() const
+{
+    return m_nick;
+}
+
+void PrivateMessageReceived::setNick(const String &nick)
+{
+    m_nick.assign(nick);
 }
 
 const String &PrivateMessageReceived::message() const
