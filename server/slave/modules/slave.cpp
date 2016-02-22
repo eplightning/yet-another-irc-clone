@@ -220,6 +220,22 @@ SharedPtr<SlaveServer> SlaveModule::get(u32 id)
     return it->second;
 }
 
+void SlaveModule::broadcast(Packet *packet)
+{
+    Vector<SharedPtr<Client>> clients;
+
+    {
+        MutexLock lock(m_slavesMutex);
+
+        for (auto & x : m_slaves) {
+            if (x.second->isConnected())
+                clients.push_back(x.second->client());
+        }
+    }
+
+    m_context->tcp->sendTo(clients, packet);
+}
+
 SharedPtr<Client> SlaveModule::connection(u32 clientid)
 {
     MutexLock lock(m_connectionsMutex);

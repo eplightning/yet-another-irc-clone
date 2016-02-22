@@ -68,6 +68,7 @@ public:
     u16 publicPort() const;
     SharedPtr<SlaveServer> getByClientId(u32 clientid);
     SharedPtr<SlaveServer> get(u32 id);
+    void broadcast(Packet *packet);
 
 protected:
     SharedPtr<Client> connection(u32 clientid);

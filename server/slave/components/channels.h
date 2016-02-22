@@ -30,6 +30,7 @@ public:
     u64 id() const;
     bool isLocal() const;
     const String &name() const;
+    u32 slaveId() const;
 
     HashMap<u64, SharedPtr<ChannelUser>> &users();
     const HashMap<u64, SharedPtr<ChannelUser>> &users() const;
@@ -53,6 +54,8 @@ public:
     SharedPtr<Channel> findById(u64 id);
     SharedPtr<Channel> findByName(const String &name);
     SharedPtr<Channel> create(const String &name, SharedPtr<User> &user);
+    SharedPtr<Channel> create(u64 id, const String &name);
+    void remove(u64 id);
 
     HashMap<u64, SharedPtr<Channel>> &list();
     const HashMap<u64, SharedPtr<Channel>> &list() const;

@@ -8,6 +8,7 @@
 #include <server/syseventloop.h>
 #include <server/misc_utils.h>
 #include <common/packets/slave_user.h>
+#include <common/packets/slave_slave.h>
 #include <components/users.h>
 #include <components/channels.h>
 
@@ -153,7 +154,8 @@ void UserModule::dispatchSimple(EventSimple *ev)
         m_context->tcp->sendTo(clients, &dc);
 
         if (ev->id() == EventSimple::EventId::UserDisconnected) {
-            // TODO: Powiadom slave'y
+            SlaveSlavePackets::UserDisconnect dc(id);
+            m_context->slave->broadcast(&dc);
         }
     }
 }
@@ -198,16 +200,77 @@ SharedPtr<Client> UserModule::connection(u32 clientid)
 
 void UserModule::cleanupSlave(u32 slave)
 {
-    // TODO: Do it
+    // All users
+    Vector<SharedPtr<Client>*> allUsers;
+    for (auto &x : m_users.list()) {
+        if (x.second->isLocal())
+            allUsers.push_back(&x.second->client());
+    }
+
+    // User disconnects
+    for (auto it = m_users.list().begin(); it != m_users.list().end();) {
+        if (it->second->slaveId() == slave) {
+            SlaveUserPackets::UserDisconnected dc(it->second->id());
+            m_context->tcp->sendTo(allUsers, &dc);
+
+            it = m_users.list().erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    // Channel removals
+    for (auto it = m_channels.list().begin(); it != m_channels.list().end();) {
+        if (it->second->slaveId() == slave) {
+            SlaveUserPackets::ChannelParted parted;
+            parted.setId(it->second->id());
+            parted.setReason(SlaveUserPackets::ChannelParted::Reason::Unknown);
+            parted.setStatus(SlaveUserPackets::ChannelParted::Status::Ok);
+
+            Vector<SharedPtr<Client>*> allChannelUsers;
+            for (auto &x : it->second->users()) {
+                if (x.second->user()->isLocal())
+                    allChannelUsers.push_back(&x.second->user()->client());
+            }
+            m_context->tcp->sendTo(allChannelUsers, &parted);
+
+            it = m_channels.list().erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 void UserModule::syncSlave(SharedPtr<Client> &client)
 {
-    // TODO: Do it
+    SlaveSlavePackets::SyncUsers users;
+
+    for (auto &x : m_users.list()) {
+        if (x.second->isLocal())
+            users.addUser(x.second->id(), x.second->nick());
+    }
+
+    m_context->tcp->sendTo(client, &users);
+
+    SlaveSlavePackets::SyncChannels chans;
+
+    for (auto &x : m_channels.list()) {
+        if (x.second->isLocal()) {
+            Vector<SlaveSlavePackets::SyncChannelUser> chanusers;
+
+            for (auto &y : x.second->users())
+                chanusers.emplace_back(y.second->user()->id(), y.second->flags());
+
+            chans.addChannel(x.second->id(), x.second->name(), chanusers);
+        }
+    }
+
+    m_context->tcp->sendTo(client, &chans);
 }
 
 bool UserModule::initPackets()
 {
+    // user
     m_context->dispatcher->append(Packet::Type::Handshake,
                                   BIND_DISPATCH(this, &UserModule::handshake));
 
@@ -225,6 +288,37 @@ bool UserModule::initPackets()
 
     m_context->dispatcher->append(Packet::Type::SendPrivateMessage,
                                   BIND_DISPATCH(this, &UserModule::privateMessage));
+
+    // slave
+    m_context->dispatcher->append(Packet::Type::SlaveSyncUsers,
+                                  BIND_DISPATCH(this, &UserModule::slaveSyncUsers));
+
+    m_context->dispatcher->append(Packet::Type::SlaveSyncChannels,
+                                  BIND_DISPATCH(this, &UserModule::slaveSyncChannels));
+
+    m_context->dispatcher->append(Packet::Type::SlaveUserConnect,
+                                  BIND_DISPATCH(this, &UserModule::slaveUserConnect));
+
+    m_context->dispatcher->append(Packet::Type::SlaveUserDisconnect,
+                                  BIND_DISPATCH(this, &UserModule::slaveUserDisconnect));
+
+    m_context->dispatcher->append(Packet::Type::SlaveChannelNew,
+                                  BIND_DISPATCH(this, &UserModule::slaveChannelNew));
+
+    m_context->dispatcher->append(Packet::Type::SlaveChannelRemove,
+                                  BIND_DISPATCH(this, &UserModule::slaveChannelRemove));
+
+    m_context->dispatcher->append(Packet::Type::SlaveChannelUser,
+                                  BIND_DISPATCH(this, &UserModule::slaveChannelUser));
+
+    m_context->dispatcher->append(Packet::Type::SlaveChannelUserPart,
+                                  BIND_DISPATCH(this, &UserModule::slaveChannelUserPart));
+
+    m_context->dispatcher->append(Packet::Type::SlaveChannelMessage,
+                                  BIND_DISPATCH(this, &UserModule::slaveChannelMessage));
+
+    m_context->dispatcher->append(Packet::Type::SlavePrivateMessage,
+                                  BIND_DISPATCH(this, &UserModule::slavePrivateMessage));
 
     return true;
 }
@@ -424,7 +518,10 @@ void UserModule::handshake(u32 clientid, Packet *packet)
                    << "User handshake handled [User: " << user->nick() << "]"
                    << Logger::Line::End;
 
-    // TODO: Wyślij info do slave'ów
+    SlaveSlavePackets::UserConnect notification;
+    notification.setId(user->id());
+    notification.setNick(user->nick());
+    m_context->slave->broadcast(&notification);
 }
 
 void UserModule::channelList(u32 clientid, Packet *packet)
@@ -478,6 +575,8 @@ void UserModule::joinChannel(u32 clientid, Packet *packet)
     response.setUserFlags(0);
     response.setStatus(SlaveUserPackets::ChannelJoined::Status::Ok);
 
+    s32 flags = 0;
+
     if (chan) {
         if (!chan->user(user->id())) {
             response.setId(chan->id());
@@ -514,6 +613,12 @@ void UserModule::joinChannel(u32 clientid, Packet *packet)
         } else {
             response.setId(chan->id());
             response.setUserFlags(SlaveUserPackets::ChanUser::FlagOperator);
+            flags = SlaveUserPackets::ChanUser::FlagOperator;
+
+            SlaveSlavePackets::ChannelNew notification;
+            notification.setId(chan->id());
+            notification.setName(chan->name());
+            m_context->slave->broadcast(&notification);
         }
     }
 
@@ -524,7 +629,11 @@ void UserModule::joinChannel(u32 clientid, Packet *packet)
                    << chan->name() << " (" << chan->id() << "), Local: " << chan->isLocal() << "]"
                    << Logger::Line::End;
 
-    // TODO: Slave
+    SlaveSlavePackets::ChannelUser notification;
+    notification.setChannel(chan->id());
+    notification.setUser(user->id());
+    notification.setFlags(flags);
+    m_context->slave->broadcast(&notification);
 }
 
 void UserModule::partChannel(u32 clientid, Packet *packet)
@@ -576,7 +685,10 @@ void UserModule::partChannel(u32 clientid, Packet *packet)
                    << chan->name() << ", Local: " << chan->isLocal() << "]"
                    << Logger::Line::End;
 
-    // TODO: Slave
+    SlaveSlavePackets::ChannelUserPart notification2;
+    notification2.setChannel(chan->id());
+    notification2.setUser(user->id());
+    m_context->slave->broadcast(&notification2);
 }
 
 void UserModule::messageChannel(u32 clientid, Packet *packet)
@@ -612,7 +724,11 @@ void UserModule::messageChannel(u32 clientid, Packet *packet)
 
     m_context->tcp->sendTo(clients, &notification);
 
-    // TODO: Slave
+    SlaveSlavePackets::ChannelMessage notification2;
+    notification2.setChannel(chan->id());
+    notification2.setUser(user->id());
+    notification2.setMessage(request->message());
+    m_context->slave->broadcast(&notification2);
 
     m_context->log << Logger::Line::Start
                    << "Channel message handled [From: " << user->nick() << ", To: "
@@ -656,13 +772,298 @@ void UserModule::privateMessage(u32 clientid, Packet *packet)
             return;
         }
 
-        // TODO: Wysyłamy do slave'a
+        SlaveSlavePackets::PrivateMessage notification;
+        notification.setUser(user->id());
+        notification.setRecipient(recipient->id());
+        notification.setMessage(request->message());
+
+        SharedPtr<Client> slaveClient = slave->client();
+
+        if (slaveClient)
+            m_context->tcp->sendTo(slaveClient, &notification);
     }
 
     m_context->log << Logger::Line::Start
                    << "Private message handled [From: " << user->nick() << ", To: "
                    << recipient->nick() << ", Local: " << recipient->isLocal() << "]"
                    << Logger::Line::End;
+}
+
+void UserModule::slaveSyncUsers(u32 clientid, Packet *packet)
+{
+    SharedPtr<SlaveServer> slave = m_context->slave->getByClientId(clientid);
+
+    if (!slave)
+        return;
+
+    SlaveSlavePackets::SyncUsers *request = static_cast<SlaveSlavePackets::SyncUsers*>(packet);
+
+    // TODO: W sumie to może też przyjść jak slave'a rozłączyło i wysyła od nowa sync
+    // TODO: Więc trzeba by było zrobić jakąś delte i doinformować użytkowników ...
+    // TODO: Ale mi się nie chce już
+
+    for (auto &x : request->users()) {
+        m_users.addUser(x.id, x.nick);
+    }
+}
+
+void UserModule::slaveSyncChannels(u32 clientid, Packet *packet)
+{
+    SharedPtr<SlaveServer> slave = m_context->slave->getByClientId(clientid);
+
+    if (!slave)
+        return;
+
+    SlaveSlavePackets::SyncChannels *request = static_cast<SlaveSlavePackets::SyncChannels*>(packet);
+
+    // TODO: To samo co wyżej
+
+    for (auto &x : request->channels()) {
+        SharedPtr<Channel> chan = m_channels.create(x.id, x.name);
+
+        for (auto &y: x.users) {
+            SharedPtr<User> usr = m_users.findById(y.id);
+
+            if (usr)
+                chan->addUser(usr, y.flags);
+        }
+    }
+}
+
+void UserModule::slaveUserConnect(u32 clientid, Packet *packet)
+{
+    SharedPtr<SlaveServer> slave = m_context->slave->getByClientId(clientid);
+
+    if (!slave)
+        return;
+
+    SlaveSlavePackets::UserConnect *request = static_cast<SlaveSlavePackets::UserConnect*>(packet);
+
+    m_users.addUser(request->id(), request->nick());
+}
+
+void UserModule::slaveUserDisconnect(u32 clientid, Packet *packet)
+{
+    SharedPtr<SlaveServer> slave = m_context->slave->getByClientId(clientid);
+
+    if (!slave)
+        return;
+
+    SlaveSlavePackets::UserDisconnect *request = static_cast<SlaveSlavePackets::UserDisconnect*>(packet);
+
+    SharedPtr<User> usr = m_users.findById(request->id());
+
+    if (!usr)
+        return;
+
+    // Remove user from list and channels
+    m_users.removeUser(usr->id());
+
+    for (auto &x : m_channels.list())
+        x.second->removeUser(usr);
+
+    // Tell users about disconnect
+    SlaveUserPackets::UserDisconnected dc(usr->id());
+    Vector<SharedPtr<Client>*> clients;
+
+    for (auto &x : m_users.list()) {
+        if (x.second->isLocal())
+            clients.push_back(&x.second->client());
+    }
+
+    m_context->tcp->sendTo(clients, &dc);
+}
+
+void UserModule::slaveChannelNew(u32 clientid, Packet *packet)
+{
+    SharedPtr<SlaveServer> slave = m_context->slave->getByClientId(clientid);
+
+    if (!slave)
+        return;
+
+    SlaveSlavePackets::ChannelNew *request = static_cast<SlaveSlavePackets::ChannelNew*>(packet);
+
+    SharedPtr<Channel> chan = m_channels.create(request->id(), request->name());
+    UNUSED(chan);
+}
+
+void UserModule::slaveChannelRemove(u32 clientid, Packet *packet)
+{
+    SharedPtr<SlaveServer> slave = m_context->slave->getByClientId(clientid);
+
+    if (!slave)
+        return;
+
+    SlaveSlavePackets::ChannelRemove *request = static_cast<SlaveSlavePackets::ChannelRemove*>(packet);
+
+    SharedPtr<Channel> chan = m_channels.findById(request->id());
+
+    if (!chan)
+        return;
+
+    SlaveUserPackets::ChannelParted parted;
+    parted.setId(chan->id());
+    parted.setReason(SlaveUserPackets::ChannelParted::Reason::Unknown);
+    parted.setStatus(SlaveUserPackets::ChannelParted::Status::Ok);
+
+    Vector<SharedPtr<Client>*> allChannelUsers;
+    for (auto &x : chan->users()) {
+        if (x.second->user()->isLocal())
+            allChannelUsers.push_back(&x.second->user()->client());
+    }
+
+    m_context->tcp->sendTo(allChannelUsers, &parted);
+
+    m_channels.remove(chan->id());
+}
+
+void UserModule::slaveChannelUser(u32 clientid, Packet *packet)
+{
+    SharedPtr<SlaveServer> slave = m_context->slave->getByClientId(clientid);
+
+    if (!slave)
+        return;
+
+    SlaveSlavePackets::ChannelUser *request = static_cast<SlaveSlavePackets::ChannelUser*>(packet);
+
+    SharedPtr<User> user = m_users.findById(request->user());
+    SharedPtr<Channel> chan = m_channels.findById(request->channel());
+
+    if (!user || !chan)
+        return;
+
+    if (user->isLocal()) {
+        m_context->log->error("UNIMPLEMENTED: Local user joined by slave");
+        return;
+    }
+
+    SharedPtr<ChannelUser> userChan = chan->user(user->id());
+
+    if (userChan) {
+        // TODO: Obsłużyć zmiany flag ..
+        m_context->log->error("UNIMPLEMENTED: User changes");
+        return;
+    }
+
+    SlaveUserPackets::ChannelUserJoined notification;
+    notification.user().flags = request->flags();
+    notification.user().id = user->id();
+    notification.user().nick = user->nick();
+    notification.setChannel(chan->id());
+
+    Vector<SharedPtr<Client>*> clients;
+
+    for (auto &x : chan->users()) {
+        ChannelUser *chanuser = x.second.get();
+        User *chanuser2 = chanuser->user().get();
+
+        if (chanuser2->isLocal())
+            clients.push_back(&chanuser2->client());
+    }
+
+    chan->addUser(user, request->flags());
+
+    m_context->tcp->sendTo(clients, &notification);
+}
+
+void UserModule::slaveChannelUserPart(u32 clientid, Packet *packet)
+{
+    SharedPtr<SlaveServer> slave = m_context->slave->getByClientId(clientid);
+
+    if (!slave)
+        return;
+
+    SlaveSlavePackets::ChannelUserPart *request = static_cast<SlaveSlavePackets::ChannelUserPart*>(packet);
+
+    SharedPtr<User> user = m_users.findById(request->user());
+    SharedPtr<Channel> chan = m_channels.findById(request->channel());
+
+    if (user->isLocal()) {
+        m_context->log->error("UNIMPLEMENTED: Local user parted by slave");
+        return;
+    }
+
+    if (!user || !chan)
+        return;
+
+    SharedPtr<ChannelUser> userChan = chan->user(user->id());
+
+    if (!userChan)
+        return;
+
+    chan->removeUser(user);
+
+    SlaveUserPackets::ChannelUserParted notification;
+    notification.setChannel(chan->id());
+    notification.setUser(user->id());
+
+    Vector<SharedPtr<Client>*> clients;
+
+    for (auto &x : chan->users()) {
+        if (x.second->user()->isLocal())
+            clients.push_back(&x.second->user()->client());
+    }
+
+    m_context->tcp->sendTo(clients, &notification);
+}
+
+void UserModule::slaveChannelMessage(u32 clientid, Packet *packet)
+{
+    SharedPtr<SlaveServer> slave = m_context->slave->getByClientId(clientid);
+
+    if (!slave)
+        return;
+
+    SlaveSlavePackets::ChannelMessage *request = static_cast<SlaveSlavePackets::ChannelMessage*>(packet);
+
+    SharedPtr<User> user = m_users.findById(request->user());
+    SharedPtr<Channel> chan = m_channels.findById(request->channel());
+
+    if (!user || !chan)
+        return;
+
+    if (!chan->user(user->id()))
+        return;
+
+    SlaveUserPackets::ChannelMessage notification;
+    notification.setMessage(request->message());
+    notification.setChannel(chan->id());
+    notification.setUser(user->id());
+
+    Vector<SharedPtr<Client>*> clients;
+
+    for (auto &x : chan->users()) {
+        if (x.first != user->id() && x.second->user()->isLocal())
+            clients.push_back(&x.second->user()->client());
+    }
+
+    m_context->tcp->sendTo(clients, &notification);
+}
+
+void UserModule::slavePrivateMessage(u32 clientid, Packet *packet)
+{
+    SharedPtr<SlaveServer> slave = m_context->slave->getByClientId(clientid);
+
+    if (!slave)
+        return;
+
+    SlaveSlavePackets::PrivateMessage *request = static_cast<SlaveSlavePackets::PrivateMessage*>(packet);
+
+    SharedPtr<User> user = m_users.findById(request->user());
+    SharedPtr<User> recipient = m_users.findById(request->recipient());
+
+    if (!user || !recipient)
+        return;
+
+    if (!recipient->isLocal())
+        return;
+
+    SlaveUserPackets::PrivateMessageReceived notification;
+    notification.setMessage(request->message());
+    notification.setUser(user->id());
+    notification.setNick(user->nick());
+
+    m_context->tcp->sendTo(recipient->client(), &notification);
 }
 
 END_NAMESPACE

@@ -50,6 +50,11 @@ const String &Channel::name() const
     return m_name;
 }
 
+u32 Channel::slaveId() const
+{
+    return m_id >> 32;
+}
+
 HashMap<u64, SharedPtr<ChannelUser> > &Channel::users()
 {
     return m_users;
@@ -123,6 +128,20 @@ SharedPtr<Channel> Channels::create(const String &name, SharedPtr<User> &user)
     m_nextId++;
 
     return chan;
+}
+
+SharedPtr<Channel> Channels::create(u64 id, const String &name)
+{
+    SharedPtr<Channel> chan = std::make_shared<Channel>(id, name, false);
+
+    m_list[id] = chan;
+
+    return chan;
+}
+
+void Channels::remove(u64 id)
+{
+    m_list.erase(id);
 }
 
 HashMap<u64, SharedPtr<Channel> > &Channels::list()

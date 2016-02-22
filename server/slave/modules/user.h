@@ -67,6 +67,17 @@ protected:
     void messageChannel(u32 clientid, Packet *packet);
     void privateMessage(u32 clientid, Packet *packet);
 
+    void slaveSyncUsers(u32 clientid, Packet *packet);
+    void slaveSyncChannels (u32 clientid, Packet *packet);
+    void slaveUserConnect(u32 clientid, Packet *packet);
+    void slaveUserDisconnect(u32 clientid, Packet *packet);
+    void slaveChannelNew(u32 clientid, Packet *packet);
+    void slaveChannelRemove(u32 clientid, Packet *packet);
+    void slaveChannelUser(u32 clientid, Packet *packet);
+    void slaveChannelUserPart(u32 clientid, Packet *packet);
+    void slaveChannelMessage(u32 clientid, Packet *packet);
+    void slavePrivateMessage(u32 clientid, Packet *packet);
+
     TimerDispatcher m_timerDispatcher;
     int m_heartbeatTimer;
     int m_timeoutTimer;
