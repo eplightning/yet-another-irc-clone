@@ -4,6 +4,8 @@
 
 #include <common/types.h>
 
+#include <regex>
+
 YAIC_NAMESPACE
 
 User::User(u64 id, const String &nick, SharedPtr<Client> &client) :
@@ -117,6 +119,13 @@ void Users::removeUser(u64 id)
 void Users::setSlaveId(u32 id)
 {
     m_slaveId = id;
+}
+
+bool Users::isValidNick(const String &nick) const
+{
+    std::regex validator("^[[:alnum:]_]{2,30}$");
+
+    return std::regex_match(nick, validator);
 }
 
 u64 Users::getFullId(u32 id) const

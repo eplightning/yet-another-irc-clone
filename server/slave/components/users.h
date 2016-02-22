@@ -51,6 +51,8 @@ public:
 
     void setSlaveId(u32 id);
 
+    bool isValidNick(const String &nick) const;
+
 protected:
     HashMap<u64, SharedPtr<User>> m_list;
     u32 m_slaveId;

@@ -407,7 +407,7 @@ void UserModule::handshake(u32 clientid, Packet *packet)
         return;
     }
 
-    if (request->nick().empty() || m_users.findByNick(request->nick())) {
+    if (!m_users.isValidNick(request->nick()) || m_users.findByNick(request->nick())) {
         ack.setStatus(SlaveUserPackets::HandshakeAck::Status::InvalidNick);
         m_context->tcp->sendTo(client, &ack);
         return;
