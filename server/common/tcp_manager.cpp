@@ -251,7 +251,8 @@ bool TcpManager::connect(ConnectionProtocol proto, const String &ip, u16 port, c
     notify.type = TMMTConnect;
     notify.clientid = 0;
     notify.options.ptr = info;
-    write(m_pipe[1], &notify, sizeof(notify));
+    auto status = write(m_pipe[1], &notify, sizeof(notify));
+    UNUSED(status);
 
     return true;
 }

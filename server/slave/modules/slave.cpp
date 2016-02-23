@@ -106,9 +106,9 @@ void SlaveModule::loadConfig(const libconfig::Setting &section)
 
         if (listenSection.isArray()) {
             for (auto &listener : listenSection)
-                m_config.listen.push_back(listener);
+                m_config.listen.push_back(listener.c_str());
         } else if (listenSection.isScalar()) {
-            m_config.listen.push_back(listenSection);
+            m_config.listen.push_back(listenSection.c_str());
         }
     }
 
