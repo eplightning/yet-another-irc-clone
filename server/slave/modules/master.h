@@ -22,6 +22,9 @@ struct MasterModuleConfig {
     String plainTextPassword;
 };
 
+/**
+ * @brief Moduł odpowiedzialny za komunikację z master serwerem
+ */
 class MasterModule {
 public:
     MasterModule(Context *context);

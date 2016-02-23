@@ -9,6 +9,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Implementacja selektora na Linux'ie korzystająca z epolla
+ */
 class SelectorApiEpoll : public Selector {
 public:
     explicit SelectorApiEpoll(int bufsize);

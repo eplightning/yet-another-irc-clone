@@ -8,6 +8,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Implementacja wydarzeń systemowych na Linux'ie
+ */
 class SysEventLoopApiLinux : public SysEventLoop {
 public:
     explicit SysEventLoopApiLinux(EventQueue *evq);

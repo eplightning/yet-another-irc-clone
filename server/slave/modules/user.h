@@ -25,6 +25,9 @@ struct UserModuleConfig {
     uint capacity;
 };
 
+/**
+ * @brief Moduł komunikacji z użytkownikami
+ */
 class UserModule {
 public:
     UserModule(Context *context);

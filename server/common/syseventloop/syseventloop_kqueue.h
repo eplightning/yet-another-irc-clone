@@ -7,6 +7,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Implementacja wydarzeń systemowych na BSD/OSX
+ */
 class SysEventLoopApiKqueue : public SysEventLoop {
 public:
     explicit SysEventLoopApiKqueue(EventQueue *evq);

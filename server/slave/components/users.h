@@ -27,6 +27,9 @@ protected:
     String m_nick;
 };
 
+/**
+ * @brief Klasa zarządzająca listą użytkowników
+ */
 class Users {
 public:
     Users();

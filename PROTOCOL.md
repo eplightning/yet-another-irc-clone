@@ -222,5 +222,6 @@ Trzy najbardziej znaczące bity typu pakietu oznaczają jego kierunek (kto wysy�
 
     struct PrivateMessageReceived {
         u64 userid;
+        String nick;
         String message;
     }

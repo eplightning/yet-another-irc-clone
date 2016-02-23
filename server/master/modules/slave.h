@@ -75,6 +75,9 @@ struct SlaveModuleConfig {
 
 typedef HashMap<u32, SharedPtr<SlaveServer>> SlaveServers;
 
+/**
+ * @brief Moduł odpowiedzialny za połączenia z slave serwerami
+ */
 class SlaveModule {
 public:
     SlaveModule(Context *context);

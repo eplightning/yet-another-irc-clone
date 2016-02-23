@@ -10,6 +10,9 @@ YAIC_NAMESPACE
 #define BIND_DISPATCH(O, F) std::bind(F, O, std::placeholders::_1, std::placeholders::_2)
 #define BIND_TIMER(O, F) std::bind(F, O, std::placeholders::_1)
 
+/**
+ * @brief Rozdziela otrzymane pakiety do odpowiednych funkcji
+ */
 class PacketDispatcher {
 public:
     typedef std::function<void(u32 clientid, Packet *packet)> DispatchFunction;
@@ -24,6 +27,9 @@ protected:
     HashMap<u16, Vector<DispatchFunction>> m_routing;
 };
 
+/**
+ * @brief Rozdziela upłynięcia timerów do odpowiednich funkcji
+ */
 class TimerDispatcher {
 public:
     typedef std::function<void(int timer)> DispatchFunction;

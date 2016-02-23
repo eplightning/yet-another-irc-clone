@@ -51,6 +51,9 @@ struct SlaveModuleConfig {
     uint reconnectInterval;
 };
 
+/**
+ * @brief Moduł odpowiedzialny za podstawową komunikację z slave serwerami i zarządzanie połączeniami
+ */
 class SlaveModule {
 public:
     SlaveModule(Context *context);

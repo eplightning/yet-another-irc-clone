@@ -20,11 +20,17 @@ enum TcpClientState {
     TCSDisconnected
 };
 
+/**
+ * @brief Pakiet gotowy do wysłania
+ */
 struct TcpSendBuffer {
     uint sent;
     Vector<char> data;
 };
 
+/**
+ * @brief Bufor gdzie trzymamy obecnie pobierany pakiet od klienta
+ */
 class TcpReceiveBuffer {
 public:
     TcpReceiveBuffer();
@@ -34,6 +40,9 @@ public:
     Vector<char> data;
 };
 
+/**
+ * @brief Pare przydatnych funkcji
+ */
 class SocketUtils {
 public:
     static int createListenSocket(const String &address, u16 port, ConnectionProtocol proto);

@@ -10,6 +10,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Reprezentuje wydarzenie w kolejce
+ */
 class Event {
 public:
     enum class Type {
@@ -22,6 +25,9 @@ public:
     virtual Type type() const = 0;
 };
 
+/**
+ * @brief Kolejka wydarzeń
+ */
 class EventQueue {
 public:
     EventQueue();
@@ -42,6 +48,9 @@ protected:
 
 typedef std::function<bool(Event*)> EventLoopDelegate;
 
+/**
+ * @brief Główna pętla aplikacji obsługująca wydarzenia pojawiające się w kolejce
+ */
 class EventLoop {
 public:
     EventLoop(int workers, EventQueue *evq, EventLoopDelegate func);

@@ -11,6 +11,9 @@ YAIC_NAMESPACE
 
 struct Context;
 
+/**
+ * @brief Glówna klasa slave serwera - inicjalizuje i odpala pętle
+ */
 class SlaveServerApplication {
 public:
     SlaveServerApplication();

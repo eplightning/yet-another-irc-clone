@@ -14,6 +14,9 @@ YAIC_NAMESPACE
 
 struct Context;
 
+/**
+ * @brief Główna klasa aplikacji mastera serwera, inicjalizuje i odpala pętle
+ */
 class MasterServerApplication {
 public:
     MasterServerApplication();

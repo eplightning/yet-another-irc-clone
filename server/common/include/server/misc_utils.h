@@ -7,6 +7,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Różne pomocnicze funkcje
+ */
 class MiscUtils {
 public:
     static void blockSignals();

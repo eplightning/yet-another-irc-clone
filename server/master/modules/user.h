@@ -30,6 +30,9 @@ struct UserModuleConfig {
     uint timeout;
 };
 
+/**
+ * @brief Moduł master serwera odpowiedzialny za prostą komunikacje z użytkownikiem (wysyłanie listy serwerów)
+ */
 class UserModule {
 public:
     UserModule(Context *context);

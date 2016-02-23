@@ -17,6 +17,9 @@ class TcpPool;
 class TcpManager;
 class ListenTcpPool;
 
+/**
+ * @brief Klasa reprezentująca połączenie TCP
+ */
 class Client {
 public:
     friend class TcpManager;
@@ -85,6 +88,9 @@ typedef std::function<bool(SharedPtr<Client> &client)> NewConnectionDelegate;
 // nowy pakiet
 typedef std::function<void(u32 clientid, PacketHeader header, const Vector<char> &data)> ReceiveDataDelegate;
 
+/**
+ * @brief Pula, logiczny podział połączeń w TcpManagerze
+ */
 class TcpPool {
 public:
     TcpPool(ClientStateDelegate clientState, NewConnectionDelegate newConnection, ReceiveDataDelegate receive);
@@ -102,6 +108,9 @@ protected:
     ReceiveDataDelegate m_receive;
 };
 
+/**
+ * @brief Pula posiadająca dodatkowo sockety nasłuchujące
+ */
 class ListenTcpPool : public TcpPool {
 public:
     ListenTcpPool(ClientStateDelegate clientState, NewConnectionDelegate newConnection, ReceiveDataDelegate receive);
@@ -115,6 +124,9 @@ protected:
     Vector<ListenTcpPoolSocket> m_sockets;
 };
 
+/**
+ * @brief Zarządca połączeń TCP, praktycznie cała właściwa część sieciowa jest tutaj
+ */
 class TcpManager {
 public:
     explicit TcpManager(int rounds = 4);

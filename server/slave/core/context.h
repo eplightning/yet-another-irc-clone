@@ -13,6 +13,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Kontekt slave serwera
+ */
 struct Context {
     // main objects
     UniquePtr<EventQueue> eventQueue;

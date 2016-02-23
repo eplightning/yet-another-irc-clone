@@ -9,6 +9,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Użytkownik w kanale (i jego flagi)
+ */
 class ChannelUser {
 public:
     ChannelUser(SharedPtr<User> &user, s32 flags = 0);
@@ -46,6 +49,9 @@ protected:
     HashMap<u64, SharedPtr<ChannelUser>> m_users;
 };
 
+/**
+ * @brief Klasa zarządzająca listą kanałów
+ */
 class Channels {
 public:
     Channels();

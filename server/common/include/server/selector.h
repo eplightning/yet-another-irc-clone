@@ -4,6 +4,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Klasa reprezentująca obserwowany deskryptor
+ */
 class SelectorInfo {
 public:
     const static int ReadEvent;
@@ -28,6 +31,9 @@ protected:
     bool m_closed;
 };
 
+/**
+ * @brief Klasa reprezentująca wydarzenie deskryptora
+ */
 class SelectorEvent {
 public:
     SelectorEvent(const SelectorInfo *info, int type);
@@ -40,6 +46,9 @@ protected:
     int m_type;
 };
 
+/**
+ * @brief Abstrakcja na selektory
+ */
 class Selector {
 public:
     static Selector *factory();

@@ -24,12 +24,18 @@ enum TcpManagerMessageType {
     TMMTConnect
 };
 
+/**
+ * @brief Informacje o żądaniu utworzenia połączenia
+ */
 struct TcpManagerConnectInfo {
     int socket;
     sockaddr_storage saddr;
     TcpPool *pool;
 };
 
+/**
+ * @brief Struktura do komunikacji TcpManager <-> Reszta programu
+ */
 struct TcpManagerMessage {
     TcpManagerMessageType type;
     u32 clientid;

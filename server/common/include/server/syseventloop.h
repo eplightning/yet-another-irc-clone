@@ -5,6 +5,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Abstrakcja na obsługe podstawowych wydarzeń systemowych (timery, sygnaly)
+ */
 class SysEventLoop {
 public:
     static SysEventLoop *factory(EventQueue &evq);

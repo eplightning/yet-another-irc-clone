@@ -11,6 +11,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Implementacja selektora na systemach BSD-podobnych (w tym MacOS X) korzystająca z kQueue
+ */
 class SelectorApiKqueue : public Selector {
 public:
     explicit SelectorApiKqueue(int bufsize);

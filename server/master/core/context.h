@@ -12,6 +12,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Kontekst aplikacji
+ */
 struct Context {
     // main objects
     UniquePtr<EventQueue> eventQueue;

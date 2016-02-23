@@ -8,6 +8,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Implementacja logera wypisująca komunikaty na stdout
+ */
 class LoggerStdout : public Logger {
 public:
     LoggerStdout();

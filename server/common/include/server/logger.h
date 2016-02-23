@@ -4,6 +4,9 @@
 
 YAIC_NAMESPACE
 
+/**
+ * @brief Klasa odpowiedzialna za logowanie wydarzeń
+ */
 class Logger {
 public:
     enum class Line {
