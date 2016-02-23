@@ -12,4 +12,8 @@ void MyTextEdit::keyPressEvent(QKeyEvent *e)
     {
         emit enterPressed();
     }
+    else
+    {
+        QTextEdit::keyPressEvent(e);
+    }
 }
