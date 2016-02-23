@@ -14,11 +14,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     QObject::connect(ui->chatEditBox, SIGNAL(enterPressed()), this, SLOT(on_sendingButton_clicked()));
 
-    //Initialing a serverList model
     channelListModel = new QStandardItemModel();
     ui->channelList->setModel(channelListModel);
 
-    //Initialing a userList model
     userListModel = new QStandardItemModel();
 
     ui->userList->setModel(userListModel);
@@ -499,7 +497,6 @@ void MainWindow::on_channelUserJoined(SlaveUserPackets::ChannelUserJoined *p)
     refreshChatBox();
 }
 
-//Add user to userList (list of users on the channel)
 void MainWindow::addItemToUserList(QString str)
 {
     QStandardItem *item;
