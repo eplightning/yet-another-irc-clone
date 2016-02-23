@@ -11,6 +11,7 @@
 #include <sys/signal.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include <algorithm>
 #include <mutex>
@@ -138,7 +139,8 @@ bool SysEventLoopApiLinux::runLoop()
                 m_evq->append(new EventSimple(type));
             } else {
                 uint64_t expirations;
-                read(incoming[i].data.fd, &expirations, sizeof(expirations));
+                if (read(incoming[i].data.fd, &expirations, sizeof(expirations)) != sizeof(expirations))
+                    abort();
 
                 m_evq->append(new EventTimer(incoming[i].data.fd));
             }

@@ -9,6 +9,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 YAIC_NAMESPACE
 
@@ -194,7 +195,8 @@ void ListenTcpPool::appendListenSocket(ConnectionProtocol proto, int socket)
 TcpManager::TcpManager(int rounds)
     : m_pools(), m_clients(), m_nextClientId(1), m_rrRounds(rounds)
 {
-    pipe(m_pipe);
+    if (pipe(m_pipe))
+        abort();
 }
 
 TcpManager::~TcpManager()
@@ -281,7 +283,8 @@ void TcpManager::disconnect(SharedPtr<Client> &client, bool force)
     notify.type = TMMTDisconnect;
     notify.clientid = client->id();
     notify.options.flag = force;
-    write(m_pipe[1], &notify, sizeof(notify));
+    auto status = write(m_pipe[1], &notify, sizeof(notify));
+    UNUSED(status);
 }
 
 void TcpManager::disconnectAll(bool force)
@@ -290,7 +293,8 @@ void TcpManager::disconnectAll(bool force)
     notify.type = TMMTDisconnectAll;
     notify.clientid = 0;
     notify.options.flag = force;
-    write(m_pipe[1], &notify, sizeof(notify));
+    auto status = write(m_pipe[1], &notify, sizeof(notify));
+    UNUSED(status);
 }
 
 void TcpManager::sendTo(SharedPtr<Client> &client, TcpSendBuffer *buffer)
@@ -301,7 +305,8 @@ void TcpManager::sendTo(SharedPtr<Client> &client, TcpSendBuffer *buffer)
     notify.type = TMMTSendBufferReceived;
     notify.clientid = client->id();
     notify.options.ptr = 0;
-    write(m_pipe[1], &notify, sizeof(notify));
+    auto status = write(m_pipe[1], &notify, sizeof(notify));
+    UNUSED(status);
 }
 
 void TcpManager::sendTo(SharedPtr<Client> &client, const Packet *packet)
@@ -412,7 +417,8 @@ void TcpManager::stopLoop()
     notify.type = TMMTTerminateLoop;
     notify.clientid = 0;
     notify.options.ptr = 0;
-    write(m_pipe[1], &notify, sizeof(notify));
+    auto status = write(m_pipe[1], &notify, sizeof(notify));
+    UNUSED(status);
 }
 
 SharedPtr<Client> TcpManager::client(u32 clientid) const
@@ -452,7 +458,9 @@ void TcpManager::newConnection(ListenTcpPoolSocket *listen, Selector *select)
 bool TcpManager::pipeNotification(Selector *select, Vector<Client*> &eraseList)
 {
     TcpManagerMessage notify;
-    read(m_pipe[0], &notify, sizeof(TcpManagerMessage));
+
+    if (read(m_pipe[0], &notify, sizeof(TcpManagerMessage)) != sizeof(TcpManagerMessage))
+        return false;
 
     if (notify.type == TMMTTerminateLoop) {
         return true;

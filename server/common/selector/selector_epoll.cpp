@@ -3,6 +3,7 @@
 #include <common/types.h>
 #include <server/selector.h>
 
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -11,9 +12,12 @@
 YAIC_NAMESPACE
 
 SelectorApiEpoll::SelectorApiEpoll(int bufsize) :
-    m_bufsize(bufsize), m_epollfd(epoll_create1(0))
+    m_bufsize(bufsize)
 {
+    m_epollfd = epoll_create1(0);
 
+    if (m_epollfd == -1)
+        abort();
 }
 
 SelectorApiEpoll::~SelectorApiEpoll()

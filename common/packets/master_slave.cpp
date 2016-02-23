@@ -63,7 +63,7 @@ bool Auth::decodePayload(const Vector<char> &payload)
 
     result &= read(payload, m_capacity);
 
-    u32 modeid;
+    u32 modeid = 0;
     result &= read(payload, modeid);
     m_mode = static_cast<Auth::Mode>(modeid);
 
@@ -203,7 +203,7 @@ AuthResponse::AuthResponse() :
 
 bool AuthResponse::decodePayload(const Vector<char> &payload)
 {
-    u32 statusid;
+    u32 statusid = 0;
     if (!read(payload, statusid))
         return false;
     m_status = static_cast<AuthResponse::Status>(statusid);

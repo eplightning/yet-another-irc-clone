@@ -77,7 +77,7 @@ HandshakeAck::HandshakeAck() :
 
 bool HandshakeAck::decodePayload(const Vector<char> &payload)
 {
-    u32 status;
+    u32 status = 0;
     bool result = read(payload, status);
     m_status = static_cast<HandshakeAck::Status>(status);
 
@@ -290,7 +290,7 @@ bool ChannelJoined::decodePayload(const Vector<char> &payload)
 {
     bool result = read(payload, m_id);
 
-    u32 status;
+    u32 status = 0;
     result &= read(payload, status);
     m_status = static_cast<ChannelJoined::Status>(status);
 
@@ -398,8 +398,8 @@ bool ChannelParted::decodePayload(const Vector<char> &payload)
 {
     bool result = read(payload, m_id);
 
-    u32 status;
-    u32 reason;
+    u32 status = 0;
+    u32 reason = 0;
 
     result &= read(payload, status);
     result &= read(payload, reason);
