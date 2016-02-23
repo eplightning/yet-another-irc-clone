@@ -48,14 +48,14 @@ void Dialog::on_connectButton_clicked()
         QRegExp userNameValidation("\\b[a-zA-Z0-9_]+\\b");
         userNameValidation.setCaseSensitivity(Qt::CaseInsensitive);
         userNameValidation.setPatternSyntax(QRegExp::RegExp);
-        if (userNameValidation.exactMatch(ui->userNameEdit->text()))
+        if (userNameValidation.exactMatch(ui->userNameEdit->text()) && ui->userNameEdit->text().size() >= 2)
         {
                     userName = ui->userNameEdit->text();
         }
         else
         {
             QMessageBox messageBox;
-            messageBox.critical(0,"Uwaga","Nazwa użytkownika może zawierać tylko litery a-z dowolnej wielkości, cyfry oraz znak '_'.");
+            messageBox.critical(0,"Uwaga","Nazwa użytkownika może zawierać tylko litery a-z dowolnej wielkości, cyfry oraz znak '_' i musi zawierać co najmniej 2 znaki.");
             messageBox.setFixedSize(500,200);
             return;
         }
