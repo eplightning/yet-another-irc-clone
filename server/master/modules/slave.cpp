@@ -166,7 +166,7 @@ void SlaveModule::loadConfig(const libconfig::Setting &section)
         const libconfig::Setting &sub = section.lookup("auth-mode");
 
         if (sub.isScalar()) {
-            String mode = sub;
+            String mode = sub.c_str();
 
             if (mode == "plaintext") {
                 m_config.authMode = MasterSlavePackets::Auth::Mode::Plaintext;
