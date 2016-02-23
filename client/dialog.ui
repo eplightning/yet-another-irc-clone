@@ -6,12 +6,16 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>322</width>
-    <height>139</height>
+    <width>596</width>
+    <height>187</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>IRC - Połącz z serwerem</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="res.qrc">
+    <normaloff>:/icons/konversation.svg</normaloff>:/icons/konversation.svg</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
    <item row="0" column="0">
@@ -100,6 +104,8 @@
   <tabstop>serverPortEdit</tabstop>
   <tabstop>connectButton</tabstop>
  </tabstops>
- <resources/>
+ <resources>
+  <include location="res.qrc"/>
+ </resources>
  <connections/>
 </ui>

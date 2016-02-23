@@ -40,3 +40,6 @@ LIBS += -L../bin -lyaic
 unix {
     TARGETDEPS += ../bin/libyaic.a
 }
+
+RESOURCES += \
+    res.qrc

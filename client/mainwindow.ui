@@ -6,12 +6,16 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>470</width>
-    <height>537</height>
+    <width>1093</width>
+    <height>566</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>IRC</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="res.qrc">
+    <normaloff>:/icons/konversation.svg</normaloff>:/icons/konversation.svg</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -151,20 +155,19 @@
      </layout>
     </item>
    </layout>
-   <zorder></zorder>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>470</width>
-     <height>20</height>
+     <width>1093</width>
+     <height>35</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuProgram">
     <property name="title">
-     <string>Program</string>
+     <string>Pr&amp;ogram</string>
     </property>
     <addaction name="actionChangeServer"/>
     <addaction name="actionQuit"/>
@@ -173,12 +176,12 @@
   </widget>
   <action name="actionChangeServer">
    <property name="text">
-    <string>Zmień serwer</string>
+    <string>&amp;Zmień serwer</string>
    </property>
   </action>
   <action name="actionQuit">
    <property name="text">
-    <string>Wyjście</string>
+    <string>&amp;Wyjście</string>
    </property>
   </action>
  </widget>
@@ -190,7 +193,9 @@
    <header location="global">mytextedit.h</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="res.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>actionQuit</sender>

@@ -32,5 +32,6 @@ QString ChannelJoiningDialog::getChoosenChannel()
 
 void ChannelJoiningDialog::on_ChannelJoiningDialog_finished(int result)
 {
+    Q_UNUSED(result);
     emit setChosenChannel(chosenChannel);
 }

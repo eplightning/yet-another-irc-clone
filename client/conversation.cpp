@@ -30,7 +30,7 @@ void Conversation::setUnread()
 void Conversation::addMessage(QString author, QString messageText)
 {
     QTime time;
-    text += "<b>" + author + "</b>: " + messageText + "<br>" + time.currentTime().toString() + "<br>";
+    text += "<i>(" + time.currentTime().toString() + ")</i> <strong>" + author + "</strong>: " + messageText + "<br>";
     setUnread();
 }
 

@@ -44,7 +44,7 @@ void Dialog::on_connectButton_clicked()
             messageBox.setFixedSize(500,200);
             return;
         }
-        QRegExp userNameValidation("\\b[A-Z0-9_]*\\b");
+        QRegExp userNameValidation("\\b[a-zA-Z0-9_]+\\b");
         userNameValidation.setCaseSensitivity(Qt::CaseInsensitive);
         userNameValidation.setPatternSyntax(QRegExp::RegExp);
         if (userNameValidation.exactMatch(ui->userNameEdit->text()))

@@ -6,12 +6,16 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>479</width>
-    <height>95</height>
+    <width>578</width>
+    <height>129</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>IRC - dołącz do kanału</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="res.qrc">
+    <normaloff>:/icons/konversation.svg</normaloff>:/icons/konversation.svg</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
@@ -58,6 +62,8 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="res.qrc"/>
+ </resources>
  <connections/>
 </ui>

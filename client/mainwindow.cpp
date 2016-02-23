@@ -3,7 +3,13 @@
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow),
+    channelListModel(nullptr),
+    userListModel(nullptr),
+    master(nullptr),
+    slave(nullptr),
+    serverConversation(nullptr),
+    selectedConversation(nullptr)
 {   
     ui->setupUi(this);
     QObject::connect(ui->chatEditBox, SIGNAL(enterPressed()), this, SLOT(on_sendingButton_clicked()));
@@ -24,10 +30,18 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
-    delete channelListModel;
-    delete userListModel;
-    delete slave;
-    delete master;
+
+    if (channelListModel)
+        delete channelListModel;
+
+    if (userListModel)
+        delete userListModel;
+
+    if (slave)
+        delete slave;
+
+    if (master)
+        delete master;
 
     for (int i = 0; i < channelList.size(); i++)
     {
@@ -39,7 +53,8 @@ MainWindow::~MainWindow()
         delete privateMessagesList[i];
     }
 
-    delete serverConversation;
+    if (serverConversation)
+        delete serverConversation;
 }
 
 void MainWindow::on_sendingButton_clicked()
@@ -308,6 +323,12 @@ void MainWindow::connectWithServer()
         a.setMax(1);
         master->write(&a);
     }
+
+    // zaznacza pierwszy kanał..
+    QModelIndex first = channelListModel->item(0)->index();
+    ui->channelList->selectionModel()->select(first,
+                                              QItemSelectionModel::SelectionFlag::Select);
+    on_channelList_activated(first);
 }
 
 void MainWindow::on_channelLeavingButton_clicked()
