@@ -11,7 +11,8 @@ SOURCES += main.cpp\
     conversation.cpp \
     privateconversation.cpp \
     channelconversation.cpp \
-    servermessagesconversation.cpp
+    servermessagesconversation.cpp \
+    mytextedit.cpp
 
 HEADERS  += mainwindow.h \
     dialog.h \
@@ -20,7 +21,8 @@ HEADERS  += mainwindow.h \
     conversation.h \
     privateconversation.h \
     channelconversation.h \
-    servermessagesconversation.h
+    servermessagesconversation.h \
+    mytextedit.h
 
 FORMS    += mainwindow.ui \
     dialog.ui \

@@ -6,6 +6,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {   
     ui->setupUi(this);
+    QObject::connect(ui->chatEditBox, SIGNAL(enterPressed()), this, SLOT(on_sendingButton_clicked()));
 
     //Initialing a serverList model
     channelListModel = new QStandardItemModel();
