@@ -25,11 +25,6 @@ void ChannelJoiningDialog::on_joiningButton_clicked()
     close();
 }
 
-QString ChannelJoiningDialog::getChoosenChannel()
-{
-    return chosenChannel;
-}
-
 void ChannelJoiningDialog::on_ChannelJoiningDialog_finished(int result)
 {
     Q_UNUSED(result);

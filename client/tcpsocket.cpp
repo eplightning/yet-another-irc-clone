@@ -9,6 +9,11 @@ tcpSocket::tcpSocket(QObject *parent) :
     readHeaderLength = 0;
     readLength = 0;
     connected = false;
+    port = 0;
+    address = "";
+    socket = nullptr;
+    timerUserHeartbeat = new QTimer(this);
+    timerSlaveHeartbeat = new QTimer(this);
 }
 
 bool tcpSocket::connectWith(QString address, int port, Packet::Direction direction)
@@ -28,12 +33,12 @@ bool tcpSocket::connectWith(QString address, int port, Packet::Direction directi
     }
 
     connected = true;
-    if (direction==Packet::Direction::SlaveToUser){
-        timerUserHeartbeat = new QTimer(this);
+    //Jeśli łączymy się ze slavem - dodajemy zegary do heartbeatów i zmienną z czasem ostatniej wiadomości od serwera.
+    if (direction==Packet::Direction::SlaveToUser)
+    {
         connect(timerUserHeartbeat, SIGNAL(timeout()), this, SLOT(sendHeartbeat()));
         timerUserHeartbeat->start(1000);
 
-        timerSlaveHeartbeat = new QTimer(this);
         connect(timerSlaveHeartbeat, SIGNAL(timeout()), this, SLOT(heartbeatTimeExpired()));
         timerSlaveHeartbeat->start(10 * 1000);
 
@@ -63,18 +68,23 @@ void tcpSocket::write(Packet *p)
 
 void tcpSocket::readyRead()
 {
+    //Dopóki są do przeczytania jakieś dane.
     while (socket->bytesAvailable())
     {
+        //Jeśli jesteśmy na etapie czytania nagłówka.
         if (!isReadingPayload)
         {
+            //Czytamy z pozostałej do przeczytania części nagłówka tyle ile się da.
            QByteArray data = socket->read(Packet::HeaderSize - readHeaderLength);
            qint64 read = data.size();
 
            const char* dataPacked = reinterpret_cast<const char*>(data.constData());
+           //Dorzucamy przeczytane dane do bufora
            bufferedData.insert(bufferedData.end(), dataPacked, dataPacked + read);
 
            readHeaderLength += read;
 
+           //Jak przeczytaliśmy cały nagłówek - bierzemy z niego dane do dalszego czytania i czytamy payload.
            if (readHeaderLength == Packet::HeaderSize)
            {
                const u16 *ptrType = reinterpret_cast<const u16*>(&bufferedData[0]);
@@ -93,6 +103,7 @@ void tcpSocket::readyRead()
 
         if (isReadingPayload)
         {
+            //Jeśli payload jest większy od 0 - czytamy payload.
             if (packetHeader.payloadSize > 0)
             {
                 QByteArray data = socket->read(packetHeader.payloadSize - readLength);
@@ -103,6 +114,7 @@ void tcpSocket::readyRead()
                 bufferedData.insert(bufferedData.end(), dataPacked, dataPacked + read);
             }
 
+            //Jak wszystko przeczytaliśmy - tworzymy pakiet i sprawdzamy czy jest poprawny.
             if (packetHeader.payloadSize == readLength)
             {
                 isReadingPayload = false;
@@ -116,6 +128,7 @@ void tcpSocket::readyRead()
                     {
                         lastReceivedPacketTime = QDateTime::currentDateTime();
 
+                        //Przekazujemy pakiet sygnałem.
                         switch (a->packetType())
                         {
                             case Packet::Type::ServerList:

@@ -62,24 +62,15 @@ void MainWindow::on_sendingButton_clicked()
     refreshChatBox();
     ui->chatEditBox->clear();
 
+    //Jeśli znajdujemy się w kanale wysyłamy wiadomość na kanał.
     if (selectedConversation->getPrefix() == "#")
     {
-        QString name = selectedConversation->getFullName();
-        u64 id = 0;
-        for (int i = 0; i < channelList.size(); i++)
-        {
-            if (channelList[i]->getFullName() == name)
-            {
-                id = channelList[i]->getId();
-            }
-        }
-
-        if (id != 0) {
-            SlaveUserPackets::SendChannelMessage packet(id);
-            packet.setMessage(text.toStdString());
-            slave->write(&packet);
-        }
+        ChannelConversation *conversation = static_cast<ChannelConversation*>(selectedConversation);
+        SlaveUserPackets::SendChannelMessage packet(conversation->getId());
+        packet.setMessage(text.toStdString());
+        slave->write(&packet);
     }
+    //W przciwnym wypadku wysyłamy prywatną wiadomość.
     else
     {
         PrivateConversation *conversation = static_cast<PrivateConversation*>(selectedConversation);
@@ -93,17 +84,21 @@ void MainWindow::on_sendingButton_clicked()
 
 void MainWindow::on_channelList_activated(const QModelIndex &index)
 {
+    //Jeśli wybraliśmy Komunikaty serwera uniemożliwiamy pisanie na kanał.
     if (channelListModel->itemFromIndex(index)->text() == "Komunikaty Serwera")
     {
         ui->chatEditBox->setEnabled(false);
         ui->sendingButton->setEnabled(false);
         selectedConversation = serverConversation;
     }
+    //W przeciwnym razie szukamy konwersacji (kanału lub prywatnej konwersacji) do wyświetlenia.
     else
     {
         int row = index.row();
         QVector<int> places;
         int count = 0;
+        //Na liście może się znaleźć kilka prywatnych konwersacji o tej samej nazwie. Dlatego sprawdzamy, które miejsce wśród nazw o tej samej nazwie zajmuje ta przez
+        //nas szukana.
         for (int z = 0; z < channelListModel->rowCount(); z++)
         {
             if(channelListModel->itemFromIndex(index)->text() == channelListModel->itemFromIndex(channelListModel->index(z,0))->text())
@@ -114,6 +109,8 @@ void MainWindow::on_channelList_activated(const QModelIndex &index)
         }
         ui->chatEditBox->setEnabled(true);
         ui->sendingButton->setEnabled(true);
+
+        //Znajdujemy kanał o szukanej nazwie - nazwy kanałów są unikatowe.
         for (int i = 0; i < channelList.size(); i++)
         {
             if (channelList[i]->getFullName() == channelListModel->itemFromIndex(index)->text())
@@ -121,6 +118,7 @@ void MainWindow::on_channelList_activated(const QModelIndex &index)
                 selectedConversation = channelList[i];
             }
         }
+        //Znajdujemy prywatną konwersację o szukanej nazwie - biorąc pod uwagę pozycję konwersacji do otwarcia wśród konwersacji nazwanych tak samo.
         for (int j = 0; j < privateMessagesList.size(); j++)
         {
             if (privateMessagesList[j]->getFullName() == channelListModel->itemFromIndex(index)->text())
@@ -133,6 +131,7 @@ void MainWindow::on_channelList_activated(const QModelIndex &index)
             }
         }
     }
+    //Zmianiamy stan kanału na przeczytany i odświeżamy wyświetlaną konwersację oraz listę użytkowników.
     selectedConversation->setRead();
     refreshUserList();
     refreshChatBox();
@@ -151,6 +150,7 @@ void MainWindow::on_serverListRead(MasterUserPackets::ServerList *p)
         }
         else
         {
+            //Jeśli udało się połączyć z serwerem (slave) to łączymy sygnały ze slotami.
             QObject::connect(slave, SIGNAL(handshakeAck(SlaveUserPackets::HandshakeAck*)),
                                   this, SLOT(on_handshakeAckCome(SlaveUserPackets::HandshakeAck*)));
             QObject::connect(slave, SIGNAL(channels(SlaveUserPackets::Channels*)),
@@ -238,10 +238,12 @@ void MainWindow::on_channelsReceived(SlaveUserPackets::Channels *p)
     Vector<String> channels = p->channels();
     QList<QString> qChannels;
 
+    //Przenosimy listę kanałów do qlisty.
     for (unsigned i = 0; i < channels.size(); i++)
     {
         qChannels.push_back(QString::fromStdString(channels[i]));
     }
+    //Tworzymy okno wyboru kanału.
     ChannelJoiningDialog *channelJoin = new ChannelJoiningDialog(this);
     channelJoin->setItems(qChannels);
     channelJoin->setModal(true);
@@ -285,6 +287,7 @@ void MainWindow::showDialog()
 
 void MainWindow::connectWithServer()
 {
+    //Czyścimy po ew. wcześniejszej sesji.
     channelListModel->clear();
     userListModel->clear();
 
@@ -311,6 +314,8 @@ void MainWindow::connectWithServer()
 
     master = new tcpSocket(this);
     slave = new tcpSocket(this);
+
+    //Łączymy się z masterem.
     if (!master->connectWith(masterIP, masterPort, Packet::Direction::MasterToUser))
     {
         serverConversation->addMessage("Nie udało się połączyć z serwerem głównym.");
@@ -325,7 +330,7 @@ void MainWindow::connectWithServer()
         master->write(&a);
     }
 
-    // zaznacza pierwszy kanał..
+    //Zaznaczamy pierwszy kanał.
     QModelIndex first = channelListModel->item(0)->index();
     ui->channelList->selectionModel()->select(first,
                                               QItemSelectionModel::SelectionFlag::Select);
@@ -344,9 +349,11 @@ void MainWindow::on_channelLeavingButton_clicked()
         row = index.row();
     }
 
-
+    //Jeśli wybrano jakiś element.
     if (channelName != nullptr)
     {
+         // Na liście mogą być konwersacje prywatne o tej samej nazwie (sytuacja gdy pierwszy rozmówca sie wyloguje, a nowy o tej samej nazwi sie zaloguje przed
+         // zamknięciem poprzedniej konwersacji). Szukamy położenia nazwy wsród duplikatów.
         for (int z = 0; z < channelListModel->rowCount(); z++)
         {
             if(channelName == channelListModel->itemFromIndex(channelListModel->index(z,0))->text())
@@ -355,6 +362,7 @@ void MainWindow::on_channelLeavingButton_clicked()
             }
             count = places.indexOf(row);
         }
+        //Szukamy kanału do zamknięcia - brak duplikatów. W razie znalezienia - prośba o opuszczenie kanału do serwera.
         for (int i = 0; i < channelList.size(); i++)        {
             if (channelName == channelList[i]->getFullName())
             {                
@@ -362,18 +370,22 @@ void MainWindow::on_channelLeavingButton_clicked()
                 slave->write(&packet);
             }
         }
+        //Szukamy prywatnej konwersacji do zamknięcia - z użyciem duplikatów.
         for (int j = 0; j < privateMessagesList.size(); j++)
         {
             if (channelName == privateMessagesList[j]->getFullName())
             {
                 if (count == 0)
                 {
+                    //Jeśli znajdziemy konwersację to usuwamy ją z listy widocznych konwersacji.
                     if (selectedConversation != nullptr && selectedConversation->getFullName() == channelName)
                     {
                         selectedConversation = nullptr;
                     }
                     serverConversation->addMessage("Zamknięto konwersację z użytkownikiem " + privateMessagesList[j]->getName() + ".");
                     privateMessagesList[j]->removeFromList();
+
+                    //Jeśli dodatkowo rozmówca już jest offline usuwamy konwersację - i tak nie da się już do niej wrócić.
                     if (!privateMessagesList[j]->isUserOnline())
                     {
                         delete privateMessagesList[j];
@@ -388,12 +400,14 @@ void MainWindow::on_channelLeavingButton_clicked()
     {
         serverConversation->addMessage("Aby opuścić kanał należy najpierw go zaznaczyć.");
     }
+    //Odświeżamy okno wiadomości i listę użytkowników.
     refreshChatBox();
     refreshUserList();
 }
 
 void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
 {
+    //Szukamy kanału, którego dotyczy sygnał.
     int index = -1;
     for (int i = 0; i < channelList.size(); i++)
     {
@@ -422,16 +436,17 @@ void MainWindow::on_channelParted(SlaveUserPackets::ChannelParted *p)
                     break;
             }
 
+            //Jeśli opuściliśmy aktualnie otwarty kanał odświeżamy widok.
             if (selectedConversation != nullptr && selectedConversation->getFullName() == channelList[index]->getFullName())
             {
                 selectedConversation = nullptr;
                 refreshChatBox();
                 refreshUserList();
             }
+            //Usuwamy kanał z listy.
             channelList[index]->removeFromList();
             delete channelList[index];
             channelList.remove(index);
-
             break;
         case SlaveUserPackets::ChannelParted::Status::UnknownError:
             serverConversation->addMessage("Błąd przy wychodzeniu z kanału " + channelList[index]->getName() + ".");
@@ -456,6 +471,7 @@ void MainWindow::refreshChatBox()
     if (selectedConversation!=nullptr)
     {
         ui->chatBox->setHtml(selectedConversation->getText());
+        //Jeśli otwarta jest konwersacja prywatna, której drugi uczestnik już jest online - blokujemy dodwanie wiadomości.
         if (selectedConversation->getPrefix() == "*")
         {
             PrivateConversation *a = static_cast<PrivateConversation*>(selectedConversation);
@@ -518,6 +534,7 @@ void MainWindow::refreshUserList()
     {
         if (selectedConversation->getPrefix() == "#")
         {
+            //Dodajemy naszą nazwę użytkownika na listę użytkowników (wraz z uwzględnieniem flag).
             ChannelConversation *a = static_cast<ChannelConversation*>(selectedConversation);
             if (a->getFlags() == 0)
             {
@@ -527,6 +544,7 @@ void MainWindow::refreshUserList()
             {
                 addItemToUserList("@" + userName);
             }
+            //Dodajemy do listy użytkowników wraz z uwzględnieniem ich flag dla danego kanału.
             for (int i = 0; i < a->getUsers().size(); i++)
             {
                 if (a->getUser(i)->flags == 0)
@@ -539,6 +557,7 @@ void MainWindow::refreshUserList()
                 }
             }
         }
+        //Brak flag w prywatnej konwersacji - dodajemy tylko nazwę użytkownika i rozmówcy (jeśli jest online).
         else if (selectedConversation->getPrefix() == "*")
         {
             addItemToUserList(userName);
@@ -567,6 +586,7 @@ void MainWindow::on_channelUserParted(SlaveUserPackets::ChannelUserParted *p)
 
 void MainWindow::on_userDisconnected(SlaveUserPackets::UserDisconnected *p)
 {
+    //Usuwamy użytkownika z każdego kanału na którym jest.
     for (int i = 0; i < channelList.size(); i++)
     {
         if (channelList[i]->containsUser(p->id()))
@@ -575,11 +595,13 @@ void MainWindow::on_userDisconnected(SlaveUserPackets::UserDisconnected *p)
             channelList[i]->delUser(p->id());
         }
     }
+    //Uwuwamy użytkownika z ew. konwersacji prywatnej.
     for (int j = 0; j < privateMessagesList.size(); j++)
     {
         if (privateMessagesList[j]->getUserId() == p->id())
         {
             privateMessagesList[j]->setUserOffline();
+            //Jeśli konwersacja została wcześniej zamknięta - ponownie pojawia się na liście.
             if (!privateMessagesList[j]->isOnTheList())
             {
                 privateMessagesList[j]->reAddToList();
@@ -616,6 +638,7 @@ void MainWindow::on_userUpdated(SlaveUserPackets::UserUpdated *p)
             channelList[i]->updateUserName(p->id(), p->nick());
         }
     }
+    //Zmiana nazwy użytkownika pociąga za sobą zmianę nazwy konwersacji prywatnej.
     for (int j = 0; j < privateMessagesList.size(); j++)
     {
         if (privateMessagesList[j]->getUserId() == p->id())
@@ -629,13 +652,16 @@ void MainWindow::on_userUpdated(SlaveUserPackets::UserUpdated *p)
     refreshChatBox();
 }
 
+//Po wybraniu użytkownika z listy otwieramy prywatną konwersację z nim.
 void MainWindow::on_userList_doubleClicked(const QModelIndex &index)
 {
+    //Na pierwszym miejscu na liście jest nasza użytkownika klikającego - ignorujemy wybranie tej opcji.
     if (selectedConversation != nullptr && index.row()>0)
     {
         if (selectedConversation->getPrefix() == "#")
         {
             ChannelConversation *a = static_cast<ChannelConversation*>(selectedConversation);
+            //Jeśli nie mamy jeszcze konwersacji z wybranym użytkownikiem.
             if (!privateMessagesListContains(a->getUser(index.row()-1)->id))
             {
                 PrivateConversation *conversation = new PrivateConversation(a->getUser(index.row()-1)->id,
@@ -650,6 +676,7 @@ void MainWindow::on_userList_doubleClicked(const QModelIndex &index)
                     if (privateMessagesList[j]->getUserId() == a->getUser(index.row()-1)->id)
                     {
                         selectedConversation = privateMessagesList[j];
+                        //Jeśli konwersacja została zamknięta.
                         if (!privateMessagesList[j]->isOnTheList())
                         {
                             privateMessagesList[j]->reAddToList();
@@ -662,6 +689,7 @@ void MainWindow::on_userList_doubleClicked(const QModelIndex &index)
             refreshChatBox();
             refreshUserList();
         }
+        //Jeśli kliknęliśmy w prywatnej rozmowie - wybraliśmy użytkownika z jakim właśnie rozmawiamy. Oznaczamy konwerację jako przeczytaną.
         else if (selectedConversation->getPrefix() == "*")
         {
             selectedConversation->setRead();
@@ -684,11 +712,13 @@ bool MainWindow::privateMessagesListContains(u64 userId)
 void MainWindow::on_privateMessageReceived(SlaveUserPackets::PrivateMessageReceived *p)
 {
     bool messageAdded = false;
+    //Szukamy prywatnej konwersacji na liście konwersacji.
     for (int i = 0; i < privateMessagesList.size(); i++)
     {
         if (privateMessagesList[i]->getUserId() == p->user())
         {
             messageAdded = true;
+            //Jeśli konwersacja nie jest widoczna - dodajemy ją znowu do listView.
             if (!privateMessagesList[i]->isOnTheList())
             {
                 privateMessagesList[i]->reAddToList();
@@ -698,6 +728,7 @@ void MainWindow::on_privateMessageReceived(SlaveUserPackets::PrivateMessageRecei
         }
     }
 
+    //Jak nie znaleźliśmy konwersacji - należy ją utworzyć.
     if (!messageAdded)
     {
         PrivateConversation *conversation = new PrivateConversation(p->user(), QString::fromStdString(p->nick()), channelListModel);
