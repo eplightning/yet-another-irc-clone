@@ -65,7 +65,7 @@ void MainWindow::on_sendingButton_clicked()
     if (selectedConversation->getPrefix() == "#")
     {
         QString name = selectedConversation->getFullName();
-        u64 id;
+        u64 id = 0;
         for (int i = 0; i < channelList.size(); i++)
         {
             if (channelList[i]->getFullName() == name)
@@ -73,9 +73,12 @@ void MainWindow::on_sendingButton_clicked()
                 id = channelList[i]->getId();
             }
         }
-        SlaveUserPackets::SendChannelMessage packet(id);
-        packet.setMessage(text.toStdString());
-        slave->write(&packet);
+
+        if (id != 0) {
+            SlaveUserPackets::SendChannelMessage packet(id);
+            packet.setMessage(text.toStdString());
+            slave->write(&packet);
+        }
     }
     else
     {
