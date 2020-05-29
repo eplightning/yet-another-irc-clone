@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <queue>
 #include <thread>
+#include <functional>
 
 YAIC_NAMESPACE
 
